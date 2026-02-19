@@ -11,16 +11,49 @@ All you need to do is:
 2. Surround each pylon with a trigger zone and name them "pilone #001", "pilone #002", ...
 3. Add a trigger zone to each gate, spanning exactly between pairs of pylons. Name those "gate #001", "gate #002", ...
    These trigger zones mark where pilots have to fly through in order to pass a gate.
-   If the same gate is used multiple times during the track, create multiple gate trigger
-   zones on top of each other.
+   You only need one gate near each pylon, regardless of the number of laps.
 4. Create one or more trigger zones covering the entire race track, allowing to detect if 
    participants entered or left the race track. 
-   Name them "racetrack #001", "racetrack #002", ...
+   Name them "racezone #001", "racezone #002", ...
 5. Create three script triggers to initialize and run this script. See the comment
    block at the start of the script.
 6. Add a dummy trigger that plays all sound files. This makes sure, they are added to the
-   mission file.
+   mission file. You can use a trigger condition that will never be true.
+
+For Group Races Only...: (everyone enters the race together and shares the same start time. can optioanlly use a pace plane)
+(Group race feature, and capability for multiple laps, added by GTFreeFlyer)
+• If you are running a group race, you will need to set the option for GroupRace = true (see instructions in script)  
+• In the .miz, I suggest you add an AI pace plane for everyone to follow into the start gate.  This is the
+   easiest way to coordinate a group of people, but is not required.
+• If using a pace plane, you MUST create a trigger that will execute as soon as the pace drops into the race and
+   tells the racers, "Race on!" (or whatever).  The trigger must be "Flag On" with the flag named "PaceDrop". This
+   is what will trigger race eligibility and a line-up check to make sure no one is cheating. You'll either be
+   kicked out of the race if you are way off parameters, or incur penalites.
+   The parameters, at the time of drop-in, are as follows relative to the pace plane:
+      -You must be within 1 nautical mile
+      -You must not be greater than 40 meters ahead of the pace. (0-40m will incur penalty time)
+      -You altitide must be within +100/-500 feet (0 to +100 feet with incur penalty time)
+      -You must be on the right side of the pace (everyone right-line-abreast formation)
+• Also if using a pace plane, you MUST set its name in the mission start trigger with race settings.
+• Only for group races, the default behavior is that the script will load, but NOT run.  You must create a trigger
+   to run it.  See next bullet point.
+• Create a switched condition trigger zone ahead of where the pace plane will drop-in, such that the AI pace plane 
+   will fly through it in order to start the race script and detect nearby players. 
+   The action needs to be DO SCRIPT, and type startRaceScript() into the text box. Of course, you may start the 
+   script at any other time if it makes more sense for you.
+• When everyone has completed the race, the script will stop running 15 seconds later. Next time your pace flies
+   through the zone mentioned above, the script will start again.
+• If desired, you may start and stop the script at any time using DO SCRIPT trigger with 
+   startRaceScript() or stopRaceScript() typed into the text box.
+• The script provides two general-purpose flags that you may use to trigger your own stuff in the miz. 
+   They are named GroupRaceStarted and GroupRaceFinished. Use these as read-only (don't change them on your own).
+   Either of them will be value 0 or 1, which is the same thing as false or true, and off or on, in DCS. 
+   i.e. "Flag On" is the same thing as "Flag is true", and also the same thing as "Flag value = 1"
+• Contact GTFreeFlyer (Discord or ED Forums) with any questions regarding group races. The best thing is to
+   check out the included example, "GTFreeFlyers Marianas WWII Races.miz", to see how things are set up.
 
 Source: https://forums.eagle.ru/showthread.php?t=120234
 
-Example mission: see 04_celebrate.miz (requires Persian Gulf map)
+Example missions:
+• 04_celebrate.miz (requires Persian Gulf map)
+• GTFreeFlyers Marianas WWII Races.miz (group race with pace plane. warbirds. wwii assets req'd)
