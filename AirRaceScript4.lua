@@ -9,6 +9,7 @@
 --                            • Due to adding laps, behavior changed if you go backwards through the gates          --
 --                            • Added functionality for a group race where everyone shares the same start time      -- 
 --                            • Added functionality for knife-edge gates                                            --
+--                            • Added illumination for night racing
 ----------------------------------------------------------------------------------------------------------------------
 -- This script enables mission builders to create an airrace course.                                                --
 -- The course consists of two or more gates, and can run from gate 1 to the last gate, or consist of multiple laps. --
@@ -29,9 +30,9 @@
 -- * Create three required triggers:                                                                                --
 --                                                                                                                  --
 --   1. Mission Start --> <empty> --> Do Script                                                                     --
---                                    NumberRaceZones = <total number of RaceZone triggerzones>           [required]--
---                                    NumberGates = <total number of Gate triggerzones in each lap>       [required]--
---                                    NumberPylons = <total number of Pylon triggerzones>                 [required]--
+--                                    NumberRaceZones = <total number of RaceZone triggerzones>           [REQUIRED]--
+--                                    NumberGates = <total number of Gate triggerzones in each lap>       [REQUIRED]--
+--                                    NumberPylons = <total number of Pylon triggerzones>                 [REQUIRED]--
 --                                    NumberLaps = <total number of laps per race>                        [optional]-- default: 0 (which means the race ends at the final gate, otherwise race ends at gate #001 of the last lap)
 --                                    NewPlayerCheckInterval = <number of seconds between checks>         [optional]-- default: 1
 --                                    RemovePlayerCheckInterval = <number of seconds between checks>      [optional]-- default: 30
@@ -40,19 +41,19 @@
 --                                    GateHeight = <global height of the gates in meters>                 [optional]-- default: 25 --maximum height of plane above ground to "hit" gate
 --                                    BonusGateHeight = <global height of the bonus gates in meters>      [optional]-- default: 1
 --                                    BonusGates = <list of gate numbers for low alt bonus>               [optional]-- default: {} (empty list) --example: {2, 5} for gates #002 and #005
---                                    StartSpeedLimit = <first gate speed limit in km/h>                  [optional]-- default: 300
+--                                    StartSpeedLimit = <first gate speed limit in km/h>                  [optional]-- default: 999
 --                                    GroupRace = <true or false>                                         [optional]-- default: false. True: timer starts for everyone as soon as first plane enters gate #001. false: separate timer for each plane
 --                                    PaceUnitName = <pace's unit name in a group race>                   [optional]-- default: (none, nil) --example: "PacePlane" (case-sensitive)
 --                                    GroupRaceParticipantFilter = <distance in meters>                   [optional]-- default: 999999. If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
---                                    IlluminationOn = <true or false whether you want lighting at night> [optional]-- default: false. If true, night racing! The illumination flares will appear over all the gates plus any additional illumination trigger zones
---									  IlluminationStartTime = <time in seconds after midnight>            [optional]-- default: 79200 (10:00 PM)  
+--                                    IlluminationOn = <true or false whether you want lighting at night> [optional]-- default: true. If true, the illum. flares will appear over all the gates plus any additional illumination trigger zones
+--									  IlluminationStartTime = <time in seconds after midnight>            [optional]-- default: 64800 (06:00 PM)  
 --									  IlluminationStopTime = <time in seconds after midnight>             [optional]-- default: 21600 (06:00 AM). Flares are respawned every 5 minutes from start time until stop time.
---									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 500000
---                                    IlluminationNumberZones = <number of additional lighting zones>     [optional]-- default: 0. Trigger zones must named "illum #001", "illum #002", etc, starting with #001 and not skipping any numbers.              
---                                    IlluminationAGL = <Elevation AGL in meters where they spawn>        [optional]-- default: 500 (meters)
+--									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 10000
+--                                    IlluminationNumberZones = <number of additional lighting zones>     [optional]-- default: 0. Trigger zones must named "illum-1", "illum-2" ... "illum-10", etc, starting with -1, no leading zeroes, and not skipping any numbers.              
+--                                    IlluminationAGL = <Elevation AGL in meters where they spawn>        [optional]-- default: 810 (meters)
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
---                                    mist_4_5_126.lua or later                                                     --
+--                                    mist_4_5_126.lua (or later)                                                   --
 --                                                                                                                  --
 --   3. Once     --> Time more(2) --> Do Script File                                                                --
 --                                    AirRaceScript4.lua (or whatever you named this script file)                   --
@@ -292,19 +293,20 @@ Airrace = {
 	GateHeight = 100,
 	HorizontalGates = {1},
 	VerticalGates = {},
-	StartSpeedLimit = 300,
+	StartSpeedLimit = 999,
 	BonusGateHeight = 10,
 	BonusGates = {},
 	MessageLogged = false,
 	NumberLaps = 0,
 	GroupRace = false, -- true: timer starts for everyone as soon as first plane makes it through gate #001. false: separate timer for each plane
 	GroupRaceParticipantFilter = 999999, --meters.  If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
-	IlluminationOn = false,
-	IlluminationStartTime = 79200,
+	IlluminationOn = true,
+	IlluminationStartTime = 64800,
 	IlluminationStopTime = 21600,
-	IlluminationBrightness = 500000,
+	IlluminationBrightness = 10000,
 	IlluminationNumberZones = 0,
-	IlluminationAGL = 500,
+	IlluminationAGL = 810,
+	GroupCurrentRankings = {},
 }
 -----------------------------------------------------------------------------------------
 -- Airrace Constructor
@@ -337,6 +339,7 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 		IlluminationBrightness = illuminationBrightness,
 		IlluminationNumberZones = illuminationNumberZones,
 		IlluminationAGL = illuminationAGL,
+		GroupCurrentRankings = {},
 	}
 	setmetatable(obj, { __index = Airrace })
 	return obj
@@ -661,7 +664,7 @@ end
 function Airrace:NightRaceIllumination()
 	local missionTime = timer.getAbsTime()
 	if missionTime >= self.IlluminationStartTime or missionTime <= self.IlluminationStopTime then
-		for gate = 1, #self.Course.NumberGates do
+		for gate = 1, #self.Course.Gates do
 			local gateZoneName = string.format("gate #%03d", gate)
 			local gateZoneInfo = trigger.misc.getZone(gateZoneName)
 			if gateZoneInfo then --protection against a missing zone number
@@ -671,16 +674,17 @@ function Airrace:NightRaceIllumination()
 				trigger.action.illuminationBomb(illumLocation, self.IlluminationBrightness)
 			end
 		end
-	end
-	if self.IlluminationNumberZones > 0 then
-		for zone = 1, self.IlluminationNumberZones do
-			local illumZoneName = string.format("illum #%03d", zone)
-			local illumZoneInfo = trigger.misc.getZone(illumZoneName)
-			if illumZoneInfo then --protection against a missing zone number
-				local illumZoneVec3 = illumZoneInfo.point
-				local terrainElevation = land.getHeight({x = illumZoneVec3.x, y = illumZoneVec3.z})
-				local illuminLocation = {x=illumZoneVec3.x, y=terrainElevation + self.IlluminationAGL, z=illumZoneVec3.z}
-				trigger.action.illuminationBomb(illuminLocation, self.IlluminationBrightness)
+	
+		if self.IlluminationNumberZones > 0 then
+			for zone = 1, self.IlluminationNumberZones do
+				local illumZoneName = string.format("illum-%d", zone)
+				local illumZoneInfo = trigger.misc.getZone(illumZoneName)
+				if illumZoneInfo then --protection against a missing zone number
+					local illumZoneVec3 = illumZoneInfo.point
+					local terrainElevation = land.getHeight({x = illumZoneVec3.x, y = illumZoneVec3.z})
+					local illuminLocation = {x=illumZoneVec3.x, y=terrainElevation + self.IlluminationAGL, z=illumZoneVec3.z}
+					trigger.action.illuminationBomb(illuminLocation, self.IlluminationBrightness)
+				end
 			end
 		end
 	end
@@ -772,7 +776,7 @@ function Airrace:CheckLineupWithPace(player)
 		player.StatusText = "NOT eligible"
 		warnPlayer(string.format("%s, STAY CLEAR of the course area immediately!", player.Name), player)		
 	else
-		player.StatusText = "Successful entry. Go! Go! Go!"
+		player.StatusText = "Cleared into the course. Go! Go! Go!"
 		env.info(string.format("Player %s is eligible for the current group race.", player.Name))
 		--Perform lineup checks:
 		if playerNewX > 1 then --allow a 1 meter buffer
@@ -956,7 +960,7 @@ function Airrace:UpdatePlayerStatus(player)
 		end		
 		mist.scheduleFunction(function() self:removePlayerFromGroupRace(player) end, {}, timer.getTime()+15)
 		if GroupWinnerCrossedFinishLine == false then
-			GroupWinnerCrossedFinishLine == true
+			GroupWinnerCrossedFinishLine = true
 			trigger.action.setUserFlag("FinishLineCrossed", 1)
 		end
 		return
@@ -1184,19 +1188,19 @@ function Init()
 	local newPlayerCheckInterval = NewPlayerCheckInterval or 1
 	local removePlayerCheckInterval = RemovePlayerCheckInterval or 30
 	local gateHeight = GateHeight or 25
-	local startSpeedLimit = StartSpeedLimit or 300
+	local startSpeedLimit = StartSpeedLimit or 999
 	local bonusGateHeight = BonusGateHeight or 1
 	local bonusGates = BonusGates or {}
 	local groupRace = GroupRace or false
 	local paceUnitName = PaceUnitName or nil
 	local fastestIntermediates = {{}}
 	local participantFilter = GroupRaceParticipantFilter
-	local illuminationOn = IlluminationOn or false
-	local illuminationStartTime = IlluminationStartTime or 79200 --10:00 PM
-	local illuminationStopTime = IlluminationStopTime or 21600 --06:00 AM
-	local illuminationBrightness = IlluminationBrightness or 500000
+	local illuminationOn = IlluminationOn or true
+	local illuminationStartTime = IlluminationStartTime or 64800
+	local illuminationStopTime = IlluminationStopTime or 21600
+	local illuminationBrightness = IlluminationBrightness or 10000
 	local illuminationNumberZones = IlluminationNumberZones or 0
-	local illuminationAGL = IlluminationAGL or 500 --meters
+	local illuminationAGL = IlluminationAGL or 810 --meters
 
 	--protect value to valid range
 	if illuminationBrightness > 1000000 then
@@ -1243,7 +1247,7 @@ function Init()
 	end
 
 	if illuminationOn == true then
-		mist.scheduleFunction(RefreshIllumination, { race }, timer.getTime(), 300)
+		mist.scheduleFunction(RefreshIllumination, { race }, timer.getTime(), 240)
 	end
 end
 

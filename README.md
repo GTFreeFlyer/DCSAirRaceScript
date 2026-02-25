@@ -15,13 +15,17 @@ All you need to do is:
 4. Create one or more trigger zones covering the entire race track, allowing to detect if 
    participants entered or left the race track. 
    Name them "racezone #001", "racezone #002", ...
-5. Create three script triggers to initialize and run this script. See the comment
-   block at the start of the script.
-6. Add a dummy trigger that plays all sound files. This makes sure, they are added to the
-   mission file. You can use a trigger condition that will never be true.
+5. If you wish to race at night, illumination flares are provided by default above each gate, and above any other
+   zone named "illum-1", "illum-2", etc.  They will respawn every 5 minutes. Feature added by GTFreeFlyer.
+   Don't use leading zeroes for the numbers. Example: illum-9, illum-10, illum-132). This allows quick copy/paste of trigger zone in the editor.
+   See the setup instructions in the comment block at the start of the script for all illumination options and settings.
+6. Create three script triggers to initialize and run this script. See the comment block at the start of the script.
+7. Add a dummy trigger that plays all required sound files. This makes sure, they are added 
+   to the mission file. You can use a trigger condition that will never be true.
+8. Add a detailed breifing so that players know what to do. Use can use suggestedMizBriefing.txt as a template. 
 
-For Group Races Only...: (everyone enters the race together and shares the same start time. can optioanlly use a pace plane)
-(Group race feature, and capability for multiple laps, added by GTFreeFlyer)
+For Group Races Only...: (Everyone enters the race together and shares the same start time. Can optionally use a pace plane)
+(Group race feature (all items below), and capability for multiple laps, added by GTFreeFlyer)
 • If you are running a group race, you will need to set the option for GroupRace = true (see instructions in script)  
 • In the .miz, I suggest you add an AI pace plane for everyone to follow into the start gate.  This is the
    easiest way to coordinate a group of people, but is not required.
@@ -45,9 +49,12 @@ For Group Races Only...: (everyone enters the race together and shares the same 
    through the zone mentioned above, the script will start again.
 • If desired, you may start and stop the script at any time using DO SCRIPT trigger with 
    startRaceScript() or stopRaceScript() typed into the text box.
-• The script provides two general-purpose flags that you may use to trigger your own stuff in the miz. 
-   They are named GroupRaceStarted and GroupRaceFinished. Use these as read-only (don't change them on your own).
-   Either of them will be value 0 or 1, which is the same thing as false or true, and off or on, in DCS. 
+• The script provides three general-purpose flags that you may use to trigger your own stuff in the miz: 
+   GroupRaceStarted (Toggles true when the first racer enters the first gate.)
+   GroupRaceFinished (Toggles true about 15 seconds after the last racer has finished the race, or if there are no more racers remaining due to crashes, disconnects, etc)
+   FinishLineCrossed (Toggles true when the first racer crosses the finish line.)
+   Use these as read-only (don't change them on your own).
+   All of them will be value 0 or 1, which is the same thing as false or true, and off or on, in DCS. 
    i.e. "Flag On" is the same thing as "Flag is true", and also the same thing as "Flag value = 1"
 • Contact GTFreeFlyer (Discord or ED Forums) with any questions regarding group races. The best thing is to
    check out the included example, "GTFreeFlyers Marianas WWII Races.miz", to see how things are set up.
