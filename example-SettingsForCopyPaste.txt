@@ -46,14 +46,14 @@ RaceZoneCeiling = 2000
 --plane, make sure this altitude is at least 500 feet higher than the drop-in alt.
 
 GateHeight = 150
---[optional, 25] height of the gates in meters
+--[optional, 300] height of the gates in feet
 --Racers flying through a gate higher than this will receive a penalty
 
 BonusGates = {2, 4}
 --[optional, {}] list of gate numbers for low altitude bonus
 
-BonusGateHeight = 3
---[optional, 1] height of the bonus gates in meters
+BonusGateHeight = 15
+--[optional, 20] height of the bonus gates in feet
 --Racers flying through a gate below this altitude will get a bonus
 
 MissedGatesDNF = 3
@@ -61,7 +61,7 @@ MissedGatesDNF = 3
 --Valid range: 1 to infinity
 
 StartSpeedLimit = 300
---[optional, 999] first gate speed limit in km/h
+--[optional, 999] first gate speed limit in knots
 --Passing the first gate above this speed limit will result in a DNF
 
 --GROUP RACE SETTINGS-----
@@ -75,8 +75,8 @@ PaceUnitName = "PacePlane"
 --Pace plane's unit name from the editor. Case-sensitive, placed in quotes "like this"
 --Used only when GroupRace=true
 
-GroupRaceParticipantFilter = 1852
---[optional, 999999] distance in meters
+GroupRaceParticipantFilter = 6000
+--[optional, 999999] distance in feet
 --Used only when GroupRace=true, and when a pace plane is added
 --Pilots only added to the race list if within this range of the pace before drop-in
 
@@ -104,9 +104,9 @@ IlluminationBrightness = 20000
 --[optional, 10000] value 1 to 1000000 
 --In testing, 10000 to 20000 gives a nice glow that isn't overly bright
               
-IlluminationAGL = 950 
---[optional, 810] Elevation in meters above ground level where the illum. flares spawn
---In testing, they fall about 150 m/minute (500 feet/minute)
+IlluminationAGL = 3000 
+--[optional, 2600] Elevation in feet above ground level where the illum. flares spawn
+--In testing, they fall about 500 feet per minute
 
 IlluminationRespawnTimer = 120
 --[optional, 240] seconds until respawn. Illum. flares last for 4 minutes before the burn-out

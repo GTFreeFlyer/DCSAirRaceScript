@@ -38,20 +38,21 @@
 --                                    RemovePlayerCheckInterval = <number of seconds between checks>      [optional]-- default: 30
 --                                    HorizontalGates = <list of gate numbers requiring level flight>     [optional]-- default: {1} (first gate only) --example: {1, 2, 5} for gates #001, #002, and #005
 --                                    VerticalGates = <list of gate numbers requiring knife-edge flight>  [optional]-- default: {} (empty list)  --example: {3, 6, 8} for gates #003, #006, and #008
---                                    GateHeight = <global height of the gates in meters>                 [optional]-- default: 25 --maximum height of plane above ground to "hit" gate
---                                    BonusGateHeight = <global height of the bonus gates in meters>      [optional]-- default: 1
+--                                    RaceZoneCeiling = <max. detect altitude (ft) of planes in racezone  [optional]-- default: 99999 --make sure this is at least 500 feet above where the pace drop-in occurs
+--                                    GateHeight = <global height of the gates in feet>                   [optional]-- default: 300 --maximum height of plane above ground to "hit" gate
+--                                    BonusGateHeight = <global height of the bonus gates in feet>        [optional]-- default: 20
 --                                    BonusGates = <list of gate numbers for low alt bonus>               [optional]-- default: {} (empty list) --example: {2, 5} for gates #002 and #005
---                                    MissedGatesDNF = <number of missed gates to trigger a DNF>          [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
---                                    StartSpeedLimit = <first gate speed limit in km/h>                  [optional]-- default: 999
+--                                    NumberMissedGatesDNF = <number of missed gates to trigger a DNF>    [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
+--                                    StartSpeedLimit = <first gate speed limit in knots>                 [optional]-- default: 999
 --                                    GroupRace = <true or false>                                         [optional]-- default: false. True: timer starts for everyone as soon as first plane enters gate #001. false: separate timer for each plane
 --                                    PaceUnitName = <pace's unit name in a group race>                   [optional]-- default: (none, nil) --example: "PacePlane" (case-sensitive)
---                                    GroupRaceParticipantFilter = <distance in meters>                   [optional]-- default: 999999. If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
+--                                    GroupRaceParticipantFilter = <distance in feet>                     [optional]-- default: 999999. If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
 --                                    IlluminationOn = <true or false whether you want lighting at night> [optional]-- default: true. If true, the illum. flares will appear over all the gates plus any additional illumination trigger zones
 --									  IlluminationStartTime = <time in seconds after midnight>            [optional]-- default: 64800 (06:00 PM)  
 --									  IlluminationStopTime = <time in seconds after midnight>             [optional]-- default: 21600 (06:00 AM). Flares are respawned every 4 minutes from start time until stop time.
 --									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 10000
 --                                    IlluminationNumberZones = <number of additional lighting zones>     [optional]-- default: 0. Trigger zones must named "illum-1", "illum-2" ... "illum-10", etc, starting with -1, no leading zeroes, and not skipping any numbers.              
---                                    IlluminationAGL = <Elevation AGL in meters where they spawn>        [optional]-- default: 810 (meters)
+--                                    IlluminationAGL = <Elevation AGL in feet where they spawn>          [optional]-- default: 2600
 --                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
@@ -306,23 +307,24 @@ Airrace = {
 	FastestPlayer = '',
 	LastMessage = '',
 	LastMessageId = 0,
-	GateHeight = 100,
+	GateHeight = 300 * .3048, --convert to m
 	HorizontalGates = {1},
 	VerticalGates = {},
-	StartSpeedLimit = 999,
-	BonusGateHeight = 10,
+    RaceZoneCeiling = 99999 * .3048, --convert to m
+	StartSpeedLimit = 999 * 1.852, --convert to km/h
+	BonusGateHeight = 15 * .3048, --convert to m
 	BonusGates = {},
-	MissedGatesDNF = 999,
+	NumberMissedGatesDNF = 999,
 	MessageLogged = false,
 	NumberLaps = 0,
-	GroupRace = false, -- true: timer starts for everyone as soon as first plane makes it through gate #001. false: separate timer for each plane
-	GroupRaceParticipantFilter = 999999, --meters.  If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
+	GroupRace = false,
+	GroupRaceParticipantFilter = 999999 * .3048, --convert to meters
 	IlluminationOn = true,
 	IlluminationStartTime = 64800,
 	IlluminationStopTime = 21600,
 	IlluminationBrightness = 10000,
 	IlluminationNumberZones = 0,
-	IlluminationAGL = 810,
+	IlluminationAGL = 2600* .3048, --convert to meters
 	GroupCurrentRankings = {},
 }
 -----------------------------------------------------------------------------------------
@@ -331,7 +333,7 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, startSpeedLimit, bonusGateHeight, bonusGates, missedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 	local obj = {
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
@@ -343,14 +345,15 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 		GateHeight = gateHeight,
 		HorizontalGates = horizontalGates or {1},
 		VerticalGates = verticalGates or {},
+        RaceZoneCeiling = raceZoneCeiling,
 		BonusGateHeight = bonusGateHeight,
 		BonusGates = bonusGates,
-		MissedGatesDNF = missedGatesDNF,
+		NumberMissedGatesDNF = numberMissedGatesDNF,
 		StartSpeedLimit = startSpeedLimit,
 		NumberLaps = numberLaps,
 		GroupRace = groupRace,
 		PaceUnitName = paceUnitName,
-		GroupRaceParticipantFilter = participantFilter, --meters.  If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
+		GroupRaceParticipantFilter = participantFilter,
 		IlluminationOn = illuminationOn,
 		IlluminationStartTime = illuminationStartTime,
 		IlluminationStopTime = illuminationStopTime,
@@ -376,7 +379,7 @@ function Airrace:CheckForNewPlayers()
 		for unitIndex, unit in ipairs(unitsInZone) do
 			if unit:getPlayerName() then --if this is nil, it means it's an AI unit and we aren't interested in that.
 				env.info(string.format("Unit %s is in the race zone", unit:getPlayerName()))
-				if unit:getLife() > 1 then	-- Only check for alive units
+				if unit:getLife() > 1 and unit:getPosition().p.y <= self.RaceZoneCeiling then	-- Only check for alive units below the racezone ceiling
 					playerExists = false
 					if #self.Players > 0 then
 						for playerIndex, player in ipairs(self.Players) do				
@@ -438,14 +441,14 @@ function Airrace:RemoveExitedPlayers()
 		for playerIndex, player in ipairs(self.Players) do
 			playerExists = false
 			for unitIndex, unit in ipairs(unitsInZone) do
-				if unit:getLife() > 1 then	-- Only check for alive units
+				if unit:getLife() > 1 -- Only check for alive units
 					local unitName = ''
 					if unit:getPlayerName() then
 						unitName = unit:getPlayerName()
 					else
 						unitName = unit:getName()
 					end
-					if player.Name == unitName then
+					if player.Name == unitName and unit:getPosition().p.y <= self.RaceZoneCeiling then
 						playerExists = true
 						break
 					end
@@ -621,13 +624,11 @@ function Airrace:CheckGateSpeedForPlayer(player)
 	local result = true
 	local unitspeed = Unit.getByName(player.UnitName):getVelocity()
 	speed = math.sqrt(unitspeed.x^2 + unitspeed.y^2 + unitspeed.z^2)
-	-- logMessage(string.format("sped %d km/h", speed * 3.6))
 	if speed * 3.6 <= self.StartSpeedLimit then
 		result = true
-		--warnPlayer(string.format("start speed = %d km/h", speed * 3.6), player)
 	else
 		result = false
-		warnPlayer(string.format("EXCEEDING START SPEED LIMIT of %d km/h!! speed = %s km/h", self.StartSpeedLimit, speed * 3.6), player)
+		warnPlayer(string.format("EXCEEDING START SPEED LIMIT of %d kts!! speed = %s kts", self.StartSpeedLimit * .54, speed * 3.6 * .54), player)
 	end
 	return result
 end
@@ -897,7 +898,7 @@ function Airrace:UpdatePlayerStatus(player)
 			if gateNumber > player.CurrentGateNumber + 1 then
 				missedGates = gateNumber - (player.CurrentGateNumber + 1)
                 player.MissedGates = player.MissedGates + missedGates
-                if player.MissedGates >= self.MissedGatesDNF then
+                if player.MissedGates >= self.NumberMissedGatesDNF then
                     player.DNF = true
                     player.StatusText = string.format("Too many missed gates!!! DNF!!!")
                     env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
@@ -918,7 +919,7 @@ function Airrace:UpdatePlayerStatus(player)
 														      --from the older version in order to add the ability to do multiple laps.
 				missedGates = #self.Course.Gates - (player.CurrentGateNumber + 1) + gateNumber
                 player.MissedGates = player.MissedGates + missedGates
-                if player.MissedGates >= self.MissedGatesDNF then
+                if player.MissedGates >= self.NumberMissedGatesDNF then
                     player.DNF = true
                     player.StatusText = string.format("Too many missed gates!!! DNF!!!")
                     env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
@@ -1240,8 +1241,9 @@ end
 function Init()
 	local raceZones = {}
 	local racePylons = {}
-	local horizontalGates = HorizontalGates
-	local verticalGates = VerticalGates
+	local horizontalGates = HorizontalGates or {1}
+	local verticalGates = VerticalGates {}
+    local raceZoneCeiling = RaceZoneCeiling or 99999
 	local course = Course:New()
 	race = nil --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
 	local numberRaceZones = NumberRaceZones or 0
@@ -1250,21 +1252,21 @@ function Init()
 	local numberLaps = NumberLaps or 0
 	local newPlayerCheckInterval = NewPlayerCheckInterval or 1
 	local removePlayerCheckInterval = RemovePlayerCheckInterval or 30
-	local gateHeight = GateHeight or 25
+	local gateHeight = GateHeight or 300
 	local startSpeedLimit = StartSpeedLimit or 999
-	local bonusGateHeight = BonusGateHeight or 1
+	local bonusGateHeight = BonusGateHeight or 20
 	local bonusGates = BonusGates or {}
-	local missedGatesDNF = MissedGatesDNF or 999
+	local numberMissedGatesDNF = NumberMissedGatesDNF or 999
 	local groupRace = GroupRace or false
 	local paceUnitName = PaceUnitName or nil
 	local fastestIntermediates = {{}}
-	local participantFilter = GroupRaceParticipantFilter
+	local participantFilter = GroupRaceParticipantFilter or 99999
 	local illuminationOn = IlluminationOn or true
 	local illuminationStartTime = IlluminationStartTime or 64800
 	local illuminationStopTime = IlluminationStopTime or 21600
 	local illuminationBrightness = IlluminationBrightness or 10000
 	local illuminationNumberZones = IlluminationNumberZones or 0
-	local illuminationAGL = IlluminationAGL or 810 --meters
+	local illuminationAGL = IlluminationAGL or 2600
 	local illuminationRespawnTimer = IlluminationRespawnTimer or 240 --seconds
 
 	--protect values to valid ranges
@@ -1273,9 +1275,17 @@ function Init()
 	elseif illuminationBrightness < 1 then
 		illuminationBrightness = 1
 	end
-	if missedGatesDNF < 1 then
-		missedGatesDNF = 1
+	if numberMissedGatesDNF < 1 then
+		numberMissedGatesDNF = 1
 	end
+
+    --unit conversions for script usage
+    raceZoneCeiling = raceZoneCeiling * .3048 --convert to meters
+    gateHeight = gateHeight * .3048 --convert to meters
+    bonusGateHeight = bonusGateHeight * .3048 --convert to meters
+    startSpeedLimit = startSpeedLimit * 1.852 --convert to km/h
+    participantFilter = participantFilter * .3048 --convert to meters
+    illuminationAGL = illuminationAGL * .3048 --convert to meters
 	
 	if numberRaceZones > 0 and numberGates > 0 then
 		for idx = 1, numberRaceZones do
@@ -1301,7 +1311,7 @@ function Init()
 			end
 		end
 
-		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, startSpeedLimit, bonusGateHeight, bonusGates, missedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
