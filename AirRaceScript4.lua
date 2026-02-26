@@ -41,16 +41,18 @@
 --                                    GateHeight = <global height of the gates in meters>                 [optional]-- default: 25 --maximum height of plane above ground to "hit" gate
 --                                    BonusGateHeight = <global height of the bonus gates in meters>      [optional]-- default: 1
 --                                    BonusGates = <list of gate numbers for low alt bonus>               [optional]-- default: {} (empty list) --example: {2, 5} for gates #002 and #005
+--                                    MissedGatesDNF = <number of missed gates to trigger a DNF>          [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
 --                                    StartSpeedLimit = <first gate speed limit in km/h>                  [optional]-- default: 999
 --                                    GroupRace = <true or false>                                         [optional]-- default: false. True: timer starts for everyone as soon as first plane enters gate #001. false: separate timer for each plane
 --                                    PaceUnitName = <pace's unit name in a group race>                   [optional]-- default: (none, nil) --example: "PacePlane" (case-sensitive)
 --                                    GroupRaceParticipantFilter = <distance in meters>                   [optional]-- default: 999999. If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
 --                                    IlluminationOn = <true or false whether you want lighting at night> [optional]-- default: true. If true, the illum. flares will appear over all the gates plus any additional illumination trigger zones
 --									  IlluminationStartTime = <time in seconds after midnight>            [optional]-- default: 64800 (06:00 PM)  
---									  IlluminationStopTime = <time in seconds after midnight>             [optional]-- default: 21600 (06:00 AM). Flares are respawned every 5 minutes from start time until stop time.
+--									  IlluminationStopTime = <time in seconds after midnight>             [optional]-- default: 21600 (06:00 AM). Flares are respawned every 4 minutes from start time until stop time.
 --									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 10000
 --                                    IlluminationNumberZones = <number of additional lighting zones>     [optional]-- default: 0. Trigger zones must named "illum-1", "illum-2" ... "illum-10", etc, starting with -1, no leading zeroes, and not skipping any numbers.              
 --                                    IlluminationAGL = <Elevation AGL in meters where they spawn>        [optional]-- default: 810 (meters)
+--                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
 --                                    mist_4_5_126.lua (or later)                                                   --
@@ -93,6 +95,7 @@ Player = {
 	Penalty = 0,
 	Bonus = 0,
 	HitPylon = 0,
+    MissedGates = 0,
 	TotalTime = 0,
 	IntermediateTimes = {{}},
 	DNF = false,
@@ -133,6 +136,7 @@ function Player:New(playerUnit)
 		Penalty = 0,
 		Bonus = 0,
 		HitPylon = 0,
+        MissedGates = 0,
 		TotalTime = 0,
 		IntermediateTimes = {{}},
 		DNF = false,
@@ -182,11 +186,22 @@ function Player:StartTimer()
 			end
 		end
 
+        --reset player parameters to default
+        self.Penalty = 0
+		self.Bonus = 0
+		self.HitPylon = 0
+        self.MissedGates = 0
 		self.TotalTime = 0
 		self.IntermediateTimes = {{}}
 		self.Started = true
 		self.Finished = false
-		self.ResultsDisplayed = false --resets this flag        
+		self.ResultsDisplayed = false --resets this flag
+        self.MissedGates = 0  
+        self.DNF = false
+        self.PylonFlag = false
+        self.Warnings = {}
+		self.CurrentLapNumber = 1
+        self.ResultsDisplayed = false
 
 		--reset the intermediate times to 0 for each gate, on each lap
         if race.NumberLaps > 1 then
@@ -297,6 +312,7 @@ Airrace = {
 	StartSpeedLimit = 999,
 	BonusGateHeight = 10,
 	BonusGates = {},
+	MissedGatesDNF = 999,
 	MessageLogged = false,
 	NumberLaps = 0,
 	GroupRace = false, -- true: timer starts for everyone as soon as first plane makes it through gate #001. false: separate timer for each plane
@@ -315,7 +331,7 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, startSpeedLimit, bonusGateHeight, bonusGates, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, startSpeedLimit, bonusGateHeight, bonusGates, missedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 	local obj = {
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
@@ -329,6 +345,7 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 		VerticalGates = verticalGates or {},
 		BonusGateHeight = bonusGateHeight,
 		BonusGates = bonusGates,
+		MissedGatesDNF = missedGatesDNF,
 		StartSpeedLimit = startSpeedLimit,
 		NumberLaps = numberLaps,
 		GroupRace = groupRace,
@@ -385,7 +402,7 @@ function Airrace:CheckForNewPlayers()
 								z = pos["z"] 
 								}
 								--get player position
-								local pos = Unit.getByName(unit:getPlayerName()):getPosition().p
+								local pos = unit:getPosition().p
 								local playerPos = { 
 								x = pos["x"], --N/S position in meters
 								y = pos["y"], --altitude in meters
@@ -875,41 +892,59 @@ function Airrace:UpdatePlayerStatus(player)
 
 		elseif not player.Finished then
 			-- Player has missed one or more gates
-			local missedGates = 0 -- define this as a local variable with default value of 0
+			local missedGates = 0 -- define this as a local counter with default value of 0
 
 			if gateNumber > player.CurrentGateNumber + 1 then
 				missedGates = gateNumber - (player.CurrentGateNumber + 1)
-				if missedGates == 1 then
-					warnPlayer(string.format("Missed gate %d | Penalty: 5 sec.", player.CurrentGateNumber + 1), player)
-					env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1))
-				else
-					warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", player.CurrentGateNumber + 1, gateNumber - 1, 5 * missedGates), player)
-					env.info(string.format("Player %s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
-				end
+                player.MissedGates = player.MissedGates + missedGates
+                if player.MissedGates >= self.MissedGatesDNF then
+                    player.DNF = true
+                    player.StatusText = string.format("Too many missed gates!!! DNF!!!")
+                    env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+                    mist.scheduleFunction(function() self:removePlayerFromGroupRace(player) end, {}, timer.getTime()+10)
+                    return
+                else
+                    if missedGates == 1 then
+                        warnPlayer(string.format("Missed gate %d | Penalty: 5 sec.", player.CurrentGateNumber + 1), player)
+                        env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1))
+                    else
+                        warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", player.CurrentGateNumber + 1, gateNumber - 1, 5 * missedGates), player)
+                        env.info(string.format("Player %s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
+                    end
+                end
 
 			elseif gateNumber < player.CurrentGateNumber then --Either going backwards or on a new lap with a lower gate number.  
 			                                                  --We can't do much about going backwards, this is a sacrifice we make 
 														      --from the older version in order to add the ability to do multiple laps.
 				missedGates = #self.Course.Gates - (player.CurrentGateNumber + 1) + gateNumber
-				if missedGates == 1 then
-					warnPlayer(string.format("Missed gate %d | Penalty: 5 sec.", player.CurrentGateNumber + 1 - #self.Course.Gates), player) --this should always be gate 1 if only 1 gate was missed, but we'll calculate it anyway.
-					env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
-				else
-					--we use some logic here to see if the gate numbers wrapped back around to 1
-					local firstMissedGate = player.CurrentGateNumber + 1
-					local lastMissedGate = gateNumber - 1
-					if firstMissedGate > #self.Course.Gates then
-						firstMissedGate = firstMissedGate - #self.Course.Gates
-					end
-					if lastMissedGate <= 0 then
-						lastMissedGate = #self.Course.Gates
-					else
-						lastMissedGate = gateNumber - 1
-					end
+                player.MissedGates = player.MissedGates + missedGates
+                if player.MissedGates >= self.MissedGatesDNF then
+                    player.DNF = true
+                    player.StatusText = string.format("Too many missed gates!!! DNF!!!")
+                    env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+                    mist.scheduleFunction(function() self:removePlayerFromGroupRace(player) end, {}, timer.getTime()+10)
+                    return
+                else
+                    if missedGates == 1 then
+                        warnPlayer(string.format("Missed gate %d | Penalty: 5 sec.", player.CurrentGateNumber + 1 - #self.Course.Gates), player) --this should always be gate 1 if only 1 gate was missed, but we'll calculate it anyway.
+                        env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
+                    else
+                        --we use some logic here to see if the gate numbers wrapped back around to 1
+                        local firstMissedGate = player.CurrentGateNumber + 1
+                        local lastMissedGate = gateNumber - 1
+                        if firstMissedGate > #self.Course.Gates then
+                            firstMissedGate = firstMissedGate - #self.Course.Gates
+                        end
+                        if lastMissedGate <= 0 then
+                            lastMissedGate = #self.Course.Gates
+                        else
+                            lastMissedGate = gateNumber - 1
+                        end
 
-					warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", firstMissedGate, lastMissedGate, 5 * missedGates), player)
-					env.info(string.format("Player %s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
-				end
+                        warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", firstMissedGate, lastMissedGate, 5 * missedGates), player)
+                        env.info(string.format("Player %s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
+                    end
+                end
 				-- Player has started a new lap, so increase lap number
 				player.CurrentLapNumber = player.CurrentLapNumber + 1	
 			end			
@@ -1219,6 +1254,7 @@ function Init()
 	local startSpeedLimit = StartSpeedLimit or 999
 	local bonusGateHeight = BonusGateHeight or 1
 	local bonusGates = BonusGates or {}
+	local missedGatesDNF = MissedGatesDNF or 999
 	local groupRace = GroupRace or false
 	local paceUnitName = PaceUnitName or nil
 	local fastestIntermediates = {{}}
@@ -1229,12 +1265,16 @@ function Init()
 	local illuminationBrightness = IlluminationBrightness or 10000
 	local illuminationNumberZones = IlluminationNumberZones or 0
 	local illuminationAGL = IlluminationAGL or 810 --meters
+	local illuminationRespawnTimer = IlluminationRespawnTimer or 240 --seconds
 
-	--protect value to valid range
+	--protect values to valid ranges
 	if illuminationBrightness > 1000000 then
 		illuminationBrightness = 1000000
 	elseif illuminationBrightness < 1 then
 		illuminationBrightness = 1
+	end
+	if missedGatesDNF < 1 then
+		missedGatesDNF = 1
 	end
 	
 	if numberRaceZones > 0 and numberGates > 0 then
@@ -1261,7 +1301,7 @@ function Init()
 			end
 		end
 
-		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, startSpeedLimit, bonusGateHeight, bonusGates, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, startSpeedLimit, bonusGateHeight, bonusGates, missedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
@@ -1275,7 +1315,7 @@ function Init()
 	end
 
 	if illuminationOn == true then
-		mist.scheduleFunction(RefreshIllumination, { race }, timer.getTime(), 240)
+		mist.scheduleFunction(RefreshIllumination, { race }, timer.getTime(), illuminationRespawnTimer)
 	end
 end
 
