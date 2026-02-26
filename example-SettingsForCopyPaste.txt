@@ -40,6 +40,11 @@ HorizontalGates = {3,6,9,12}
 VerticalGates = {4,7,9}
 --[optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees
 
+RaceZoneCeiling = 2000
+--[optional, 99999] maximum altitude in feet of the racezone. Planes above this
+--will not be added to the race, or removed if they are. If you are using a pace
+--plane, make sure this altitude is at least 500 feet higher than the drop-in alt.
+
 GateHeight = 150
 --[optional, 25] height of the gates in meters
 --Racers flying through a gate higher than this will receive a penalty
