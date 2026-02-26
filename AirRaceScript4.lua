@@ -45,6 +45,7 @@
 --                                    NumberMissedGatesDNF = <number of missed gates to trigger a DNF>    [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
 --                                    StartSpeedLimit = <first gate speed limit in knots>                 [optional]-- default: 999
 --                                    GroupRace = <true or false>                                         [optional]-- default: false. True: timer starts for everyone as soon as first plane enters gate #001. false: separate timer for each plane
+--                                    GroupRaceTimeout = <minutes after clock starts, or pace drops in>   [optional]-- default: 120. Offers protection in case one racer decides to fly around inside the racezone, purposefully not finishing.
 --                                    PaceUnitName = <pace's unit name in a group race>                   [optional]-- default: (none, nil) --example: "PacePlane" (case-sensitive)
 --                                    GroupRaceParticipantFilter = <distance in feet>                     [optional]-- default: 999999. If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
 --                                    IlluminationOn = <true or false whether you want lighting at night> [optional]-- default: true. If true, the illum. flares will appear over all the gates plus any additional illumination trigger zones
@@ -319,6 +320,7 @@ Airrace = {
 	NumberLaps = 0,
 	GroupRace = false,
 	GroupRaceParticipantFilter = 999999 * .3048, --convert to meters
+    GroupRaceTimeout = 120 * 60, --convert to seconds
 	IlluminationOn = true,
 	IlluminationStartTime = 64800,
 	IlluminationStopTime = 21600,
@@ -333,7 +335,7 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 	local obj = {
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
@@ -354,6 +356,7 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 		GroupRace = groupRace,
 		PaceUnitName = paceUnitName,
 		GroupRaceParticipantFilter = participantFilter,
+        GroupRaceTimeout = groupRaceTimeout,
 		IlluminationOn = illuminationOn,
 		IlluminationStartTime = illuminationStartTime,
 		IlluminationStopTime = illuminationStopTime,
@@ -1127,6 +1130,11 @@ function Airrace:ListPlayers()
 				mist.scheduleFunction(function() self:removePlayerFromGroupRace(player) end, {}, timer.getTime()+15)
 			end
 		end
+    elseif self.GroupRace == true and (trigger.misc.getUserFlag("GroupRaceStarted") == 1 or trigger.misc.getUserFlag("PaceDrop") == 1) and (timer.getTime() > GroupStartTime + self.GroupRaceTimeout) then
+        trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
+		trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose 
+		env.info("Group race timed out. Flag GroupRaceFinished = 1")
+		mist.scheduleFunction(stopRaceScript, nil, timer.getTime())
 	elseif self.GroupRace == true and #self.Players == 0 and (trigger.misc.getUserFlag("GroupRaceStarted") == 1 or trigger.misc.getUserFlag("PaceDrop") == 1) then
 		trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
 		trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose 
@@ -1261,6 +1269,7 @@ function Init()
 	local paceUnitName = PaceUnitName or nil
 	local fastestIntermediates = {{}}
 	local participantFilter = GroupRaceParticipantFilter or 99999
+    local groupRaceTimeout = GroupRaceTimeout or 120
 	local illuminationOn = IlluminationOn or true
 	local illuminationStartTime = IlluminationStartTime or 64800
 	local illuminationStopTime = IlluminationStopTime or 21600
@@ -1280,12 +1289,13 @@ function Init()
 	end
 
     --unit conversions for script usage
-    raceZoneCeiling = raceZoneCeiling * .3048 --convert to meters
-    gateHeight = gateHeight * .3048 --convert to meters
-    bonusGateHeight = bonusGateHeight * .3048 --convert to meters
-    startSpeedLimit = startSpeedLimit * 1.852 --convert to km/h
-    participantFilter = participantFilter * .3048 --convert to meters
-    illuminationAGL = illuminationAGL * .3048 --convert to meters
+    raceZoneCeiling = raceZoneCeiling * .3048 --convert feet to meters
+    gateHeight = gateHeight * .3048 --convert feet to meters
+    bonusGateHeight = bonusGateHeight * .3048 --convert feet to meters
+    startSpeedLimit = startSpeedLimit * 1.852 --convert knots to km/h
+    participantFilter = participantFilter * .3048 --convert feet to meters
+    illuminationAGL = illuminationAGL * .3048 --convert feet to meters
+    groupRaceTimeout = groupRaceTimeout * 60 --convert minutes to seconds
 	
 	if numberRaceZones > 0 and numberGates > 0 then
 		for idx = 1, numberRaceZones do
@@ -1311,7 +1321,7 @@ function Init()
 			end
 		end
 
-		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
