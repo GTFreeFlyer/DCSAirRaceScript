@@ -69,10 +69,10 @@
 --                        is where you want to place this trigger zone. Without this trigger, the race will go on,  --
 --                        but cheaters will not be penalized.                                                       -- 
 --                                                                                                                  --      
---                       Note: Three general-purpose flags are provided in this script which the user can use in    --
+--                       Note: General-purpose flags are provided in this script which the user can use in          --
 --                             the .miz triggers for whatever purposes during group races. Two are named:           --
---                              GroupRaceStarted, and GroupRaceFinished.  The other is named FinishLineCrossed,     --
---                              and will toggle as soon as the first pilot crosses the finish line.                 --
+--                              GroupRaceStarted, and GroupRaceFinished.  Another is named FinishLineCrossed,       --
+--                              and the others are Lap1Gate1Reached, Lap1Gate2Reached ... Lap3Gate15Reached, etc.   --
 --                              All can either be 0 or 1 (In the .miz: false or true. off or on.)                   --                                    
 ----------------------------------------------------------------------------------------------------------------------
 
@@ -172,7 +172,8 @@ function Player:StartTimer()
 				self.StartTime = GroupStartTime
 				GroupTimerStarted = true
 				trigger.action.setUserFlag("GroupRaceStarted", 1) --optional flag to be used in the .miz for whatever purpose 
-				trigger.action.setUserFlag("GroupRaceFinished", 0) --optional flag to be used in the .miz for whatever purpose 
+				trigger.action.setUserFlag("GroupRaceFinished", 0) --optional flag to be used in the .miz for whatever purpose
+                trigger.action.setUserFlag("Lap1Gate1Reached", 1) --optional flag to be used in the .miz for whatever purpose                  
 				trigger.action.setUserFlag("PaceDrop", 0) -- reset this flag
 				env.info(string.format("Group timer started by player %s. Group start time: %d", self.Name, GroupStartTime))
 			else --the group timer has already been started by a previous player, so set this player's start time to the group start time
@@ -185,7 +186,7 @@ function Player:StartTimer()
 		self.IntermediateTimes = {{}}
 		self.Started = true
 		self.Finished = false
-		self.ResultsDisplayed = false --resets this flag
+		self.ResultsDisplayed = false --resets this flag        
 
 		--reset the intermediate times to 0 for each gate, on each lap
         if race.NumberLaps > 1 then
@@ -959,11 +960,21 @@ function Airrace:UpdatePlayerStatus(player)
 			env.info(string.format("Player %s +%s seconds behind best time", player.Name, formatTime(player.TotalTime + player.Penalty - self.FastestTime)))
 		end		
 		mist.scheduleFunction(function() self:removePlayerFromGroupRace(player) end, {}, timer.getTime()+15)
-		if GroupWinnerCrossedFinishLine == false then
-			GroupWinnerCrossedFinishLine = true
-			trigger.action.setUserFlag("FinishLineCrossed", 1)
-		end
-		return
+		
+        --set the general purpose flags used for group races...
+        if self.GroupRace == true then
+            if GroupWinnerCrossedFinishLine == false then
+                GroupWinnerCrossedFinishLine = true
+                trigger.action.setUserFlag("FinishLineCrossed", 1)
+            end
+            local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
+            local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
+            if not gateFlagValue or gateFlagValue == 0 then
+                trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose 
+            end
+        end
+		
+        return
 	end
 
 	-- Player is passing intermediate gate, set intermediate time
@@ -1001,6 +1012,15 @@ function Airrace:UpdatePlayerStatus(player)
 		end
 	end
 	player.CurrentGateNumber = gateNumber
+
+    --set the general purpose flags used for group races...
+    if self.GroupRace == true  then
+        local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
+        local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
+        if not gateFlagValue or gateFlagValue == 0 then
+            trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose 
+        end
+    end
 end
 -----------------------------------------------------------------------------------------
 -- Display all active players on screen, with their current status
@@ -1023,6 +1043,14 @@ function Airrace:ListPlayers()
 						self:CheckLineupWithPace(player)
 					end
 				end
+
+                --reset the general-purpose gate flags for the upcoming race
+                for lap = 1, self.NumberLaps do
+                    for gate = 1, #self.Course.Gates do
+                        local flagName = string.format("Lap%dGate%dReached", lap, gate)
+                        trigger.action.setUserFlag(flagName, 0)
+                    end
+                end
 			end
 		end
 
