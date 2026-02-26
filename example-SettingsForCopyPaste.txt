@@ -70,6 +70,11 @@ GroupRace = true
 --[optional, false] same timer for all, or individual timers
 --If true, timer starts for all players as soon as the 1st racer crosses the start
 
+GroupRaceTimeout = 30
+[optional, 120] minutes after clock starts, or pace drops in.  Offers protection if a 
+--racer decides to fly around in the racezone, purposefully starting, but not finishing
+--the race.  Script will stop without warning, and you'll be able to begin the next race.
+
 PaceUnitName = "PacePlane"
 --[optional, nil]
 --Pace plane's unit name from the editor. Case-sensitive, placed in quotes "like this"
