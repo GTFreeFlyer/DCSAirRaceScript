@@ -2,6 +2,8 @@ AirRaceScript4
 Changes by GTFreeFlyer, February 2026  
   
 • Changed the filename from AirRaceScript3 to AirRaceScript4  
+• Many changes as shown below.  Script doubled in size from ~700 lines to  
+   nearly 1,400 lines.  
 • Readme updated. Example settings file and suggested .miz breifing text  
    files added to root folder in repo.  
 • Added capability to have multiple laps. NumberLaps can be set in the  
@@ -17,11 +19,12 @@ Changes by GTFreeFlyer, February 2026
    added by dropping a trigger zone on the map. Option can be disabled too.  
 • Racezones now have a setting for maximum ceiling, allowing aircraft above  
    the zone to fly around without being added to the race.  
-• Trigger zone names for racezone, gate, and pylon now use dash numbers instead  
-   of #001, #002, etc. The automatic naming of items in the editor changed  
-   to this behavior a few years ago.  This change allows quick copy/paste of  
-   trigger zones.  
-• The number of pylon hits required for DNF is now tunable, rather than fixed at 3. 
+• Trigger zone names for racezone, gate, and pylon (formerly pilone) now use  
+   dash numbers instead of #001, #002, etc. The automatic naming of items  
+   in the editor changed to this behavior a few years ago.  This change allows  
+   quick copy/paste of trigger zones.  
+• The number of pylon hits required for DNF is now tunable, rather than fixed at 3.
+• Added player speed to intermediate times 
   
 Legacy .miz with older versions of the script will need to make the following changes:  
   
