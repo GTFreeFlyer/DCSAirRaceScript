@@ -9,7 +9,8 @@
 --                            • Due to adding laps, behavior changed if you go backwards through the gates          --
 --                            • Added functionality for a group race where everyone shares the same start time      -- 
 --                            • Added functionality for knife-edge gates                                            --
---                            • Added illumination for night racing
+--                            • Added illumination for night racing                                                 --
+--                            • Added more user settings
 ----------------------------------------------------------------------------------------------------------------------
 -- This script enables mission builders to create an airrace course.                                                --
 -- The course consists of two or more gates, and can run from gate 1 to the last gate, or consist of multiple laps. --
@@ -18,12 +19,12 @@
 -- all as soon as the 1st player enters gate 1, and all players must enter gate 1 within 15 seconds after that.     --
 --                                                                                                                  --
 -- Usage of this script:                                                                                            --
--- * Create a mission with one or more large overlapping trigger zones, named "racezone #001", "racezone #002", etc --
--- * Create two or more small trigger zones inside the large ones, named "gate #001", "gate #002", etc          --
+-- * Create a mission with one or more large overlapping trigger zones, named "racezone-1", "racezone-2", etc       --
+-- * Create two or more small trigger zones inside the large ones, named "gate-1", "gate-2", etc                    --
 -- * Place some static objects, such as race pylons, next to the gate trigger zones so the players can see the gates--
 --   These objects can be of any type, and can have any name, they are just there for visual reference.             --
 -- * Add one or more aircraft or helicopters so clients can race with them                                          --
--- * If choosing multiple laps, the start gate and finish gate are the same gate, gate #001                       --
+-- * If choosing multiple laps, the start gate and finish gate are the same gate, gate-1                            --
 -- * You only need one set of gates for multiple laps. Versions prior to 1.2 required overlapping trigger zones for --
 --   multiple laps.  If you want to use this version of the script with a legacy .miz file, leave your trigger zones--
 --   as they are, and set NumberLaps=1 (which is the default value for this optional setting)                       --
@@ -31,20 +32,21 @@
 --                                                                                                                  --
 --   1. Mission Start --> <empty> --> Do Script                                                                     --
 --                                    NumberRaceZones = <total number of RaceZone triggerzones>           [REQUIRED]--
---                                    NumberGates = <total number of Gate triggerzones in each lap>       [REQUIRED]--
---                                    NumberPylons = <total number of Pylon triggerzones>                 [REQUIRED]--
---                                    NumberLaps = <total number of laps per race>                        [optional]-- default: 0 (which means the race ends at the final gate, otherwise race ends at gate #001 of the last lap)
+--                                    NumberGates = <total number of gate triggerzones in each lap>       [REQUIRED]--
+--                                    NumberPylons = <total number of pylon triggerzones>                 [REQUIRED]--
+--                                    NumberLaps = <total number of laps per race>                        [optional]-- default: 0 (which means the race ends at the final gate, otherwise race ends at gate-1 of the last lap)
 --                                    NewPlayerCheckInterval = <number of seconds between checks>         [optional]-- default: 1
 --                                    RemovePlayerCheckInterval = <number of seconds between checks>      [optional]-- default: 30
---                                    HorizontalGates = <list of gate numbers requiring level flight>     [optional]-- default: {1} (first gate only) --example: {1, 2, 5} for gates #001, #002, and #005
---                                    VerticalGates = <list of gate numbers requiring knife-edge flight>  [optional]-- default: {} (empty list)  --example: {3, 6, 8} for gates #003, #006, and #008
+--                                    HorizontalGates = <list of gate numbers requiring level flight>     [optional]-- default: {1} (first gate only) --example: {1, 2, 5} for gates 1, 2, and 5
+--                                    VerticalGates = <list of gate numbers requiring knife-edge flight>  [optional]-- default: {} (empty list)  --example: {3, 6, 8} for gates 3, 6, and 8
 --                                    RaceZoneCeiling = <max. detect altitude (ft) of planes in racezone  [optional]-- default: 99999 --make sure this is at least 500 feet above where the pace drop-in occurs
 --                                    GateHeight = <global height of the gates in feet>                   [optional]-- default: 300 --maximum height of plane above ground to "hit" gate
 --                                    BonusGateHeight = <global height of the bonus gates in feet>        [optional]-- default: 20
---                                    BonusGates = <list of gate numbers for low alt bonus>               [optional]-- default: {} (empty list) --example: {2, 5} for gates #002 and #005
+--                                    BonusGates = <list of gate numbers for low alt bonus>               [optional]-- default: {} (empty list) --example: {2, 5} for gates 2, and 5
 --                                    NumberMissedGatesDNF = <number of missed gates to trigger a DNF>    [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
+--                                    NumberPylonHitsDNF = <number of pylon hits to trigger a DNF>        [optional]-- default: 999. Range 1 to 9999. 
 --                                    StartSpeedLimit = <first gate speed limit in knots>                 [optional]-- default: 999
---                                    GroupRace = <true or false>                                         [optional]-- default: false. True: timer starts for everyone as soon as first plane enters gate #001. false: separate timer for each plane
+--                                    GroupRace = <true or false>                                         [optional]-- default: false. True: timer starts for everyone as soon as first plane enters gate-1. false: separate timer for each plane
 --                                    GroupRaceTimeout = <minutes after clock starts, or pace drops in>   [optional]-- default: 120. Offers protection in case one racer decides to fly around inside the racezone, purposefully not finishing.
 --                                    PaceUnitName = <pace's unit name in a group race>                   [optional]-- default: (none, nil) --example: "PacePlane" (case-sensitive)
 --                                    GroupRaceParticipantFilter = <distance in feet>                     [optional]-- default: 999999. If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
@@ -158,7 +160,7 @@ function Player:New(playerUnit)
 	return obj
 end
 -----------------------------------------------------------------------------------------
-GroupStartTime = 0 --initialize this variable to 0, it will be set to the time of the first player passing through gate #001 if GroupRace is true
+GroupStartTime = 0 --initialize this variable to 0, it will be set to the time of the first player passing through gate-1 if GroupRace is true
 GroupTimerStarted = false --flag to indicate whether the group timer has been started
 GroupWinnerCrossedFinishLine = false --flag to indicate if the winner has crossed the finish line (group races only)
 -----------------------------------------------------------------------------------------
@@ -173,7 +175,7 @@ function Player:StartTimer()
 		    self.StartTime = timer.getTime()
 			env.info(string.format("Individual timer started for player %s. Start time: %d", self.Name, self.StartTime))
 		else  --(if this is a group race where everyone shares the same clock start time, then...)
-			if not GroupTimerStarted then --this player is the first one to pass through gate #001, so start the group timer and set the player's start time to the group start time
+			if not GroupTimerStarted then --this player is the first one to pass through gate-1, so start the group timer and set the player's start time to the group start time
 				GroupStartTime = timer.getTime()
 				self.StartTime = GroupStartTime
 				GroupTimerStarted = true
@@ -269,10 +271,10 @@ end
 -----------------------------------------------------------------------------------------
 -- Adds a gate to the course.
 -- Parameter gateNumber: the number of the trigger zone that defines a gate.
---                       e.g. for "gate #012" this is 12
+--                       e.g. for "gate-12" this is 12
 --
 function Course:AddGate(gateNumber)
-	local gateName = string.format("gate #%03d", gateNumber)
+	local gateName = string.format("gate-%d", gateNumber)
 	local triggerZone = trigger.misc.getZone(gateName)
 	-- logMessage(string.format("Looking up gate %s", gateName))
 	if triggerZone then
@@ -316,6 +318,7 @@ Airrace = {
 	BonusGateHeight = 15 * .3048, --convert to m
 	BonusGates = {},
 	NumberMissedGatesDNF = 999,
+	NumberPylonHitsDNF = 999,
 	MessageLogged = false,
 	NumberLaps = 0,
 	GroupRace = false,
@@ -335,7 +338,7 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 	local obj = {
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
@@ -351,6 +354,7 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 		BonusGateHeight = bonusGateHeight,
 		BonusGates = bonusGates,
 		NumberMissedGatesDNF = numberMissedGatesDNF,
+		NumberPylonHitsDNF = numberPylonHitsDNF,
 		StartSpeedLimit = startSpeedLimit,
 		NumberLaps = numberLaps,
 		GroupRace = groupRace,
@@ -444,7 +448,7 @@ function Airrace:RemoveExitedPlayers()
 		for playerIndex, player in ipairs(self.Players) do
 			playerExists = false
 			for unitIndex, unit in ipairs(unitsInZone) do
-				if unit:getLife() > 1 -- Only check for alive units
+				if unit:getLife() > 1 then -- Only check for alive units
 					local unitName = ''
 					if unit:getPlayerName() then
 						unitName = unit:getPlayerName()
@@ -535,10 +539,10 @@ function Airrace:CheckPylonHitForPlayer(player)
 				player.PylonFlag = true
 				env.info(string.format("Player %s hit a pylon (%d)", player.Name, player.HitPylon))
 			end
-			if player.HitPylon >= 3 then
+			if player.HitPylon >= self.NumberPylonHitsDNF then
 				player.DNF = true
-				player.StatusText = string.format("3rd pylon hit !!! DNF!!!")
-				env.info(string.format("Player %s hit 3 pylons. DNF!", player.Name))
+				player.StatusText = string.format("Too many pylons hit !!! DNF!!!")
+				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
 				mist.scheduleFunction(function() self:removePlayerFromGroupRace(player) end, {}, timer.getTime()+10)
 			end
 			break
@@ -687,7 +691,7 @@ function Airrace:NightRaceIllumination()
 	local missionTime = timer.getAbsTime()
 	if missionTime >= self.IlluminationStartTime or missionTime <= self.IlluminationStopTime then
 		for gate = 1, #self.Course.Gates do
-			local gateZoneName = string.format("gate #%03d", gate)
+			local gateZoneName = string.format("gate-%d", gate)
 			local gateZoneInfo = trigger.misc.getZone(gateZoneName)
 			if gateZoneInfo then --protection against a missing zone number
 				local gateZoneVec3 = gateZoneInfo.point
@@ -1250,7 +1254,7 @@ function Init()
 	local raceZones = {}
 	local racePylons = {}
 	local horizontalGates = HorizontalGates or {1}
-	local verticalGates = VerticalGates {}
+	local verticalGates = VerticalGates or {}
     local raceZoneCeiling = RaceZoneCeiling or 99999
 	local course = Course:New()
 	race = nil --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
@@ -1265,6 +1269,7 @@ function Init()
 	local bonusGateHeight = BonusGateHeight or 20
 	local bonusGates = BonusGates or {}
 	local numberMissedGatesDNF = NumberMissedGatesDNF or 999
+	local numberPylonHitsDNF = NumberPylonHitsDNF or 999
 	local groupRace = GroupRace or false
 	local paceUnitName = PaceUnitName or nil
 	local fastestIntermediates = {{}}
@@ -1287,6 +1292,9 @@ function Init()
 	if numberMissedGatesDNF < 1 then
 		numberMissedGatesDNF = 1
 	end
+	if numberPylonHitsDNF < 1 then
+		numberPylonHitsDNF = 1
+	end
 
     --unit conversions for script usage
     raceZoneCeiling = raceZoneCeiling * .3048 --convert feet to meters
@@ -1299,12 +1307,11 @@ function Init()
 	
 	if numberRaceZones > 0 and numberGates > 0 then
 		for idx = 1, numberRaceZones do
-			-- logMessage(string.format("Adding zone: RaceZone #%03d", idx))
-			table.insert(raceZones, string.format("racezone #%03d", idx))
+
+			table.insert(raceZones, string.format("racezone-%d", idx))
 		end
 		for idx = 1, numberPylons do
-			-- logMessage(string.format("Adding zone: Pylons #%03d", idx))
-			table.insert(racePylons, string.format("pilone #%03d", idx))
+			table.insert(racePylons, string.format("pylon-%d", idx))
 		end
 		for idx = 1, numberGates do
 			course:AddGate(idx)
@@ -1321,7 +1328,7 @@ function Init()
 			end
 		end
 
-		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
+		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction

@@ -4,7 +4,7 @@
 INSTRUCTIONS:
 
 Open the F10 map, make sure "Show Drawings" filter is enabled on the top toolbar, and get familiar with all of the information presented there. Zoom out to see everything, and read each of the white boxes.
-No excuses!
+!NO EXCUSES!
 ---------------------------------------------------------------------
 SRS FREQUENCIES:
 
@@ -38,8 +38,8 @@ When the pace plane drops in, your position relative to the pace plane is evalua
    *Above the pace?  +2 seconds + 1 additional second per every 20 meters
    *Left of the pace? +2 seconds
 
-Pylon hit: +3 seconds (3 pylon hits are you are disqualified)
-Missed pylon: +5 seconds
+Pylon hit: +3 seconds (3 pylon hits and you are disqualified)
+Missed pylon: +5 seconds (3 misses and you are disqualified)
 Too high at pylon: +2 seconds
 Wings not level where required: +2 seconds
 ---------------------------------------------------------------------
@@ -57,3 +57,4 @@ CREDITS:
 Mission design: GTFreeFlyer
 Original race script: Bas 'Joe Kurr' Weijers, Dutch Flanker Display Team
 GTFreeFlyer later contributed group racing, night racing, and multiple lap capability
+

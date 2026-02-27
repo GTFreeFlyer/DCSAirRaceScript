@@ -1,7 +1,7 @@
 •Copy and paste the first three required settings (at a minimum) from below the line
    into the first trigger of the mission which should be:
       Type: Mission start | Conditions: (none) | Actions: DO SCRIPT
-      (Hint: click the small text window icon next to the text box to open up an editor)
+      (Hint: click the small quad-arrow icon next to the text box to open up an editor)
 •Change values as needed.
 •All the optional settings can be omitted if you like the default values.
 •Values next to optional, i.e. [optional, 30], are the default values the script will use
@@ -11,22 +11,22 @@
 ----------------------------------------------------------------------------------------------
 NumberRaceZones = 1
 --[REQUIRED] total number of RaceZone triggerzones
---These trigger zones must be named, "racezone #001", "racezone #002", ... "racezone #010"
+--These trigger zones must be named, "racezone-1", "racezone-2", ... "racezone-10"
 --Usually, you'll have just one large racezone over the whole course.
 
 NumberGates = 12
---[REQUIRED] total number of Gate triggerzones in each lap
---These trigger zones must be named, "gate #001", "gate #002", ... "gate #010"
---Always three digits. Don't skip numbers.
+--[REQUIRED] total number of gate triggerzones in each lap
+--These trigger zones must be named, "gate-1", "gate-2", ... "gate-10"
+--No leading zeroes. Start at -1.  Don't skip numbers.  
 
 NumberPylons = 24
 --[REQUIRED] total number of Pylon triggerzones
---These trigger zones must be named, "pilone #001", "pilone #002", ... "pilone #010"
---Always three digits. Don't skip numbers.
+--These trigger zones must be named, "pylon-1", "pylon-2", ... "pylon-10"  
+--No leading zeroes. Start at -1.  Don't skip numbers.  
 
 NumberLaps = 3
 --[optional, 0] total number of laps per race
---If zero, race ends at last pylon, otherwise race will end at gate #001
+--If zero, race ends at last pylon, otherwise race will end at gate-1
 
 NewPlayerCheckInterval = 1
 --[optional, 1] seconds between checks for new players entering the racezone
@@ -56,8 +56,12 @@ BonusGateHeight = 15
 --[optional, 20] height of the bonus gates in feet
 --Racers flying through a gate below this altitude will get a bonus
 
-MissedGatesDNF = 3
+NumberMissedGatesDNF = 3
 --[optional, 999] how many missed gates will trigger a DNF
+--Valid range: 1 to infinity
+
+NumberPylonHitsDNF = 3
+--[optional, 999] how many pylon hits will trigger a DNF
 --Valid range: 1 to infinity
 
 StartSpeedLimit = 300
@@ -71,14 +75,14 @@ GroupRace = true
 --If true, timer starts for all players as soon as the 1st racer crosses the start
 
 GroupRaceTimeout = 30
-[optional, 120] minutes after clock starts, or pace drops in.  Offers protection if a 
+--[optional, 120] minutes after clock starts, or pace drops in.  Offers protection if a 
 --racer decides to fly around in the racezone, purposefully starting, but not finishing
 --the race.  Script will stop without warning, and you'll be able to begin the next race.
 
 PaceUnitName = "PacePlane"
 --[optional, nil]
---Pace plane's unit name from the editor. Case-sensitive, placed in quotes "like this"
---Used only when GroupRace=true
+--Pace plane's unit name (pilot name) from the editor. Case-sensitive, placed in 
+--quotes "like this". Used only when GroupRace=true
 
 GroupRaceParticipantFilter = 6000
 --[optional, 999999] distance in feet

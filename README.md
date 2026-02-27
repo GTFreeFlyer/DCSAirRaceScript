@@ -8,19 +8,23 @@ All you need to do is:
 1. Set up the gates: place single or pairs of pylons along the race track.   
    You may use any object. Static objects work best for performance.  
    The track may or may not end where it starts, thus being linear or circular.  
-2. Surround each pylon with a trigger zone and name them "pilone #001", "pilone #002", ...  
-3. Add a trigger zone to each gate, spanning exactly between pairs of pylons. Name those "gate #001",  
-   "gate #002", ...  
+2. Surround each pylon with a trigger zone and name them "pylon-1", "pylon-2", ... "pylon-10"  
+   and so on.  Don't use leading zeroes for the numbers. This allows quick copy/paste of  
+   trigger zones in the editor.  
+3. Add a trigger zone to each gate, spanning exactly between pairs of pylons, or adjacent to a  
+   single pylon. Name those "gate-1", "gate-2", ...  "gate-10" and so on.  Don't use leading  
+   zeroes for the numbers. This allows quick copy/paste of trigger zones in the editor.  
    These trigger zones mark where pilots have to fly through in order to pass a gate.  
    You only need one gate near each pylon, regardless of the number of laps.    
 4. Create one or more trigger zones covering the entire race track, allowing to detect if   
    participants entered or left the race track.   
-   Name them "racezone #001", "racezone #002", ...  
+   Name them "racezone-1", "racezone-2", ...  and so on. Don't use leading zeroes for the numbers.  
+   This allows quick copy/paste of trigger zones in the editor.   
 5. If you wish to race at night, illumination flares are provided by default above each gate, and 
    above any other zone named "illum-1", "illum-2", etc.  They will respawn every 5 minutes.  
    Feature added by GTFreeFlyer.  
    Don't use leading zeroes for the numbers. Example: illum-9, illum-10, illum-132). This allows  
-   quick copy/paste of trigger zone in the editor.  
+   quick copy/paste of trigger zones in the editor.  
    See the setup instructions in the comment block at the start of the script for all illumination 
    options and settings.  
 6. Create three script triggers to initialize and run this script. See the comment block at the 

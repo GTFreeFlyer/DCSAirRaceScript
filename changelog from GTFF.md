@@ -1,4 +1,4 @@
-##AirRaceScript4  
+AirRaceScript4  
 Changes by GTFreeFlyer, February 2026  
   
 • Changed the filename from AirRaceScript3 to AirRaceScript4  
@@ -16,9 +16,14 @@ Changes by GTFreeFlyer, February 2026
    ending at times defined by user. Additional illumination zones are simply  
    added by dropping a trigger zone on the map. Option can be disabled too.  
 • Racezones now have a setting for maximum ceiling, allowing aircraft above  
-   the zone to fly around without being added to the race.
+   the zone to fly around without being added to the race.  
+• Trigger zone names for racezone, gate, and pylon now use dash numbers instead  
+   of #001, #002, etc. The automatic naming of items in the editor changed  
+   to this behavior a few years ago.  This change allows quick copy/paste of  
+   trigger zones.  
+• The number of pylon hits required for DNF is now tunable, rather than fixed at 3. 
   
-#Legacy .miz with older versions of the script will need to make the following changes:  
+Legacy .miz with older versions of the script will need to make the following changes:  
   
    • The options settings in the .miz DO SCRIPT are changed to aviation standard  
       units. (feet, knots). See example settings .txt file in the repo for all changes.  
@@ -26,3 +31,9 @@ Changes by GTFreeFlyer, February 2026
       This had to be done for new multiple laps feature.  
    • Older miz versions will no longer hear, "You are cleared into the track,  
       smoke on!" voiceover play when a player is added to the course.  
+   • Older miz versions need to rename their pylon trigger zones from  
+      "pilone #001" to "pylon-1", etc. for all the zones. No leading zeroes.  
+      Same thing applies for gates and racezones, i.e. "gate #001",  
+      "racezone #001".  Using the new -1, -2, ... -10 etc. naming allows for  
+      quick copy/paste in the editor as the new zones will automatically be named  
+      when pasted.
