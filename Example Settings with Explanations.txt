@@ -5,10 +5,13 @@
 •Change values as needed.
 •All the optional settings can be omitted if you like the default values.
 •Values next to optional, i.e. [optional, 30], are the default values the script will use
-   if you choose to omit the setting. 
+   if you choose to omit the setting. Changing the default value here has no effect and
+   is for informational purposes only. 
 •If you like a clean look, you may remove any comment line that begins with a double-hyphen, --
 (These instructions written by GTFreeFlyer)
 ----------------------------------------------------------------------------------------------
+--REQUIRED SETTINGS:-------------
+
 NumberRaceZones = 1
 --[REQUIRED] total number of RaceZone triggerzones
 --These trigger zones must be named, "racezone-1", "racezone-2", ... "racezone-10", etc.
@@ -23,6 +26,8 @@ NumberPylons = 24
 --[REQUIRED] total number of Pylon triggerzones
 --These trigger zones must be named, "pylon-1", "pylon-2", ... "pylon-10", etc.  
 --No leading zeroes. Start at -1.  Don't skip numbers.  
+
+--OPTIONAL SETTINGS:------------------
 
 NumberLaps = 3
 --[optional, 0] total number of laps per race
@@ -55,6 +60,15 @@ BonusGates = {2, 4}
 BonusGateHeight = 15
 --[optional, 20] height of the bonus gates in feet
 --Racers flying through a gate below this altitude will get a bonus
+
+NumberFireworksZones = 6
+--[optional, 0] total number of RaceZone triggerzones
+--These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.
+--No leading zeroes. Start at -1.  Don't skip numbers. 
+--Causes fireworks to shoot from 1m above ground level at each trigger zone when 
+--any aircraft crosses the starting line, or the finish line 
+
+--PENALTY AND DNF SETTINGS:-------------
 
 PenaltyTimeMissedGate = 4
 --[optional, 5] time in seconds added to your race time for each missed gate
@@ -91,7 +105,7 @@ StartSpeedLimit = 300
 --[optional, 999] first gate speed limit in knots
 --Passing the first gate above this speed limit will result in a DNF
 
---GROUP RACE SETTINGS-----
+--GROUP RACE SETTINGS------------------
 
 GroupRace = true
 --[optional, false] same timer for all, or individual timers
@@ -112,7 +126,7 @@ GroupRaceParticipantFilter = 6000
 --Used only when GroupRace=true, and when a pace plane is added
 --Pilots only added to the race list if within this range of the pace before drop-in
 
---NIGHT LIGHTING SETTINGS-----
+--NIGHT RACE ILLUMINATION SETTINGS------
 
 IlluminationOn = false
 --[optional, true] true or false whether you want race course lighting at night
@@ -143,10 +157,3 @@ IlluminationAGL = 3000
 IlluminationRespawnTimer = 120
 --[optional, 240] seconds until respawn. Illum. flares last for 4 minutes before the burn-out
 --If you want multiple flares stacked high, change the default to lower number
-
-NumberFireworksZones = 6
---[optional, 0] total number of RaceZone triggerzones
---These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.
---No leading zeroes. Start at -1.  Don't skip numbers. 
---Causes fireworks to shoot from 1m above ground level at each trigger zone when 
---any aircraft crosses the starting line, or the finish line 

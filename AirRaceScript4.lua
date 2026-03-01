@@ -1117,23 +1117,23 @@ function Airrace:ListPlayers()
 				if PaceDropTime == 0 then 
 					PaceDropTime = timer.getTime()
 				end
-				text = string.format("Racers dropping in!", #self.Players)
+				text = "Racers dropping in!"
 			--if the race started...	
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress", #self.Players)
+				text = string.format("Race in progress. Time: %s", formatTime(timer.getTime()-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
-				text = string.format("Race finished", #self.Players)
+				text = "Race finished"
 			else
 				text = string.format("%d racers ready", #self.Players)
 			end
 		--if there's no pace plane preset...	
 		else 
 			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress", #self.Players)
+				text = string.format("Race in progress. Time: %s", formatTime(timer.getTime()-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 0 and trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
-				text = string.format("Race finished", #self.Players)
+				text = "Race finished"
 			else
 				text = string.format("%d racers nearby", #self.Players)
 			end
