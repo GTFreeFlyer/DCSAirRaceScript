@@ -33,19 +33,24 @@ Vertical requirement: Below 500 feet AGL, marked by balloons.
 ---------------------------------------------------------------------
 PENALTY INFO:
 
-When the pace plane drops in, your position relative to the pace plane is evaluated.
-  *Ahead of the pace?  +2 seconds + 1 additional second per every 20 meters
-   *Above the pace?  +2 seconds + 1 additional second per every 20 meters
-   *Left of the pace? +2 seconds
+When the pace plane drops in, your position relative to the pace plane is evaluated:
+  *Ahead of the pace? +2 sec plus 1 additional sec per every 65 feet
+  *Above the pace? +2 sec + 1 additional sec per every 65 feet
+  *Left of the pace? +2 sec
+  *You will not be entered into the race if you are...
+       ...more than 100 ft above or 500 feet below the pace, or
+       ...more than 130 ft ahead of the pace, or
+       ...left of the pace.
+       ...(At the moment of drop-in)        
 
-Pylon hit: +3 seconds (3 pylon hits and you are disqualified)
-Missed pylon: +5 seconds (3 misses and you are disqualified)
+Pylon hit: +3 seconds (3 pylon hits and you are disqualified (DNF!))
+Missed pylon: +5 seconds (3 misses and you are disqualified (DNF!))
 Too high at pylon: +2 seconds
 Wings not level where required: +2 seconds
 ---------------------------------------------------------------------
 EXTRA INFO:
 
-Night racing is available! Simply set the time in the .miz to night and illumination flares will automatically spawn over the course.
+-Night racing is available! Simply set the time in the .miz to night and illumination flares will automatically spawn over the course.
 ---------------------------------------------------------------------
 CONTACT INFO:
 

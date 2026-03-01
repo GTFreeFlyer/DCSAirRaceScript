@@ -23,8 +23,9 @@ Changes by GTFreeFlyer, February 2026
    dash numbers instead of #001, #002, etc. The automatic naming of items  
    in the editor changed to this behavior a few years ago.  This change allows  
    quick copy/paste of trigger zones.  
-• The number of pylon hits required for DNF is now tunable, rather than fixed at 3.
-• Added player speed to intermediate times 
+• The number of pylon hits required for DNF is now tunable, rather than fixed at 3.  
+• Added player speed to intermediate times  
+• Added individual settings for the various penalty times  
   
 Legacy .miz with older versions of the script will need to make the following changes:  
   

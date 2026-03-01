@@ -56,6 +56,29 @@ BonusGateHeight = 15
 --[optional, 20] height of the bonus gates in feet
 --Racers flying through a gate below this altitude will get a bonus
 
+PenaltyTimeMissedGate = 4
+--[optional, 5] time in seconds added to your race time for each missed gate
+--Valid range: 0 to any positive integer
+
+PenaltyTimePylonHit = 2
+--[optional, 3] time in seconds added to your race time for each pylon hit
+--Valid range: 0 to any positive integer
+
+PenaltyTimeAboveGateHeight = 2
+--[optional, 2] time in seconds added to your race time each time you hit
+--a race zone above the height limit defined by setting named GateHeight.
+--Valid range: 0 to any positive integer
+
+PenaltyTimeHorizontalGate = 1
+--[optional, 2] time in seconds added to your race time when passing through
+--a horizontal gate zone when wings not level +/- 10 degrees
+--Valid range: 0 to any positive integer
+
+PenaltyTimeVerticalGate = 1
+--[optional, 2] time in seconds added to your race time when passing through
+--a vertical gate zone when wings not knife-edge (90) +/- 10 degrees
+--Valid range: 0 to any positive integer
+
 NumberMissedGatesDNF = 3
 --[optional, 999] how many missed gates will trigger a DNF
 --Valid range: 1 to infinity
