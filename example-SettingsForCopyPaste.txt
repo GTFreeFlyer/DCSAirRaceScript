@@ -11,17 +11,17 @@
 ----------------------------------------------------------------------------------------------
 NumberRaceZones = 1
 --[REQUIRED] total number of RaceZone triggerzones
---These trigger zones must be named, "racezone-1", "racezone-2", ... "racezone-10"
+--These trigger zones must be named, "racezone-1", "racezone-2", ... "racezone-10", etc.
 --Usually, you'll have just one large racezone over the whole course.
 
 NumberGates = 12
 --[REQUIRED] total number of gate triggerzones in each lap
---These trigger zones must be named, "gate-1", "gate-2", ... "gate-10"
+--These trigger zones must be named, "gate-1", "gate-2", ... "gate-10", etc.
 --No leading zeroes. Start at -1.  Don't skip numbers.  
 
 NumberPylons = 24
 --[REQUIRED] total number of Pylon triggerzones
---These trigger zones must be named, "pylon-1", "pylon-2", ... "pylon-10"  
+--These trigger zones must be named, "pylon-1", "pylon-2", ... "pylon-10", etc.  
 --No leading zeroes. Start at -1.  Don't skip numbers.  
 
 NumberLaps = 3
@@ -143,3 +143,10 @@ IlluminationAGL = 3000
 IlluminationRespawnTimer = 120
 --[optional, 240] seconds until respawn. Illum. flares last for 4 minutes before the burn-out
 --If you want multiple flares stacked high, change the default to lower number
+
+NumberFireworksZones = 6
+--[optional, 0] total number of RaceZone triggerzones
+--These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.
+--No leading zeroes. Start at -1.  Don't skip numbers. 
+--Causes fireworks to shoot from 1m above ground level at each trigger zone when 
+--any aircraft crosses the starting line, or the finish line 
