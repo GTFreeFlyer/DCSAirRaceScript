@@ -224,7 +224,10 @@ BonusGates = {2, 4}
 BonusGateHeight = 15  
    * [optional, 20] height of the bonus gates in feet
    * Racers flying through a gate below this altitude will get a bonus
- 
+
+BonusTime = 2  
+ * [optional, 1] time in seconds to subtract when hitting a bonus gate  
+  
 NumberFireworksZones = 6  
    * [optional, 0] total number of fireworks triggerzones
    * These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.

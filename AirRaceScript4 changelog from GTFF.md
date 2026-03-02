@@ -2,10 +2,10 @@ AirRaceScript4
 Changes by GTFreeFlyer, February 2026  
   
 • Changed the filename from AirRaceScript3 to AirRaceScript4  
-• Many changes as shown below.  Script doubled in size from ~700 lines to  
-   nearly 1,400 lines.  
-• Crashed racers are not removed from race, preventing further racing - FIXED
-• Readme updated. Example settings file and suggested .miz breifing text  
+• Many changes as shown below.  Script more than doubled in size from ~700 lines to  
+   nearly 1,500 lines.  
+• Crashed racers are not removed from race, preventing further racing - FIXED  
+• Readme updated - major overhaul. Example settings file and suggested .miz breifing text  
    files added to root folder in repo.  
 • Added capability to have multiple laps. NumberLaps can be set in the  
    editor without touching the lua script.  
@@ -27,7 +27,8 @@ Changes by GTFreeFlyer, February 2026
 • The number of pylon hits required for DNF is now tunable, rather than fixed at 3.  
 • Added players' speeds to intermediate times displayed in the outText
 • Added individual settings for the various penalty times  
-• Added options for fireworks when a plane crosses the start or finish line.
+• Added options for fireworks when a plane crosses the start or finish line.  
+• Users can now adjust the individual penalty times, as well as the bonus time.  
   
 Legacy .miz with older versions of the script will need to make the following changes  
 if you would like to use the newest version of the script:  

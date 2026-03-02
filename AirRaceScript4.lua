@@ -43,6 +43,7 @@
 --                                    GateHeight = <global height of the gates in feet>                   [optional]-- default: 300 --maximum height of plane above ground to "hit" gate
 --                                    BonusGateHeight = <global height of the bonus gates in feet>        [optional]-- default: 20
 --                                    BonusGates = <list of gate numbers for low alt bonus>               [optional]-- default: {} (empty list) --example: {2, 5} for gates 2, and 5
+--                                    BonusTime = <time in seconds to subtract when hitting a bonus gate> [optional]-- default: 1
 --                                    PenaltyTimeMissedGate = <penalty time in seconds>                   [optional]-- default: 5
 --                                    PenaltyTimePylonHit = <penalty time in seconds>                     [optional]-- default: 3
 --                                    PenaltyTimeAboveGateHeight = <penalty time in seconds>              [optional]-- default: 2
@@ -326,6 +327,7 @@ Airrace = {
 	StartSpeedLimit = 999 * 1.852, --convert to km/h
 	BonusGateHeight = 15 * .3048, --convert to m
 	BonusGates = {},
+    BonusTime = 1,
 	PenaltyTimeMissedGate = 5,
 	PenaltyTimePylonHit = 3,
 	PenaltyTimeAboveGateHeight = 2,
@@ -354,7 +356,7 @@ Airrace = {
 -- Parameter course          : A reference to the Course object containing all the gates
 --
 function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, 
-						startSpeedLimit, bonusGateHeight, bonusGates, penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, 
+						startSpeedLimit, bonusGateHeight, bonusGates, bonusTime, penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, 
 						penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, 
 						paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL, fireworksZones)
@@ -372,6 +374,7 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
         RaceZoneCeiling = raceZoneCeiling,
 		BonusGateHeight = bonusGateHeight,
 		BonusGates = bonusGates,
+        BonusTime = bonusTime,
 		PenaltyTimeMissedGate = penaltyTimeMissedGate,
 		PenaltyTimePylonHit = penaltyTimePylonHit,
 		PenaltyTimeAboveGateHeight = penaltyTimeAboveGateHeight,
@@ -863,7 +866,7 @@ end
 -- Parameter player: Reference to a player in the active player List
 --
 function Airrace:UpdatePlayerStatus(player)
-	local gateNumber = self:GetGateNumberForPlayer(player)
+	local gateNumber = self:GetGateNumberForPlayer(player) --this gives the gate number the player has been detected in, but player.CurrentGateNumber has not yet been incremeted up to match this
 
 	-- ignore repeated gate detection, or pre-race period, or if racer not eligible for group race
 	if gateNumber <= 0 or ( gateNumber == player.CurrentGateNumber and ( gateNumber ~= 1 or player.Started == true ) ) or not player.RaceEligible then
@@ -875,6 +878,7 @@ function Airrace:UpdatePlayerStatus(player)
 
 	--check if this is the first lap, or starting a new lap...
 	if gateNumber == 1 and player.CurrentLapNumber == 1 and player.Started == false then
+        --this is the first lap of the race
 		if self.PaceUnitName == nil then
 			player.Penalty = 0 --we don't need to do this if there's a pace plane because it was already reset at the drop-in
 		end
@@ -1002,7 +1006,8 @@ function Airrace:UpdatePlayerStatus(player)
 			else
 				player.CurrentGateNumber = gateNumber - 1 -- roll currentGateNumber back one gate			
 			end
-		end	
+		end
+        return	
 	end
 
 	-- Player is passing the final gate, stop timer
@@ -1014,8 +1019,8 @@ function Airrace:UpdatePlayerStatus(player)
 		for i = 1, #self.BonusGates do
 			if self.BonusGates[i] == gateNumber then
 				if bonusGateAltitudeOk == true then
-					player.Bonus = player.Bonus + 5
-					warnPlayer(string.format("Low Alt Bonus -5 Sec - %s", player.Name), player)
+					player.Bonus = player.Bonus + self.BonusTime
+					warnPlayer(string.format("Low alt. bonus: -%d sec", self.BonusTime), player)
 				end
 			end
 		end
@@ -1025,19 +1030,26 @@ function Airrace:UpdatePlayerStatus(player)
 		end
 		player.PylonFlag = false
 		player:StopTimer()
-		player.StatusText = string.format("Finished. Time: %s + Penalty: %s sec.\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
-		env.info(string.format("%s finished the course. Race time: %s. Penalty: %s. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
-		trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
+
+        if #self.BonusGates > 0 then
+		    player.StatusText = string.format("Finished. Time: %s + Penalty: %d s - Bonus: %d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
+		    env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
+		else
+             player.StatusText = string.format("Finished. Time: %s + Penalty: %d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
+		    env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
+        end
+        
+        trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
 		player.CurrentGateNumber = gateNumber
-		if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty then
-			self.FastestTime = player.TotalTime + player.Penalty
+		if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then
+			self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
 			self.FastestPlayer = player.Name
 			player.StatusText = string.format("%s - Fastest time!", player.StatusText)
 			self.FastestIntermediates = player.IntermediateTimes
 			env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
 		else
-			player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty - self.FastestTime))
-			env.info(string.format("%s +%s seconds behind best time", player.Name, formatTime(player.TotalTime + player.Penalty - self.FastestTime)))
+			player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
+			env.info(string.format("%s +%s seconds behind best time", player.Name, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime)))
 		end
 		local reason = "Completed course"
 		if #self.FireworksZones > 0 then shootFireworks(self.FireworksZones) end
@@ -1054,52 +1066,55 @@ function Airrace:UpdatePlayerStatus(player)
             if not gateFlagValue or gateFlagValue == 0 then
                 trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose 
             end
-        end
-		
+        end		
         return
 	end
 
-	-- Player is passing intermediate gate, set intermediate time
-	local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
-	local intermediate = player:GetIntermediateTime(player.CurrentLapNumber, gateNumber)
-	trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
-	player.StatusText = string.format("Time: %s | Speed: %d kts", formatTime(intermediate), player.GateSpeed)
-	env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
-	self:evaluateRollAngle(gateNumber, player)
-	player.PylonFlag = false
-	local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
-	for i = 1, #self.BonusGates do
-		if self.BonusGates[i] == gateNumber then
-			if bonusGateAltitudeOk == true then
-				player.Bonus = player.Bonus + 5
-				warnPlayer(string.format("Low Alt Bonus -5 Sec - %s", player.Name), player)
-			end
-		end
-	end
-	if gateAltitudeOk == false then
-		trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
-		player.Penalty = player.Penalty + self.PenaltyAboveGateHeight
-	end
-	if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past, so we'll show a time comparison to the best record time
-		local fastestIntermediate = self.FastestIntermediates[player.CurrentLapNumber][gateNumber]
-		--there's a chance the best set of intermediates contains a zero time for a gate if that gate was skipped for some reason by the fastest player, so we protect against this and don't show the comparison
-		if fastestIntermediate ~= 0 then
-			local difference = intermediate - fastestIntermediate
-			local sign = "+"
-			if difference < 0 then
-				sign = "-"
-			end
-			player.StatusText = string.format("%s (%s%s)", player.StatusText, sign, formatTime(math.abs(difference)))
-		end
-	end
-	player.CurrentGateNumber = gateNumber
+    --If none of the checks from above pass, then you'll end up here...
 
-    --set the general purpose flags used for group races...
-    if self.GroupRace == true  then
-        local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
-        local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
-        if not gateFlagValue or gateFlagValue == 0 then
-            trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose
+	-- Player is passing intermediate gate, set intermediate time
+	if gateNumber ~= player.CurrentGateNumber then --prevents repeated gate detection
+        local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
+        local intermediate = player:GetIntermediateTime(player.CurrentLapNumber, gateNumber)
+        trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
+        player.StatusText = string.format("Time: %s | Speed: %d kts", formatTime(intermediate), player.GateSpeed)
+        env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
+        self:evaluateRollAngle(gateNumber, player)
+        player.PylonFlag = false
+        local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
+        for i = 1, #self.BonusGates do
+            if self.BonusGates[i] == gateNumber then
+                if bonusGateAltitudeOk == true then
+                    player.Bonus = player.Bonus + self.BonusTime
+                    warnPlayer(string.format("Low alt. bonus -%d sec", self.BonusTime), player)
+                end
+            end
+        end
+        if gateAltitudeOk == false then
+            trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+            player.Penalty = player.Penalty + self.PenaltyAboveGateHeight
+        end
+        if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past, so we'll show a time comparison to the best record time
+            local fastestIntermediate = self.FastestIntermediates[player.CurrentLapNumber][gateNumber]
+            --there's a chance the best set of intermediates contains a zero time for a gate if that gate was skipped for some reason by the fastest player, so we protect against this and don't show the comparison
+            if fastestIntermediate ~= 0 then
+                local difference = intermediate - fastestIntermediate
+                local sign = "+"
+                if difference < 0 then
+                    sign = "-"
+                end
+                player.StatusText = string.format("%s (%s%s)", player.StatusText, sign, formatTime(math.abs(difference)))
+            end
+        end
+        player.CurrentGateNumber = gateNumber
+
+        --set the general purpose flags used for group races...
+        if self.GroupRace == true  then
+            local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
+            local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
+            if not gateFlagValue or gateFlagValue == 0 then
+                trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose
+            end
         end
     end
 end
@@ -1217,7 +1232,7 @@ function Airrace:ListPlayers()
 			if player.Finished == false then
 				for messageIdx, message in ipairs(player.Warnings) do
 					if message[2] >= now then
-						text = text .. "\n     WARNING: " .. message[1]
+						text = text .. "\n     !!! " .. message[1]
 					end
 				end
 			end
@@ -1378,6 +1393,7 @@ function Init()
 	local startSpeedLimit = StartSpeedLimit or 999
 	local bonusGateHeight = BonusGateHeight or 20
 	local bonusGates = BonusGates or {}
+    local bonusTime = BonusTime or 1
 	local penaltyTimeMissedGate = PenaltyTimeMissedGate or 5
 	local penaltyTimePylonHit = PenaltyTimePylonHit or 3
 	local penaltyTimeAboveGateHeight = PenaltyTimeAboveGateHeight or 2
@@ -1412,6 +1428,9 @@ function Init()
 	if numberPylonHitsDNF < 1 then
 		numberPylonHitsDNF = 1
 	end
+    if bonusTime < 0 then --in case the user thinks they must use a negative number to subtract time
+        bonusTime = -bonusTime
+    end
 
     --unit conversions for script usage
     raceZoneCeiling = raceZoneCeiling * .3048 --convert feet to meters
@@ -1448,7 +1467,7 @@ function Init()
 			end
 		end
 
-		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, 
+		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, 
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL, fireworksZones)
