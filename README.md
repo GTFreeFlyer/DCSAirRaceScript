@@ -131,7 +131,7 @@ Okay, that covers all the required stuff, but wait! There are more (optional) go
 ![Race5](screenshots/race5.jpg)
 
 ### Setup Required for Group Races:
-Group races are loads of fun, if coordinated properly between a group of friends. The timer will start for everyone as soon as the first racer crosses the starting line. You can communicate with each other over voice chat to get everyone into a line-abreast formation, then call 3-2-1-Go! The group race option is set in the Race Settings.  
+Group races are loads of fun when coordinated properly between a group of friends, or when using an AI pace plane (more on this later below). The timer will start for everyone as soon as the first racer crosses the starting line. You can communicate with each other over voice chat to get everyone into a line-abreast formation, then call 3-2-1-Go! The group race option is set in the Race Settings. One neat feature with group racing is that the standings display in the upper-right of your screen is dynamic, meaning you'll see yourself moving up and down the list if you are gaining or falling back on the competition.  
 
 IMPORTANT: When the group race option is selected, the race script will load at mission start, but WILL NOT run, unlike individual racing. You will need to force it to run by executing a trigger action DO SCRIPT, and the only thing you type into the text box is, startRaceScript()  
 
@@ -163,7 +163,7 @@ You can get creative with the pace plane to make him fly gently around a circuit
 
 When everyone has completed the race, the script will stop running about 15 seconds later. As mentioned earlier, next time the startRaceScript() trigger is triggered, everything will start running again.  
 
-You can even create F10 radio menu options with triggers to DO SCRIPT startRaceScript(), or DO SCRIPT stopRaceScript() if you prefer your own control over the script.  
+You can even create F10 radio menu options with triggers to DO SCRIPT startRaceScript(), or DO SCRIPT stopRaceScript() if you prefer your own control over the script.  (Only works for group races)  
 
 ## Race Settings  
 One of the first steps you did above was create the very first trigger, Race Settings. This is how we set up the mission the way we want it, now that we have finished designing our race course.   
