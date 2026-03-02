@@ -42,7 +42,7 @@ RemovePlayerCheckInterval = 20
 HorizontalGates = {3,6,9,12}
 --[optional, {1}] list of gate numbers requiring level flight +/- 10 degrees
 
-VerticalGates = {4,7,9}
+VerticalGates = {4,7,11}
 --[optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees
 
 RaceZoneCeiling = 2000
@@ -62,7 +62,7 @@ BonusGateHeight = 15
 --Racers flying through a gate below this altitude will get a bonus
 
 NumberFireworksZones = 6
---[optional, 0] total number of RaceZone triggerzones
+--[optional, 0] total number of fireworks triggerzones
 --These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.
 --No leading zeroes. Start at -1.  Don't skip numbers. 
 --Causes fireworks to shoot from 1m above ground level at each trigger zone when 

@@ -27,8 +27,7 @@ Changes by GTFreeFlyer, February 2026
 • The number of pylon hits required for DNF is now tunable, rather than fixed at 3.  
 • Added players' speeds to intermediate times displayed in the outText
 • Added individual settings for the various penalty times  
-• Added options for fireworks when a plane crosses the start or finish line. Simply  
-   place triggerzones named "fireworks-1", "fireworks-2", etc. where you want them.
+• Added options for fireworks when a plane crosses the start or finish line.
   
 Legacy .miz with older versions of the script will need to make the following changes  
 if you would like to use the newest version of the script:  
