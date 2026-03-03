@@ -121,7 +121,7 @@ Player = {
 	RaceEligible = true, --this is a flag used in group races to determine whether the player is eligible for the current race
 	GateSpeed = 0, -- measured speed, in knots, when a player passes through a gate
 	ResultsDisplayed = false, --flag to toggle display at end of race
-	ScheduledForRemoval = false
+	--ScheduledForRemoval = false
 }
 
 -----------------------------------------------------------------------------------------
@@ -164,7 +164,7 @@ function Player:New(playerUnit)
 		RaceEligible = true, --this is a flag used in group races to determine whether the player is eligible for the current race
 		GateSpeed = 0, -- measured speed, in knots, when a player passes through a gate
 		ResultsDisplayed = false, --flag to toggle display at end of race
-		ScheduledForRemoval = false
+		--ScheduledForRemoval = false
 	}
 	setmetatable(obj, { __index = Player })
 
@@ -211,15 +211,13 @@ function Player:StartTimer()
         self.MissedGates = 0
 		self.TotalTime = 0
 		self.IntermediateTimes = {{}}
+		self.DNF = false
+		self.PylonFlag = false
 		self.Started = true
 		self.Finished = false
-		self.ResultsDisplayed = false --resets this flag
-        self.MissedGates = 0  
-        self.DNF = false
-        self.PylonFlag = false
-        self.Warnings = {}
+		self.Warnings = {}
 		self.CurrentLapNumber = 1
-        self.ResultsDisplayed = false
+		self.ResultsDisplayed = false --resets this flag	
 
 		--reset the intermediate times to 0 for each gate, on each lap
         if race.NumberLaps > 1 then
@@ -508,18 +506,18 @@ end
 
 -----------------------------------------------------------------------------------------
 -- Remove a player from a group race
-function Airrace:removePlayerFromGroupRace(player, reason)
-	env.info("Attempting to remove" .. player.Name .. " from the group race list. Reason: " .. reason)
-	if self.GroupRace then
-		for racerIndex, racer in ipairs(self.Players) do
-			if racer.Name == player.Name then
-				table.remove(self.Players, racerIndex)
-				env.info(player.Name .. " successfully removed from the player list")
-				break
-			end
-		end	
-	end
-end
+-- function Airrace:removePlayerFromGroupRace(player, reason)
+-- 	env.info("Attempting to remove" .. player.Name .. " from the group race list. Reason: " .. reason)
+-- 	if self.GroupRace then
+-- 		for racerIndex, racer in ipairs(self.Players) do
+-- 			if racer.Name == player.Name then
+-- 				table.remove(self.Players, racerIndex)
+-- 				env.info(player.Name .. " successfully removed from the player list")
+-- 				break
+-- 			end
+-- 		end	
+-- 	end
+-- end
 -----------------------------------------------------------------------------------------
 -- Return a list of players currently flying through a gate
 --
@@ -578,10 +576,10 @@ function Airrace:CheckPylonHitForPlayer(player)
 			end
 			if player.HitPylon >= self.NumberPylonHitsDNF then
 				player.DNF = true
-				player.StatusText = string.format("Too many pylons hit !!! DNF!!!")
+				player.StatusText = string.format("DNF! | Too many pylons hit")
 				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
-				local reason = "Too many pylon hits"
-				mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timer.getTime()+10)
+				--local reason = "Too many pylon hits"
+				--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timer.getTime()+10)
 			end
 			break
 		end
@@ -768,6 +766,7 @@ end
   -- 2) highest gate, then by..
   -- 3) lowest time
 function Airrace:SortRanks(currentRaceData)
+	env.info("Sorting...")
 	local added = {}    -- track which players already ranked
 	local bucket = {}   -- a temporary holding table that will be sorted
 	local numLaps = 0   -- initialize the variable as a local
@@ -775,17 +774,19 @@ function Airrace:SortRanks(currentRaceData)
 	--the script always assumes you are on lap 1 when you start, even on point A to point B (zero lap) races
 	if self.NumberLaps == 0 then
 		numLaps = 1
+	else
+		numLaps = self.NumberLaps
 	end
 
 	-- search backwards through the table for efficiency
 	for lap = numLaps, 1, -1 do
 		local lapData = currentRaceData[lap]
-
 		for gate = #self.Course.Gates, 1, -1 do
-			-- collect all players who have a time at this lap/gate
 			
+			-- collect all players who have a time at this lap/gate
 			for name, time in pairs(currentRaceData[lap][gate]) do
 				if not added[name] then
+					added[name] = true
 					table.insert(bucket, {name=name, lap=lap, gate=gate, time=time})
 					table.sort(bucket, function(a,b) return a.time < b.time end) -- sort this bucket by lowest time
 				end
@@ -890,8 +891,10 @@ function Airrace:CheckLineupWithPace(player)
 
 	--Now decide final eligibility:
 	if player.RaceEligible == false then
-		player.StatusText = "NOT eligible"
-		warnPlayer(string.format("%s, STAY CLEAR of the course area immediately!", player.Name), player)		
+		player.StatusText = "Not eligible for race | Bad pace position"
+		warnPlayer(string.format("%s, STAY CLEAR of the course area immediately!", player.Name), player)
+		player.DNF = true
+		self:AddToGroupCurrentRankings(player.Name, 1, 1, 0) -- fixed entry with time=0 at first gate, for comparison to other racers
 	else
 		player.StatusText = "Cleared in. Go-Go-Go!"
 		env.info(string.format("Player %s is eligible for the current group race.", player.Name))
@@ -911,7 +914,7 @@ function Airrace:CheckLineupWithPace(player)
 		end
 	end
 
-	--player.RaceEligible = true --used for debug and testing. take this out after testing.  It is used to force eligibility when the test plane is not close enough to the pace plane.
+	player.RaceEligible = true --used for debug and testing. take this out after testing.  It is used to force eligibility when the test plane is not close enough to the pace plane.
 
 	player.PacePositionEvaluated = true --set this flag to true so that the player won't be evaluated again until next race	
 end
@@ -920,290 +923,272 @@ end
 -- Parameter player: Reference to a player in the active player List
 --
 function Airrace:UpdatePlayerStatus(player)
-	local gateNumber = self:GetGateNumberForPlayer(player) --this gives the gate number the player has been detected in, but player.CurrentGateNumber has not yet been incremeted up to match this
+	if self.GroupRace == false or (self.GroupRace == true and player.DNF == false) then
+		local gateNumber = self:GetGateNumberForPlayer(player) --this gives the gate number the player has been detected in, but player.CurrentGateNumber has not yet been incremeted up to match this
+		local timeNow = timer.getTime()
 
-	-- ignore repeated gate detection, or pre-race period, or if racer not eligible for group race
-	if gateNumber <= 0 or ( gateNumber == player.CurrentGateNumber and ( gateNumber ~= 1 or player.Started == true ) ) or not player.RaceEligible then
-		if not player.RaceEligible and GroupTimerStarted then
-			player.PacePositionEvaluated = false --reset this flag for ineligible racers so that they can be evaluated again for the next race
-		end
-		return
-	end
-
-	--check if this is the first lap, or starting a new lap...
-	if gateNumber == 1 and player.CurrentLapNumber == 1 and player.Started == false then
-        --this is the first lap of the race
-		if self.PaceUnitName == nil then
-			player.Penalty = 0 --we don't need to do this if there's a pace plane because it was already reset at the drop-in
-		end
-		player.Bonus = 0
-		player:StartTimer() -- Player is passing gate 1 on lap 1, start timer
-		local now = timer.getTime()
-		--if #self.FireworksZones > 0 then shootFireworks(self.FireworksZones) end
-		
-		local gateSpeedOk = self:CheckGateSpeedForPlayer(player)
-		local unitspeed = Unit.getByName(player.UnitName):getVelocity()
-		local speedKnots = math.sqrt(unitspeed.x^2 + unitspeed.y^2 + unitspeed.z^2) * 1.94
-		if gateSpeedOk == false then
-			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
-			player:StopTimer()
-			player.StatusText = string.format("EXCEEDED START SPEED LIMIT!!! | Speed: %d kts | DNF!!!", speedKnots)
-			player.DNF = true
+-- ignore repeated gate detection, or pre-race period, or if racer not eligible for group race
+		if gateNumber <= 0 or ( gateNumber == player.CurrentGateNumber and ( gateNumber ~= 1 or player.Started == true ) ) or not player.RaceEligible then
+			if not player.RaceEligible and GroupTimerStarted then
+				player.PacePositionEvaluated = false --reset this flag for ineligible racers so that they can be evaluated again for the next race
+			end
 			return
-		else
-			--Display message "Started" along with the start speed, and a comparison to the fastest start speed if there is one saved from a previous race
-			player.IntermediateTimes[1][1] = speedKnots
-			if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past
-				local fastestStartSpeed = self.FastestIntermediates[1][1]
-				local difference = speedKnots - fastestStartSpeed
-				local sign = "+"
-				if difference < 0 then
-					sign = "-"
-				end
-				if self.GroupRace == true then
-					player.StatusText = string.format("Time: %s | Speed: %d kts (%s%d kts)", formatTime(timer.getTime() - GroupStartTime), speedKnots, sign, math.abs(difference))
-				else
-					player.StatusText = string.format("Time: %s | Speed: %d kts (%s%d kts)", formatTime(0), speedKnots, sign, math.abs(difference))
-				end
-			else --the race has not yet been completed in the past...
-				if self.GroupRace == true then
-					player.StatusText = string.format("Time: %s | Speed: %d kts", formatTime(now - GroupStartTime), speedKnots)
-				else
-					player.StatusText = string.format("Time: %s | Speed: %d kts", formatTime(0), speedKnots)
-				end
-
-			end			
 		end
 
-		trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
-
-		local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)	
-		if gateAltitudeOk == false then
-			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
-			player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
-		end
-
-		self:evaluateRollAngle(gateNumber, player)
-		
-		player.CurrentGateNumber = gateNumber --this will always be 1 inside this if-statement
-		player.PylonFlag = false
-		if self.GroupRace == true then 
-			self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, now - GroupStartTime)
-		end
-		return
-
-	elseif gateNumber == 1 then
-		-- Player is starting a new lap, so increase lap number
-		player.CurrentLapNumber = player.CurrentLapNumber + 1		
-	end
-
-	-- define what to do if player didn't go through the expected gate...
-	if gateNumber ~= player.CurrentGateNumber + 1 and not (player.CurrentGateNumber == #self.Course.Gates and gateNumber == 1) then 
-					
-		if player.CurrentGateNumber == 0 and not player.Finished and player.CurrentLapNumber == 1 then
-			-- Player passed unexpected gate at start of race
-			player.StatusText = "Wrong start gate! Go back to Gate 1 to start."
-			env.info(string.format("Player %s did not enter the course at Gate 1", player.Name))
-			return
-
-		elseif not player.Finished then
-			-- Player has missed one or more gates
-			local missedGates = 0 -- define this as a local counter with default value of 0
-
-			if gateNumber > player.CurrentGateNumber + 1 then
-				missedGates = gateNumber - (player.CurrentGateNumber + 1)
-                player.MissedGates = player.MissedGates + missedGates
-                if player.MissedGates >= self.NumberMissedGatesDNF then
-                    player.DNF = true
-                    player.StatusText = string.format("Too many missed gates! DNF!")
-                    env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
-					local reason = "Too many missed gates"
-                    mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timer.getTime()+10)
-                    return
-                else
-                    if missedGates == 1 then
-                        warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1, self.PenaltyTimeMissedGate), player)
-                        env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1))
-                    else
-                        warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", player.CurrentGateNumber + 1, gateNumber - 1, self.PenaltyTimeMissedGate * missedGates), player)
-                        env.info(string.format("Player %s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
-                    end
-                end
-
-			elseif gateNumber < player.CurrentGateNumber then --Either going backwards or on a new lap with a lower gate number.  
-			                                                  --We can't do much about going backwards, this is a sacrifice we make 
-														      --from the older version in order to add the ability to do multiple laps.
-				missedGates = #self.Course.Gates - (player.CurrentGateNumber + 1) + gateNumber
-                player.MissedGates = player.MissedGates + missedGates
-                if player.MissedGates >= self.NumberMissedGatesDNF then
-                    player.DNF = true
-                    player.StatusText = string.format("Too many missed gates! DNF!")
-                    env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
-					local reason = "Too many missed gates"
-                    mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timer.getTime()+10)
-                    return
-                else
-                    if missedGates == 1 then
-                        warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1 - #self.Course.Gates, self.PenaltyTimeMissedGate), player) --this should always be gate 1 if only 1 gate was missed, but we'll calculate it anyway.
-                        env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
-                    else
-                        --we use some logic here to see if the gate numbers wrapped back around to 1
-                        local firstMissedGate = player.CurrentGateNumber + 1
-                        local lastMissedGate = gateNumber - 1
-                        if firstMissedGate > #self.Course.Gates then
-                            firstMissedGate = firstMissedGate - #self.Course.Gates
-                        end
-                        if lastMissedGate <= 0 then
-                            lastMissedGate = #self.Course.Gates
-                        else
-                            lastMissedGate = gateNumber - 1
-                        end
-                        warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", firstMissedGate, lastMissedGate, self.PenaltyTimeMissedGate * missedGates), player)
-                        env.info(string.format("Player %s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
-                    end
-                end
-				-- Player has started a new lap, so increase lap number
-				player.CurrentLapNumber = player.CurrentLapNumber + 1	
-			end			
-
-			player.Penalty = player.Penalty + (self.PenaltyTimeMissedGate * missedGates)
-			
-			if gateNumber == 1 then
-				player.CurrentGateNumber = #self.Course.Gates -- roll currentGateNumber back to the last gate in the course
+--check if this is the first lap, or starting a new lap...
+		if (gateNumber == 1 and player.CurrentLapNumber == 1 and player.Started == false) or player.DNF ==true then --player.DNF can only be true here if it's not a group race. Here, we allow the DNF player to come back around and restart the race.
+			--this is the first lap of the race
+			player:StartTimer() -- Player is passing gate 1 on lap 1, start timer		
+			local gateSpeedOk = self:CheckGateSpeedForPlayer(player)
+			local unitspeed = Unit.getByName(player.UnitName):getVelocity()
+			local speedKnots = math.sqrt(unitspeed.x^2 + unitspeed.y^2 + unitspeed.z^2) * 1.94
+			if gateSpeedOk == false then
+				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+				player:StopTimer()
+				player.StatusText = string.format("DNF! | Exceeded start speed limit | Speed: %d kts", speedKnots)
+				player.DNF = true
+				return
 			else
-				player.CurrentGateNumber = gateNumber - 1 -- roll currentGateNumber back one gate			
+				--Display message "Started" along with the start speed, and a comparison to the fastest start speed if there is one saved from a previous race
+				player.IntermediateTimes[1][1] = speedKnots
+				if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past
+					local fastestStartSpeed = self.FastestIntermediates[1][1]
+					local difference = speedKnots - fastestStartSpeed
+					local sign = "+"
+					if difference < 0 then
+						sign = "-"
+					end
+					if self.GroupRace == true then
+						player.StatusText = string.format("Speed: %d kts (%s%d kts) | Time: %s", speedKnots, sign, math.abs(difference), formatTime(timeNow - GroupStartTime))
+					else
+						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(0))
+					end
+				else --the race has not yet been completed in the past...
+					if self.GroupRace == true then
+						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(timeNow - GroupStartTime))
+					else
+						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(0))
+					end
+				end			
 			end
-
-			if self.GroupRace == true then
-				self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timer.getTime() - GroupStartTime)
+			trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
+			local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)	
+			if gateAltitudeOk == false then
+				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+				player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
 			end
+			self:evaluateRollAngle(gateNumber, player)		
+			player.CurrentGateNumber = gateNumber --this will always be 1 inside this if-statement
+			player.PylonFlag = false
+			if self.GroupRace == true then 
+				self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime)
+			end
+			return
+		elseif gateNumber == 1 then
+			-- Player is starting a new lap, so increase lap number
+			player.CurrentLapNumber = player.CurrentLapNumber + 1		
 		end
-        return	
-	end
 
-	-- Player is passing the final gate, stop timer
-	if (gateNumber == #self.Course.Gates and self.NumberLaps == 0) or (gateNumber == 1 and player.CurrentLapNumber > self.NumberLaps) then
-		local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
-		self:evaluateRollAngle(gateNumber, player)
-		player.PylonFlag = false
-		local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
-		for i = 1, #self.BonusGates do
-			if self.BonusGates[i] == gateNumber then
-				if bonusGateAltitudeOk == true then
-					player.Bonus = player.Bonus + self.BonusTime
-					warnPlayer(string.format("Low alt. bonus: -%d sec", self.BonusTime), player)
+-- define what to do if player didn't go through the expected gate...
+		if player.DNF == false then
+			if gateNumber ~= player.CurrentGateNumber + 1 and not (player.CurrentGateNumber == #self.Course.Gates and gateNumber == 1) then 					
+				if player.CurrentGateNumber == 0 and not player.Finished and player.CurrentLapNumber == 1 then
+					-- Player passed unexpected gate at start of race
+					player.StatusText = "Wrong start gate! Go back to Gate 1 to start."
+					env.info(string.format("Player %s did not enter the course at Gate 1", player.Name))
+					return
+				elseif not player.Finished then
+					-- Player has missed one or more gates
+					local missedGates = 0 -- define this as a local counter with default value of 0
+					if gateNumber > player.CurrentGateNumber + 1 then
+						missedGates = gateNumber - (player.CurrentGateNumber + 1)
+						player.MissedGates = player.MissedGates + missedGates
+						if player.MissedGates >= self.NumberMissedGatesDNF then
+							player.DNF = true
+							player.StatusText = string.format("DNF! | Too many missed gates")
+							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+							--local reason = "Too many missed gates"
+							--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow + 10)
+							return					
+						else
+							if missedGates == 1 then
+								warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1, self.PenaltyTimeMissedGate), player)
+								env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1))
+							else
+								warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", player.CurrentGateNumber + 1, gateNumber - 1, self.PenaltyTimeMissedGate * missedGates), player)
+								env.info(string.format("Player %s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
+							end
+						end
+					elseif gateNumber < player.CurrentGateNumber then --Either going backwards or on a new lap with a lower gate number.  
+																	--We can't do much about going backwards, this is a sacrifice we make 
+																	--from the older version in order to add the ability to do multiple laps.
+						missedGates = #self.Course.Gates - (player.CurrentGateNumber + 1) + gateNumber
+						player.MissedGates = player.MissedGates + missedGates
+						if player.MissedGates >= self.NumberMissedGatesDNF then
+							player.DNF = true
+							player.StatusText = string.format("DNF! | Too many missed gates!")
+							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+							--local reason = "Too many missed gates"
+							--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow + 10)
+							return
+						else
+							if missedGates == 1 then
+								warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1 - #self.Course.Gates, self.PenaltyTimeMissedGate), player) --this should always be gate 1 if only 1 gate was missed, but we'll calculate it anyway.
+								env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
+							else
+								--we use some logic here to see if the gate numbers wrapped back around to 1
+								local firstMissedGate = player.CurrentGateNumber + 1
+								local lastMissedGate = gateNumber - 1
+								if firstMissedGate > #self.Course.Gates then
+									firstMissedGate = firstMissedGate - #self.Course.Gates
+								end
+								if lastMissedGate <= 0 then
+									lastMissedGate = #self.Course.Gates
+								else
+									lastMissedGate = gateNumber - 1
+								end
+								warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", firstMissedGate, lastMissedGate, self.PenaltyTimeMissedGate * missedGates), player)
+								env.info(string.format("Player %s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
+							end
+						end
+						-- Player has started a new lap, so increase lap number
+						player.CurrentLapNumber = player.CurrentLapNumber + 1	
+					end
+					player.Penalty = player.Penalty + (self.PenaltyTimeMissedGate * missedGates)			
+					if gateNumber == 1 then
+						player.CurrentGateNumber = #self.Course.Gates -- roll currentGateNumber back to the last gate in the course
+					else
+						player.CurrentGateNumber = gateNumber - 1 -- roll currentGateNumber back one gate			
+					end
+					if self.GroupRace == true then
+						self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime)
+					end
+				end
+				return	
+			end
+
+-- Player is passing the final gate, stop timer
+			if (gateNumber == #self.Course.Gates and self.NumberLaps == 0) or (gateNumber == 1 and player.CurrentLapNumber > self.NumberLaps) then
+				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
+				self:evaluateRollAngle(gateNumber, player)
+				player.PylonFlag = false
+				local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
+				for i = 1, #self.BonusGates do
+					if self.BonusGates[i] == gateNumber then
+						if bonusGateAltitudeOk == true then
+							player.Bonus = player.Bonus + self.BonusTime
+							warnPlayer(string.format("Low alt. bonus: -%d sec", self.BonusTime), player)
+						end
+					end
+				end
+				if gateAltitudeOk == false then
+					trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+					player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
+				end
+				player.PylonFlag = false
+				player:StopTimer()
+				if #self.BonusGates > 0 then
+					player.StatusText = string.format("Finished | Time: %s + Penalty: %d sec. - Bonus: %d sec.\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
+					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
+				else
+					player.StatusText = string.format("Finished | Time: %s + Penalty: %d sec.\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
+					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
+				end        
+				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
+				player.CurrentGateNumber = gateNumber
+				if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then
+					self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
+					self.FastestPlayer = player.Name
+					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
+					self.FastestIntermediates = player.IntermediateTimes
+					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
+				else
+					player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
+					env.info(string.format("%s +%s seconds behind best time", player.Name, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime)))
+				end		
+
+				--fireworks!
+				if #self.FireworksZones > 0 then shootFireworks(self.FireworksZones) end		
+				
+				--set the general purpose flags used for group races...
+				if self.GroupRace == true then
+					if GroupWinnerCrossedFinishLine == false then
+						GroupWinnerCrossedFinishLine = true
+						trigger.action.setUserFlag("FinishLineCrossed", 1)
+					end
+					local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
+					local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
+					if not gateFlagValue or gateFlagValue == 0 then
+						trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose 
+					end
+				end			
+				if self.GroupRace == true then
+					self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, player.TotalTime + player.Penalty - player.Bonus)
+				end
+				--local reason = "Completed course"
+				--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow + 15)
+				return
+			end
+
+--If none of the checks from above pass, then you'll end up here...
+
+-- Player is passing intermediate gate, set intermediate time
+			if gateNumber ~= player.CurrentGateNumber then --prevents repeated gate detection
+				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
+				local intermediate = player:GetIntermediateTime(player.CurrentLapNumber, gateNumber)
+				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
+				player.StatusText = string.format("Speed: %d kts | Time: %s", player.GateSpeed, formatTime(intermediate))
+				env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
+				self:evaluateRollAngle(gateNumber, player)
+				player.PylonFlag = false
+				local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
+				for i = 1, #self.BonusGates do
+					if self.BonusGates[i] == gateNumber then
+						if bonusGateAltitudeOk == true then
+							player.Bonus = player.Bonus + self.BonusTime
+							warnPlayer(string.format("Low alt. bonus -%d sec", self.BonusTime), player)
+						end
+					end
+				end
+				if gateAltitudeOk == false then
+					trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+					player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
+				end
+				if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past, so we'll show a time comparison to the best record time
+					local fastestIntermediate = self.FastestIntermediates[player.CurrentLapNumber][gateNumber]
+					--there's a chance the best set of intermediates contains a zero time for a gate if that gate was skipped for some reason by the fastest player, so we protect against this and don't show the comparison
+					if fastestIntermediate ~= 0 then
+						local difference = intermediate - fastestIntermediate
+						local sign = "+"
+						if difference < 0 then
+							sign = "-"
+						end
+						player.StatusText = string.format("%s (%s%s sec.)", player.StatusText, sign, math.abs(difference))
+					end
+				end
+				player.CurrentGateNumber = gateNumber
+
+				--set the general purpose flags used for group races...
+				if self.GroupRace == true  then
+					local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
+					local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
+					if not gateFlagValue or gateFlagValue == 0 then
+						trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose
+					end
+				end
+
+				if self.GroupRace == true then
+					self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime)
 				end
 			end
 		end
-		if gateAltitudeOk == false then
-			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
-			player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
-		end
-		player.PylonFlag = false
-		player:StopTimer()
-
-        if #self.BonusGates > 0 then
-		    player.StatusText = string.format("Finished. Time: %s + Penalty: %d sec. - Bonus: %d sec.\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
-		    env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
-		else
-             player.StatusText = string.format("Finished. Time: %s + Penalty: %d sec.\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
-		    env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
-        end
-        
-        trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
-		player.CurrentGateNumber = gateNumber
-		if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then
-			self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
-			self.FastestPlayer = player.Name
-			player.StatusText = string.format("%s - Fastest time!", player.StatusText)
-			self.FastestIntermediates = player.IntermediateTimes
-			env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
-		else
-			player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
-			env.info(string.format("%s +%s seconds behind best time", player.Name, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime)))
-		end		
-
-		--fireworks!
-		if #self.FireworksZones > 0 then shootFireworks(self.FireworksZones) end		
-		
-        --set the general purpose flags used for group races...
-        if self.GroupRace == true then
-            if GroupWinnerCrossedFinishLine == false then
-                GroupWinnerCrossedFinishLine = true
-                trigger.action.setUserFlag("FinishLineCrossed", 1)
-            end
-            local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
-            local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
-            if not gateFlagValue or gateFlagValue == 0 then
-                trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose 
-            end
-        end	
-		
-		if self.GroupRace == true then
-			self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, player.TotalTime + player.Penalty - player.Bonus)
-		end
-
-		local reason = "Completed course"
-		mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timer.getTime()+15)
-        return
 	end
-
-    --If none of the checks from above pass, then you'll end up here...
-
-	-- Player is passing intermediate gate, set intermediate time
-	if gateNumber ~= player.CurrentGateNumber then --prevents repeated gate detection
-        local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
-        local intermediate = player:GetIntermediateTime(player.CurrentLapNumber, gateNumber)
-        trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
-        player.StatusText = string.format("Time: %s | Speed: %d kts", formatTime(intermediate), player.GateSpeed)
-        env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
-        self:evaluateRollAngle(gateNumber, player)
-        player.PylonFlag = false
-        local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
-        for i = 1, #self.BonusGates do
-            if self.BonusGates[i] == gateNumber then
-                if bonusGateAltitudeOk == true then
-                    player.Bonus = player.Bonus + self.BonusTime
-                    warnPlayer(string.format("Low alt. bonus -%d sec", self.BonusTime), player)
-                end
-            end
-        end
-        if gateAltitudeOk == false then
-            trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
-            player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
-        end
-        if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past, so we'll show a time comparison to the best record time
-            local fastestIntermediate = self.FastestIntermediates[player.CurrentLapNumber][gateNumber]
-            --there's a chance the best set of intermediates contains a zero time for a gate if that gate was skipped for some reason by the fastest player, so we protect against this and don't show the comparison
-            if fastestIntermediate ~= 0 then
-                local difference = intermediate - fastestIntermediate
-                local sign = "+"
-                if difference < 0 then
-                    sign = "-"
-                end
-                player.StatusText = string.format("%s (%s%s)", player.StatusText, sign, formatTime(math.abs(difference)))
-            end
-        end
-        player.CurrentGateNumber = gateNumber
-
-        --set the general purpose flags used for group races...
-        if self.GroupRace == true  then
-            local gateFlagName = string.format("Lap%dGate%dReached", player.CurrentLapNumber, gateNumber)
-            local gateFlagValue = trigger.misc.getUserFlag(gateFlagName)
-            if not gateFlagValue or gateFlagValue == 0 then
-                trigger.action.setUserFlag(gateFlagName, 1) --optional flag to be used in the .miz for whatever purpose
-            end
-        end
-
-		if self.GroupRace == true then
-			self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timer.getTime() - GroupStartTime)
-		end
-    end
 end
 -----------------------------------------------------------------------------------------
 -- Display all active players on screen, with their current status
 --
 function Airrace:ListPlayers()
+	local timeNow = timer.getTime()
 	local text = ""
 	--if it's a group race...
 	if self.GroupRace == true then
@@ -1212,12 +1197,12 @@ function Airrace:ListPlayers()
 			--if the drop-in occured but no one started yet...
 			if trigger.misc.getUserFlag("PaceDrop") == 1 and trigger.misc.getUserFlag("GroupRaceStarted") == 0 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
 				if PaceDropTime == 0 then 
-					PaceDropTime = timer.getTime()
+					PaceDropTime = timeNow
 				end
 				text = "Racers dropping in!"
 			--if the race started...	
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress. Time: %s", formatTime(timer.getTime()-GroupStartTime))
+				text = string.format("Race in progress. Time: %s", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1227,7 +1212,7 @@ function Airrace:ListPlayers()
 		--if there's no pace plane preset...	
 		else 
 			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress. Time: %s", formatTime(timer.getTime()-GroupStartTime))
+				text = string.format("Race in progress. Time: %s", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 0 and trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1240,87 +1225,107 @@ function Airrace:ListPlayers()
 		text = string.format("%d racers in course", #self.Players)
 	end
 	
-	local playerNames = {}
 	if self.FastestTime > 0 then
 		text = string.format("%s - Best time: %s by %s", text, formatTime(self.FastestTime), self.FastestPlayer)
 	end
 	text = string.format("%s\n---------------------------------------", text)
-	if #self.Players > 0 then
-		--In group races with a pace plane, check the player's line-up with the pace plane at the moment of drop in			
-		if self.GroupRace == true and self.PaceUnitName ~= nil then
-			local paceDroppedIn = trigger.misc.getUserFlag("PaceDrop") -- PaceDrop is a flag that must be set true in the .miz 	
-			if paceDroppedIn == 1 then -- 1=true in DCS user flag
-				for playerIndex, player in ipairs(self.Players) do	
-					if not player.PacePositionEvaluated and not player.Finished == true and player.PlayerObject:isExist() then
-						self:CheckLineupWithPace(player)
-					end
-				end
 
-                --reset the general-purpose gate flags for the upcoming race				
-				if trigger.misc.getUserFlag("Lap1Gate1Reached") == 1 then
-					local lapNumberCorrection = 0 --initialize
-					if self.NumberLaps == 0 then
-						lapNumberCorrection = 1
-					else 
-						lapNumberCorrection = self.NumberLaps
-					end
-					for lap = 1, lapNumberCorrection do
-						for gate = 1, #self.Course.Gates do
-							local flagName = string.format("Lap%dGate%dReached", lap, gate)
-							trigger.action.setUserFlag(flagName, 0)
-						end
-					end					
+	if #self.Players > 0 then		
+		if self.GroupRace == true then
+
+			--First, check to make sure there's at least one player still racing in the group race...
+			local allPlayersAreFinished = true
+			for playerIndex, player in ipairs(self.Players) do
+				if player.DNF == false or player.Finished == false then 
+					allPlayersAreFinished = false 
 				end
 			end
+			if allPlayersAreFinished == true then
+				trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
+				trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose
+				env.info("All racers are now DNF or finished the race. Flag GroupRaceFinished = 1")
+				mist.scheduleFunction(stopRaceScript, nil, timeNow + 30)
+				return
+			end		
+
+			--In group races with a pace plane, check the player's line-up with the pace plane at the moment of drop in			
+			if self.PaceUnitName ~= nil then
+				local paceDroppedIn = trigger.misc.getUserFlag("PaceDrop") -- PaceDrop is a flag that must be set true in the .miz 	
+				if paceDroppedIn == 1 then -- 1=true in DCS user flag
+					for playerIndex, player in ipairs(self.Players) do	
+						if not player.PacePositionEvaluated and not player.Finished == true and player.PlayerObject:isExist() then
+							self:CheckLineupWithPace(player)
+						end
+					end
+
+					--reset the general-purpose gate flags for the upcoming race				
+					if trigger.misc.getUserFlag("Lap1Gate1Reached") == 1 then
+						local lapNumberCorrection = 0 --initialize
+						if self.NumberLaps == 0 then
+							lapNumberCorrection = 1
+						else 
+							lapNumberCorrection = self.NumberLaps
+						end
+						for lap = 1, lapNumberCorrection do
+							for gate = 1, #self.Course.Gates do
+								local flagName = string.format("Lap%dGate%dReached", lap, gate)
+								trigger.action.setUserFlag(flagName, 0)
+							end
+						end					
+					end
+				end
+			end
+
+			--check if the group race has timed out...		
+			if (((trigger.misc.getUserFlag("GroupRaceStarted") == 1) and (timeNow > GroupStartTime + self.GroupRaceTimeout)) or ((trigger.misc.getUserFlag("PaceDrop") == 1) and (timeNow > PaceDropTime + self.GroupRaceTimeout))) then
+				trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
+				trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose 
+				env.info("Group race timed out. Flag GroupRaceFinished = 1")
+				mist.scheduleFunction(stopRaceScript, nil, timeNow)
+				return
+			end	
 		end
-	
-		--check if the group race has timed out...		
-		if self.GroupRace == true and (((trigger.misc.getUserFlag("GroupRaceStarted") == 1) and (timer.getTime() > GroupStartTime + self.GroupRaceTimeout)) or ((trigger.misc.getUserFlag("PaceDrop") == 1) and (timer.getTime() > PaceDropTime + self.GroupRaceTimeout))) then
-			trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
-			trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose 
-			env.info("Group race timed out. Flag GroupRaceFinished = 1")
-			mist.scheduleFunction(stopRaceScript, nil, timer.getTime())
-			return
-		end	
 
 		-- Check if any players are currently flying through a gate, and if so check for pylon hits and update their status
 		local playersInGates = self:GetPlayersInGates()
-		if #playersInGates > 0 then
-			for playerIndex, player in ipairs(playersInGates) do
-				if (self.GroupRace == false and player.DNF == false) or (self.GroupRace == true and player.Finished == false and player.DNF == false) then
-					self:CheckPylonHitForPlayer(player)
-					self:UpdatePlayerStatus(player)
+		if #playersInGates > 0 then	
+			for playerIndex, player in ipairs(playersInGates) do		
+				if self.GroupRace == false or (self.GroupRace == true and player.Finished == false) then
+					if player.DNF == false then 
+						self:CheckPylonHitForPlayer(player)
+					end
+					self:UpdatePlayerStatus(player) --we'll check for DNF in the next function. Necessary to restart an individual race.
 				end
 			end
 		end
 
 		-- Now build the text to be displayed to the racers.. (displays are different for group races vs. individual races)
 
-		--for group races that have started...
 		if self.GroupRace == true and GroupTimerStarted then
+		--for group races that have started...
 			local rankTable = self:SortRanks(self.GroupCurrentRankings)
 			local playerIndex = 0 --initialize			
 
 			for currentRank, playerData in ipairs(rankTable) do
-				text = string.format("%s\n%d. %s", text, currentRank, playerData.name)
+				text = string.format("%s\n%d. %s", text, currentRank, playerData.name:sub(1,30))
 
 				--find index position of this player in the Player list...
-				for index, player in ipairs(self.Players) do
+				for index, player in ipairs(self.Players) do					
 					if player.Name == playerData.name then
-						if player.CurrentGateNumber > 0 and player.Finished == false then
+						if player.CurrentGateNumber > 0 and player.Finished == false then							
 							if player.DNF == true then
 								text = string.format("%s | %s", text, player.StatusText)
-							elseif self.NumberLaps > 1 then
+							elseif self.NumberLaps > 1 then								
 								text = string.format("%s | Lap %d Pylon %d | %s", text, player.CurrentLapNumber, player.CurrentGateNumber, player.StatusText)
 							else
 								text = string.format("%s | Pylon %d | %s", text, player.CurrentGateNumber, player.StatusText)
 							end
-						else
+						else --if you haven't begun the race yet...
 							text = string.format("%s - %s", text, player.StatusText)
 						end
 
 						for messageIdx, message in ipairs(player.Warnings) do
-							if message[2] >= timer.getTime() then
+							if message[2] >= timeNow then
 								text = text .. "\n     !!! " .. message[1]
 							end
 						end
@@ -1330,10 +1335,9 @@ function Airrace:ListPlayers()
 				end
 			end	
 
-		else
+		else --for individual races, or for group races that have not started yet
 			for playerIndex, player in ipairs(self.Players) do
-				text = string.format("%s\n%s", text, player.Name)
-				playerNames[playerIndex] = player.UnitName
+				text = string.format("%s\n%s", text, player.Name:sub(1,30))
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
 						text = string.format("%s | %s", text, player.StatusText)
@@ -1347,16 +1351,16 @@ function Airrace:ListPlayers()
 				end
 
 				for messageIdx, message in ipairs(player.Warnings) do
-					if message[2] >= timer.getTime() then
+					if message[2] >= timeNow then
 						text = text .. "\n     !!! " .. message[1]
 					end
 				end
 				
-				if self.GroupRace == true and player.RaceEligible == false and player.ScheduledForRemoval == false then
-					local reason = "Not eligible for upcoming race"
-					mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timer.getTime()+15)
-					player.ScheduledForRemoval = true
-				end
+				--if self.GroupRace == true and player.RaceEligible == false and player.ScheduledForRemoval == false then
+					--local reason = "Not eligible for upcoming race"
+					--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow+15)
+					--player.ScheduledForRemoval = true
+				--end
 			end	 			
 		end
 	
@@ -1365,7 +1369,7 @@ function Airrace:ListPlayers()
 		trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
 		trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose
 		env.info("No players remaining in the group race. Flag GroupRaceFinished = 1")
-		mist.scheduleFunction(stopRaceScript, nil, timer.getTime()+30)
+		mist.scheduleFunction(stopRaceScript, nil, timeNow+30)
 	end
 
 	trigger.action.outText(text, 10, true)
@@ -1498,7 +1502,6 @@ function startRaceScript()
 end
 
 -----------------------------------------------------------------------------------------
------------------------------------------------------------------------------------------
 -- Stop the script
 function stopRaceScript()
 	env.info("Stop Airrace script")
@@ -1514,6 +1517,42 @@ function stopRaceScript()
 	GroupTimerStarted = false
 	GroupWinnerCrossedFinishLine = false
 	PaceDropTime = 0
+end
+-----------------------------------------------------------------------------------------
+-- Detect crashes, deaths, ejections
+local crashHandler = {}
+function crashHandler:onEvent(event)
+	if #race.Players ==  0 then return end
+
+	local initiator = event.initiator
+	if not initiator then return end
+
+	local ok, name = pcall(initiator.getPlayerName, initiator)
+    if not ok or not name then return end   -- AI, scenery object, or invalid unit
+
+	local reason = nil
+
+		local playerName = ""		
+
+	if event.id == world.event.S_EVENT_CRASH then
+			reason = "Crashed"
+	elseif event.id == world.event.S_EVENT_EJECTION then
+			reason = "Ejected"	
+	elseif event.id == world.event.S_EVENT_DEAD  or event.id == world.event.S_EVENT_PILOT_DEAD then
+			reason = "Died"	
+	end
+
+	if not reason then return end
+
+	env.info("Player " .. name .. " "  .. reason)
+
+	for _, player in ipairs(race.Players) do					
+		if player.Name == name then
+			player.DNF = true
+			player.StatusText = "DNF! | " ..  reason
+			race:AddToGroupCurrentRankings(player.Name, 1, 1, 0) -- fixed entry with time=0 at first gate, for comparison to other racers, in case player dies before the first gate
+		end
+	end
 end
 -----------------------------------------------------------------------------------------
 -- Initialize the script
@@ -1633,5 +1672,7 @@ end
 
 env.info("-----------------------------------------------------------------------------------------")
 env.info("Load Airrace script")
+
+world.addEventHandler(crashHandler)
 
 Init()

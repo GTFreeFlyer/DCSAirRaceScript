@@ -69,7 +69,7 @@ NumberFireworksZones = 6
 --These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.
 --No leading zeroes. Start at -1.  Don't skip numbers. 
 --Causes fireworks to shoot from 1m above ground level at each trigger zone when 
---any aircraft crosses the starting line, or the finish line 
+--any crossing the starting or finish lines 
 
 --PENALTY AND DNF SETTINGS:-------------
 

@@ -121,7 +121,7 @@ or...
   
 Okay, that covers all the required stuff, but wait! There are more (optional) goodies below, and we still need to go back to the Race Settings. More on that in a later section below.
 
-15. Let's get fancy and add some fireworks effects! Fireworks (signal flares) will pop up from trigger zones names "fireworks-1" and so on. The size of the zone is irrelevant. They fire off whenever a racer crosses the starting line, and also the finish line. They originate 1 meter above the ground.  Optional: I suggest placing a static object, like a barrel, at the location so you don't see the fireworks coming from nowhere.  
+15. Let's get fancy and add some fireworks effects! Fireworks (signal flares) will pop up from trigger zones names "fireworks-1" and so on. The size of the zone is irrelevant. They fire off whenever any racer crosses the starting line (solo racing), the first racer crosses the starting line (group racing), or when any aircraft crosses the finish line. They originate 1 meter above the ground.  Optional: I suggest placing a static object, such as an M92 Oil Barrel, at the location so you don't see the fireworks coming from nowhere.  
 ![Adding fireworks for effect](screenshots/fireworks.png)
 ![Fireworks](screenshots/fireworks%20night.png)
 
