@@ -1,5 +1,8 @@
 # DCS Air Race Script
-This script is for DCS World (Digital Combat Simulator) mission creators.  
+This script is for DCS World mission creators who want to create epic race courses easily.  
+Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/  
+Please click the Watch button, and Star button at the top of the GitHub page to receive notices when there are updates.  
+Please click Issues at the top of the GitHub page to report bugs and suggestions.  
 ![Race1](screenshots/race1.jpg)
 ![Race3](screenshots/race3.jpg)
 This README was created by GTFreeFlyer. You may find me on Discord or the ED Forums with the same username if you have questions or comments.   
@@ -121,7 +124,7 @@ or...
 
 ![Drawings](screenshots/mapdrawings.png)
   
-Okay, that covers all the required stuff, but wait! There are more (optional) goodies below, and we still need to go back to the Race Settings. More on that in a later section below.
+Okay, that covers all the required stuff, but wait!... There are more (optional) goodies below, and we still need to go back to the Race Settings. More on that in a later section below.
 
 15. Let's get fancy and add some fireworks effects! Fireworks (signal flares) will pop up from trigger zones names "fireworks-1" and so on. The size of the zone is irrelevant. They fire off whenever any racer crosses the starting line (solo racing), the first racer crosses the starting line (group racing), or when any aircraft crosses the finish line. They originate 1 meter above the ground.  Optional: I suggest placing a static object, such as an M92 Oil Barrel, at the location so you don't see the fireworks coming from nowhere.  
 ![Adding fireworks for effect](screenshots/fireworks.png)
@@ -129,9 +132,11 @@ Okay, that covers all the required stuff, but wait! There are more (optional) go
 
 16. Interested in night racing? It's wild! The script will automatically light up the course with illumination flares above every gate trigger zone. Want additional lighting? Easy! Place trigger zones named "illum-1", "illum-2", and so on.  
 ![Adding additional night lighting](screenshots/illum.png)  
-![Race4](screenshots/race4.jpg)
+![Race4](screenshots/race4.jpg)  
 ![Race5](screenshots/race5.jpg)
 
+17. Need to add smoke markers? Just drop a trigger zone name "Green smoke-1", "Green smoke-2", and so on. Color choices are Green, Blue, White, Orange and Red. The numbering is per color. For example: "Green smoke-1", "Green smoke-2", "Blue smoke-1", "Green smoke-3", "Red smoke-1", etc.  Simply start with -1 for each color you want, then copy and paste the trigger zones and they should automatically be named appropriately. As always, no leading zeroes, and don't skip numbers!  The script will automatically create the smoke at these trigger zones AND keep them refreshed every 5 minutes.  
+  
 ### Setup Required for Group Races:
 Group races are loads of fun when coordinated properly between a group of friends, or when using an AI pace plane (more on this later below). The timer will start for everyone as soon as the first racer crosses the starting line. You can communicate with each other over voice chat to get everyone into a line-abreast formation, then call 3-2-1-Go! The group race option is set in the Race Settings. One neat feature with group racing is that the standings display in the upper-right of your screen is dynamic, meaning you'll see yourself moving up and down the list if you are gaining or falling back on the competition.  
 

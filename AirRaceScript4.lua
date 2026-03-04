@@ -2,15 +2,21 @@
 -- Script       : CrossCountryRace.lua - Multiplayer Cross-Country Airrace Script                                   --
 -- Version      : 1.2                                                                                               --
 -- Requirements : - DCS World 2.5.6 or later                                                                        --
---                - Mist 4.5.126                                                                                     --
+--                - Mist 4.5.126                                                                                    --
 -- Author       : Bas 'Joe Kurr' Weijers                                                                            --
 --                Dutch Flanker Display Team                                                                        --
 -- Contributors : GTFreeFlyer • Added functionality for multiple laps in version 1.2                                --       
 --                            • Due to adding laps, behavior changed if you go backwards through the gates          --
 --                            • Added functionality for a group race where everyone shares the same start time      -- 
+--                            • Added dynamic ranking display for group races                                       -- 
 --                            • Added functionality for knife-edge gates                                            --
---                            • Added illumination for night racing                                                 --
+--                            • Added illumination for night racing, smoke zones, and fireworks zones               --
 --                            • Added more user settings                                                            --
+--                More contributors are listed at the bottom of the README at the GitHub link below.                --
+----------------------------------------------------------------------------------------------------------------------
+-- VIEW THE README!                                                                                                 --
+-- https://github.com/GTFreeFlyer/DCSAirRaceScript/tree/master                                                      --
+-- It's much more detailed than what you'll find written here. There is no need to continue reading below!          --
 ----------------------------------------------------------------------------------------------------------------------
 -- This script enables mission builders to create an airrace course.                                                --
 -- The course consists of two or more gates, and can run from gate 1 to the last gate, or consist of multiple laps. --
@@ -18,7 +24,7 @@
 -- either finishes the course, or leaves the race zone. If the group race option is selected, the timer starts for  --
 -- all as soon as the 1st player enters gate 1, and all players must enter gate 1 within 15 seconds after that.     --
 --                                                                                                                  --
--- Usage of this script:                                                                                            --
+-- Usage of this script (Some basic info is below, but you should VIEW THE README on github as it is very detailed) --
 -- * Create a mission with one or more large overlapping trigger zones, named "racezone-1", "racezone-2", etc       --
 -- * Create two or more small trigger zones inside the large ones, named "gate-1", "gate-2", etc                    --
 -- * Place some static objects, such as race pylons, next to the gate trigger zones so the players can see the gates--
@@ -27,7 +33,7 @@
 -- * If choosing multiple laps, the start gate and finish gate are the same gate, gate-1                            --
 -- * You only need one set of gates for multiple laps. Versions prior to 1.2 required overlapping trigger zones for --
 --   multiple laps.  If you want to use this version of the script with a legacy .miz file, leave your trigger zones--
---   as they are, and set NumberLaps=1 (which is the default value for this optional setting)                       --
+--   as they are, and set NumberLaps as required (NumberLaps is the default value for this optional setting)        --
 -- * Create three required triggers:                                                                                --
 --                                                                                                                  --
 --   1. Mission Start --> <empty> --> Do Script                                                                     --
@@ -97,6 +103,7 @@ Player = {
 	UnitName = '',
 	PlayerObject = nil,
 	UnitID = 0,
+    AircraftType = '', --string. "A-10C, "KA-50", etc.
 	CurrentGateNumber = 0,
 	StartTime = 0,
 	Penalty = 0,
@@ -125,13 +132,13 @@ Player = {
 --                       or helicopters
 --
 function Player:New(playerUnit)
-	local unitName = playerUnit:getName()
+	local unitName = playerUnit:getName() --string. unit name from the mission editor
 	local playerName = ''
 
 	if playerUnit:getPlayerName() then
-		playerName = playerUnit:getPlayerName()
+		playerName = playerUnit:getPlayerName() --string. player name of human
 	else
-		playerName = playerUnit:getName()
+		playerName = playerUnit:getName() --string. player name of AI unit
 	end
 
 	local obj = {
@@ -140,6 +147,7 @@ function Player:New(playerUnit)
 		UnitName = unitName,
 		PlayerObject = playerUnit,
 		UnitID = Unit.getID(Unit.getByName(unitName)),
+        AircraftType = playerUnit:getTypeName(), --string. "A-10C, "KA-50", etc.
 		CurrentGateNumber = 0,
 		StartTime = 0,
 		Penalty = 0,
@@ -441,12 +449,12 @@ function Airrace:CheckForNewPlayers()
 								} 							
 								local distToPace = math.sqrt((playerPos.x-pacePos.x)^2 + (playerPos.y-pacePos.y)^2 + (playerPos.z-pacePos.z)^2) --meters
 								if distToPace <= self.GroupRaceParticipantFilter then
-									env.info(string.format("Player %s added to player list", unit:getPlayerName() or unit:getName()))
 									table.insert(self.Players, Player:New(unit))
+                                    env.info(string.format("Player %s in a %s added to player list", unit:getPlayerName() or unit:getName(), unit:getTypeName()))
 								end
-							else
-								env.info(string.format("Player %s added to player list", unit:getPlayerName() or unit:getName()))
+							else								
 								table.insert(self.Players, Player:New(unit))
+                                env.info(string.format("Player %s in a %s added to player list", unit:getPlayerName() or unit:getName(), unit:getTypeName()))
 							end							
 						end
 					end
@@ -767,14 +775,14 @@ function PopSmokeMarkers()
 end
 -----------------------------------------------------------------------------------------
 -- Collect names and times at each gate during a gorup race, to be sorted later
-function Airrace:AddToGroupCurrentRankings(name, lap, gate, time)
+function Airrace:AddToGroupCurrentRankings(name, lap, gate, time, aircraftType)
 	while lap > #self.GroupCurrentRankings do
 		table.insert(self.GroupCurrentRankings, {})
 	end
 	while gate > #self.GroupCurrentRankings[lap] do
 		table.insert(self.GroupCurrentRankings[lap], {})
 	end
-	self.GroupCurrentRankings[lap][gate][name] = time
+	self.GroupCurrentRankings[lap][gate][name] = {time = time, aircraftType =  aircraftType}
 end
 -----------------------------------------------------------------------------------------
 -- sort the names for display in a group race as follows:
@@ -797,14 +805,14 @@ function Airrace:SortRanks(currentRaceData)
 
 	-- search backwards through the table for efficiency
 	for lap = numLaps, 1, -1 do
-		local lapData = currentRaceData[lap]
+		--local lapData = currentRaceData[lap]
 		for gate = #self.Course.Gates, 1, -1 do
 			
 			-- collect all players who have a time at this lap/gate
-			for name, time in pairs(currentRaceData[lap][gate]) do
+			for name, data in pairs(currentRaceData[lap][gate]) do
 				if not added[name] then
 					added[name] = true
-					table.insert(bucket, {name=name, lap=lap, gate=gate, time=time})
+					table.insert(bucket, {name=name, lap=lap, gate=gate, time=data.time, aircraftType=data.aircraftType})
 					table.sort(bucket, function(a,b) return a.time < b.time end) -- sort this bucket by lowest time
 				end
 			end
@@ -815,16 +823,29 @@ function Airrace:SortRanks(currentRaceData)
 end
 --example format of bucket table sorted top to bottom, first by highest lapNum, then by highest gateNum, then by lowest timeVal
 --bucket={
---       {name = "name1", gate = gateNum, lap = lapNum, time = timeVal},
---       {name = "name2", gate = gateNum, lap = lapNum, time = timeVal},
---       {name = "name3", gate = gateNum, lap = lapNum, time = timeVal},
+--       {name = "name1", gate = gateNum, lap = lapNum, time = timeVal, aircraftType = "A-10C"}
+--       {name = "name2", gate = gateNum, lap = lapNum, time = timeVal, aircraftType = "KA-50"}
+--       {name = "name3", gate = gateNum, lap = lapNum, time = timeVal, aircraftType = "F4U-1D"}
 -- }
-
+-----------------------------------------------------------------------------------------
+-- Format aircraft type name into a better formatted string
+function formatAircraftType(aircraftType)
+    local aircraftName = aircraftType
+    if aircraftType = "Bf-109k-4"          then aircraftName = "Bf-109"     return end
+    if aircraftType = "F4U-1D"             then aircraftName = "Corsair"    return end
+    if aircraftType = "FW-190A8"           then aircraftName = "Anton"      return end`
+    if aircraftType = "F4U-190D9"          then aircraftName = "Dora"       return end
+    if aircraftType = "Mig-21Bis"          then aircraftName = "Mig-21"     return end
+    if aircraftType = "SpitfireLFMkIXCW"   then aircraftName = "Spitfire"   return end
+    if aircraftType = "FA-18C_hornet"      then aircraftName = "Hornet"     return end
+    if aircraftType = "CH-47D"             then aircraftName = "Chinook"    return end
+    if aircraftType = "Ka-27"              then aircraftName = "Helix"      return end
+    return aircraftName
+end
 -----------------------------------------------------------------------------------------
 -- Only for group races with pace planes:
 -- Check line-up of the player with the pace plane.
 -- Assign penalty if the player is ahead of the pace plane at time of drop in.
-
 function Airrace:CheckLineupWithPace(player)
 	if player.PlayerObject:isExist() then
 		return --don't bother continuing if player doesn't exist.  Happens if there's a disconnect or plane crash prior to drop in.
@@ -911,7 +932,7 @@ function Airrace:CheckLineupWithPace(player)
 		player.StatusText = "Not eligible for race | Bad pace position"
 		warnPlayer(string.format("%s, STAY CLEAR of the course area immediately!", player.Name), player)
 		player.DNF = true
-		self:AddToGroupCurrentRankings(player.Name, 1, 1, 0) -- fixed entry with time=0 at first gate, for comparison to other racers
+		self:AddToGroupCurrentRankings(player.Name, 1, 1, 0, player.AircraftType) -- fixed entry with time=0 at first gate, for comparison to other racers
 	else
 		player.StatusText = "Cleared in. Go-Go-Go!"
 		env.info(string.format("Player %s is eligible for the current group race.", player.Name))
@@ -998,7 +1019,7 @@ function Airrace:UpdatePlayerStatus(player)
 			player.CurrentGateNumber = gateNumber --this will always be 1 inside this if-statement
 			player.PylonFlag = false
 			if self.GroupRace == true then 
-				self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime)
+				self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime, player.AircraftType)
 			end
 			return
 		elseif gateNumber == 1 then
@@ -1078,7 +1099,7 @@ function Airrace:UpdatePlayerStatus(player)
 						player.CurrentGateNumber = gateNumber - 1 -- roll currentGateNumber back one gate			
 					end
 					if self.GroupRace == true then
-						self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime)
+						self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime, player.AircraftType)
 					end
 				end
 				return	
@@ -1140,7 +1161,7 @@ function Airrace:UpdatePlayerStatus(player)
 					end
 				end			
 				if self.GroupRace == true then
-					self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, player.TotalTime + player.Penalty - player.Bonus)
+					self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, player.TotalTime + player.Penalty - player.Bonus, player.AircraftType)
 				end
 				--local reason = "Completed course"
 				--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow + 15)
@@ -1195,7 +1216,7 @@ function Airrace:UpdatePlayerStatus(player)
 				end
 
 				if self.GroupRace == true then
-					self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime)
+					self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime, player.AircraftType)
 				end
 			end
 		end
@@ -1333,7 +1354,7 @@ function Airrace:ListPlayers()
                     end
                 end
                 text = string.format("%s\n---------------------------------------", text)
-				text = string.format("%s\n%d. %s", text, currentRank, playerData.name:sub(1,30))
+				text = string.format("%s\n%d. %s (%s)", text, currentRank, playerData.name:sub(1,22), formatAircraftType(playerData.aircraftType))
 
 				--find index position of this player in the Player list...
 				for index, player in ipairs(self.Players) do					
@@ -1362,7 +1383,7 @@ function Airrace:ListPlayers()
 		else --for individual races, or for group races that have not started yet
 			for playerIndex, player in ipairs(self.Players) do
                 text = string.format("%s\n---------------------------------------", text)
-				text = string.format("%s\n%s", text, player.Name:sub(1,30))
+				text = string.format("%s\n%s (%s)", text, player.Name:sub(1,22), player.AircraftType)
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
 						text = string.format("%s | %s", text, player.StatusText)
@@ -1507,8 +1528,8 @@ function startRaceScript()
 	--example format of GroupCurrentRankings table: This just collects the data to be sorted later into the Ranks table
 --    GroupCurrentRankings={  
 --       {--lap 1
---         {name1=time1, name2=time2}, --gate1
---         {name1=time3}, --gate2
+--         {name1={time=time1, aircraftType=aircraftType}, name2={time=time2, aircraftType=aircraftType}}, --gate1
+--         {name1={time=time3, aircraftType=aircraftType}}, --gate2
 --         {}, --gate3
 --         {}, --gate4
 --       },
@@ -1575,7 +1596,7 @@ function crashHandler:onEvent(event)
 		if player.Name == name then
 			player.DNF = true
 			player.StatusText = "DNF! | " ..  reason
-			race:AddToGroupCurrentRankings(player.Name, 1, 1, 0) -- fixed entry with time=0 at first gate, for comparison to other racers, in case player dies before the first gate
+			race:AddToGroupCurrentRankings(player.Name, 1, 1, 0, player.AircraftType) -- fixed entry with time=0 at first gate, for comparison to other racers, in case player dies before the first gate
 		end
 	end
 end
