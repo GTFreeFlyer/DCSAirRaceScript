@@ -31,9 +31,6 @@
 -- * Create three required triggers:                                                                                --
 --                                                                                                                  --
 --   1. Mission Start --> <empty> --> Do Script                                                                     --
---                                    NumberRaceZones = <total number of RaceZone triggerzones>           [REQUIRED]--
---                                    NumberGates = <total number of gate triggerzones in each lap>       [REQUIRED]--
---                                    NumberPylons = <total number of pylon triggerzones>                 [REQUIRED]--
 --                                    NumberLaps = <total number of laps per race>                        [optional]-- default: 0 (which means the race ends at the final gate, otherwise race ends at gate-1 of the last lap)
 --                                    NewPlayerCheckInterval = <number of seconds between checks>         [optional]-- default: 1
 --                                    RemovePlayerCheckInterval = <number of seconds between checks>      [optional]-- default: 30
@@ -59,11 +56,9 @@
 --                                    IlluminationOn = <true or false whether you want lighting at night> [optional]-- default: true. If true, the illum. flares will appear over all the gates plus any additional illumination trigger zones
 --									  IlluminationStartTime = <time in seconds after midnight>            [optional]-- default: 64800 (06:00 PM)  
 --									  IlluminationStopTime = <time in seconds after midnight>             [optional]-- default: 21600 (06:00 AM). Flares are respawned every 4 minutes from start time until stop time.
---									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 10000
---                                    IlluminationNumberZones = <number of additional lighting zones>     [optional]-- default: 0. Trigger zones must named "illum-1", "illum-2" ... "illum-10", etc, starting with -1, no leading zeroes, and not skipping any numbers.              
+--									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 10000   
 --                                    IlluminationAGL = <Elevation AGL in feet where they spawn>          [optional]-- default: 2600
 --                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
---                                    NumberFireworksZones = <total number of Fireworks triggerzones>     [optional]-- default: 0
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
 --                                    mist_4_5_126.lua (or later)                                                   --
@@ -344,7 +339,6 @@ Airrace = {
 	IlluminationStartTime = 64800,
 	IlluminationStopTime = 21600,
 	IlluminationBrightness = 10000,
-	IlluminationNumberZones = 0,
 	IlluminationAGL = 2600* .3048, --convert to meters
 	FireworksZones = {},
 	GroupCurrentRankings = {},
@@ -359,7 +353,7 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 						startSpeedLimit, bonusGateHeight, bonusGates, bonusTime, penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, 
 						penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, 
 						paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL, fireworksZones)
+						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
 	local obj = {
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
@@ -392,7 +386,6 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 		IlluminationStartTime = illuminationStartTime,
 		IlluminationStopTime = illuminationStopTime,
 		IlluminationBrightness = illuminationBrightness,
-		IlluminationNumberZones = illuminationNumberZones,
 		IlluminationAGL = illuminationAGL,
 		FireworksZones = fireworksZones,
 		GroupCurrentRankings = {},
@@ -734,20 +727,44 @@ function Airrace:NightRaceIllumination()
 			end
 		end
 	
-		if self.IlluminationNumberZones > 0 then
-			for zone = 1, self.IlluminationNumberZones do
+		if IlluminationNumberZones > 0 then
+			for zone = 1, IlluminationNumberZones do
 				local illumZoneName = string.format("illum-%d", zone)
 				local illumZoneInfo = trigger.misc.getZone(illumZoneName)
 				if illumZoneInfo then --protection against a missing zone number
 					local illumZoneVec3 = illumZoneInfo.point
 					local terrainElevation = land.getHeight({x = illumZoneVec3.x, y = illumZoneVec3.z})
-					local illuminLocation = {x=illumZoneVec3.x, y=terrainElevation + self.IlluminationAGL, z=illumZoneVec3.z}
-					trigger.action.illuminationBomb(illuminLocation, self.IlluminationBrightness)
+					local illumLocation = {x=illumZoneVec3.x, y=terrainElevation + self.IlluminationAGL, z=illumZoneVec3.z}
+					trigger.action.illuminationBomb(illumLocation, self.IlluminationBrightness)
 				end
 			end
 		end
 	end
 end 
+-----------------------------------------------------------------------------------------
+-- Smoke markers
+function PopSmokeMarkers()
+    local smokeColorChoices = {Green=NumberGreenSmokeZones, 
+                                 Red=NumberRedSmokeZones, 
+                               White=NumberWhiteSmokeZones, 
+                              Orange=NumberOrangeSmokeZones,
+                                Blue=NumberBlueSmokeZones}
+    for color, numZones in pairs(smokeColorChoices) do
+        if numZones > 0 then
+            for zone = 1, numZones do
+                local smokeZoneName = string.format("%s smoke-%d", color, zone)
+                local smokeZoneInfo = trigger.misc.getZone(smokeZoneName)
+                if smokeZoneInfo then --protection against a missing zone number
+                    local smokeZoneVec3 = smokeZoneInfo.point
+                    local terrainElevation = land.getHeight({x = smokeZoneVec3.x, y = smokeZoneVec3.z})
+                    local smokeLocation = {x=smokeZoneVec3.x, y=terrainElevation, z=smokeZoneVec3.z}
+                    trigger.action.smoke(smokeLocation, color)
+                end
+            end
+        end
+    end
+    timer.scheduleFunction(PopSmokeMarkers, {}, timer.getTime()+300) --refresh the smoke in another 5 minutes
+end
 -----------------------------------------------------------------------------------------
 -- Collect names and times at each gate during a gorup race, to be sorted later
 function Airrace:AddToGroupCurrentRankings(name, lap, gate, time)
@@ -1228,7 +1245,7 @@ function Airrace:ListPlayers()
 	if self.FastestTime > 0 then
 		text = string.format("%s - Best time: %s by %s", text, formatTime(self.FastestTime), self.FastestPlayer)
 	end
-	text = string.format("%s\n---------------------------------------", text)
+	--text = string.format("%s\n---------------------------------------", text)
 
 	if #self.Players > 0 then		
 		if self.GroupRace == true then
@@ -1304,9 +1321,18 @@ function Airrace:ListPlayers()
 		if self.GroupRace == true and GroupTimerStarted then
 		--for group races that have started...
 			local rankTable = self:SortRanks(self.GroupCurrentRankings)
-			local playerIndex = 0 --initialize			
+			local playerIndex = 0 --initialize
+            local highestLapNum = 0 --initialize
 
 			for currentRank, playerData in ipairs(rankTable) do
+                if self.NumberLaps > 1 then
+                    if playerData.lap > highestLapNum then
+                        text = string.format("%s\nLap %d of %d", text, playerData.lap, self.NumberLaps)
+                    else
+                        text = string.format("%s\nLap %d of %d", text, highestLapNum, self.NumberLaps)                    
+                    end
+                end
+                text = string.format("%s\n---------------------------------------", text)
 				text = string.format("%s\n%d. %s", text, currentRank, playerData.name:sub(1,30))
 
 				--find index position of this player in the Player list...
@@ -1315,8 +1341,6 @@ function Airrace:ListPlayers()
 						if player.CurrentGateNumber > 0 and player.Finished == false then							
 							if player.DNF == true then
 								text = string.format("%s | %s", text, player.StatusText)
-							elseif self.NumberLaps > 1 then								
-								text = string.format("%s | Lap %d Pylon %d | %s", text, player.CurrentLapNumber, player.CurrentGateNumber, player.StatusText)
 							else
 								text = string.format("%s | Pylon %d | %s", text, player.CurrentGateNumber, player.StatusText)
 							end
@@ -1337,6 +1361,7 @@ function Airrace:ListPlayers()
 
 		else --for individual races, or for group races that have not started yet
 			for playerIndex, player in ipairs(self.Players) do
+                text = string.format("%s\n---------------------------------------", text)
 				text = string.format("%s\n%s", text, player.Name:sub(1,30))
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
@@ -1613,8 +1638,13 @@ function Init()
 	local numberRaceZones = countZones("racezone")
 	local numberGates = countZones("gate")
 	local numberPylons = countZones("pylon")
-	local illuminationNumberZones = countZones("illum")
-	local numberFireworksZones = countZones("fireworks")
+	IlluminationNumberZones = countZones("illum")
+	NumberFireworksZones = countZones("fireworks")
+    NumberGreenSmokeZones = countZones("Green smoke")
+    NumberRedSmokeZones = countZones("Red smoke")
+    NumberWhiteSmokeZones = countZones("White smoke")
+    NumberOrangeSmokeZones = countZones("Orange smoke")
+    NumberBlueSmokeZones = countZones("Blue smoke")    
 
 	--protect values to valid ranges
 	if illuminationBrightness > 1000000 then
@@ -1643,7 +1673,6 @@ function Init()
 	
 	if numberRaceZones > 0 and numberGates > 0 then
 		for idx = 1, numberRaceZones do
-
 			table.insert(raceZones, string.format("racezone-%d", idx))
 		end
 		for idx = 1, numberPylons do
@@ -1652,7 +1681,7 @@ function Init()
 		for idx = 1, numberGates do
 			course:AddGate(idx)
 		end
-		for idx = 1, numberFireworksZones do
+		for idx = 1, NumberFireworksZones do
 			table.insert(fireworksZones, string.format("fireworks-%d", idx))
 		end
 
@@ -1670,7 +1699,7 @@ function Init()
 		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, 
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationNumberZones, illuminationAGL, fireworksZones)
+							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
@@ -1686,6 +1715,8 @@ function Init()
 	if illuminationOn == true then
 		mist.scheduleFunction(RefreshIllumination, { race }, timer.getTime(), illuminationRespawnTimer)
 	end
+
+    PopSmokeMarkers()
 end
 
 env.info("-----------------------------------------------------------------------------------------")
