@@ -7,6 +7,7 @@ Changes by GTFreeFlyer, February 2026
 • Crashed racers are not removed from race, preventing further racing - FIXED  
 • Readme updated - major overhaul. Example settings file and suggested .miz breifing text  
    files added to root folder in repo.  
+• Added auto-counting of triggerzones which now eliminates the required settings for that.  
 • Added capability to have multiple laps. NumberLaps can be set in the  
    editor without touching the lua script.  
 • Added options for group races, instead of individual timers so the  

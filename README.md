@@ -27,7 +27,8 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 
 ## Features
 * Set up an air race track with little effort, and track timing and violations of participating pilots.
-* Supports individual racing (everyone has their own timer), or group racing (everyone shares a common timer) with or without a pace plane.
+* Supports individual racing (everyone has their own timer), or group racing (everyone shares a common timer) with or without a pace plane.  
+* Info display for keeping track of your progress. Group races have a dynamic leaderboard that changes as players overtake each other.  
 * Define the number of laps for your race.
 * Detects pylon hits, missed gates, etc.
 * Define the height of your gates (planes must stay below this altitude when passing through)
@@ -79,6 +80,7 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
 ### Design Your Race Course:
 7. Create the first gate by placing a trigger zone named "gate-1".  
    * Note: All trigger zone names mentioned in this tutorial are case-sensitive, so type them exactly as shown.  
+   * All trigger zone must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
 
 8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer that as well; these objects have nothing to do with the script and you can do whatever you like with them.  
    * I recommend Static object -> category Structures -> Type Airshow cone  
@@ -87,9 +89,9 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
 
 ![Add your first gate](screenshots/gate1.png)  
 
-10. Now place trigger zones over the pylons and name them "pylon-1" and "pylon-2".  
-   * If you copy and paste pylon-1 triggerzone, it will automatically rename it to -2.  
-   * Identifying the pylons is optional, but recommended. It will allow you to assign penalties for pylon hits.  However, due to their small size, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.  
+10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on.   
+   * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2.  
+   * Identifying the pylons with triggerzones is optional, but recommended. It will allow you to assign penalties for pylon hits.  However, due to their small size, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.  
 
 ![Mark your pylons](screenshots/pylonZone.png)  
 
@@ -104,7 +106,7 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
 ![Adding additional gates](screenshots/addGates.png)  
 
 12. We must now define the racing zone that will detect players and add them to the race.  Players outside of this zone will be removed from the race, and their names will not clog up the display in the list of active racers on your screen while racing.  
-   * A single trigger zone over the whole course is sufficient. Name it "racezone1".  
+   * A single trigger zone over the whole course is sufficient. Name it "racezone-1".  
    * If you have a long and skinny course, you can get more creative and define the race area with multiple zones as seen in the second screenshot below.  Try to minimize the number of race zones to reduce the processing overhead of the script.  
 
 ![Adding a single racezone](screenshots/racezone1.png)  
@@ -112,7 +114,7 @@ or...
 ![Adding a single racezone](screenshots/racezone2.png)  
 
 13. Place your desired airplanes into the mission as usual. This is a basic editor skill and not covered in this tutorial.  
-   * You can place as many normal or dynamic spawns as you like. The script will detect any human-controlled aircraft in the race zone.  
+   * You can place as many normal or dynamic spawns as you like, and name them whatever you want. The script will detect any human-controlled aircraft in the race zone.  
    * Note: If you place them at the airfield shown in this tutorial, they will be immediately entered into the race, and if you happen to takeoff through gate-1, the race will start! You can place them at a nearby airfield, or air start, as desired.  
 
 14. Create a detailed briefing that explains how the race works so others know what to do. One of my biggest pet peeves in DCS is missions that don't give you any information. I've made this simple for you. Open "Example Mission Briefing.txt" from the extracted .zip, copy and paste the info into the mission briefing, and tweak it to match your mission setup. You can even go above and beyond and draw on the map...
@@ -168,28 +170,11 @@ You can even create F10 radio menu options with triggers to DO SCRIPT startRaceS
 ## Race Settings  
 One of the first steps you did above was create the very first trigger, Race Settings. This is how we set up the mission the way we want it, now that we have finished designing our race course.   
 
-You copied all the contents from "Example Settings without Explanations.txt" into the text box in the trigger.  You can click the small quad-arrow icon next to the text box to open up an editor. Do that now as you view the example and explanations below.  
+You copied all the contents from "Example Settings without Explanations.txt" into the text box in the first trigger.  You can click the small quad-arrow icon next to the text box to open up an editor. Do that now as you view the example and explanations below.  
 
 Note:  
    * All the optional settings can be omitted if you like the default values.  
    * Values next to optional, i.e. [optional, 30], are the default values the script will use if you choose to omit the setting. Changing the default value here has no effect and is for informational purposes only. 
-
-### Required Settings:
-
-NumberRaceZones = 1  
-   * [REQUIRED] total number of RaceZone triggerzones
-   * These trigger zones must be named, "racezone-1", "racezone-2", ... "racezone-10", etc.
-   * Usually, you'll have just one large racezone over the whole course.  
-
-NumberGates = 12  
-   * [REQUIRED] total number of gate triggerzones in each lap
-   * These trigger zones must be named, "gate-1", "gate-2", ... "gate-10", etc.
-   * No leading zeroes. Start at -1.  Don't skip numbers.  
-
-NumberPylons = 24  
-   * [REQUIRED] total number of Pylon triggerzones
-   * These trigger zones must be named, "pylon-1", "pylon-2", ... "pylon-10", etc.  
-   * No leading zeroes. Start at -1.  Don't skip numbers.  
 
 ### Optional Settings: (You can delete them entirely if you like the default values)
 
@@ -329,12 +314,16 @@ The script provides general-purpose flags that you may use to trigger your own s
 
    * FinishLineCrossed (Toggles true when the first racer crosses the finish line in a group race.)  
 
-   * Lap1Gate1Reached, Lap1Gate2Reached ... Lap3Gate15Reached, etc. (Toggles true at the first occurrence of each gate hit. All will reset back to false at the beginning of a race when the timer starts)   
+   * Lap1Gate1Reached, Lap1Gate2Reached ... Lap3Gate15Reached, etc. (Toggles true at the first occurrence of each gate hit. All will reset back to false at the beginning of a race when the timer starts)  
+
+Example:  
+If you want to play a voiceover .ogg sound after the first aircraft reaches gate-3 on the first lap then...  
+Create a trigger as usual to play the .ogg file.  For that trigger's condition, you will select FLAG IS TRUE, and type "Lap1Gate3Reached", as shown without the quotemarks.  
 
 Note:  
 Use the flags above as read-only (don't change their values on your own).  
-   All of them will be value 0 or 1 in the lua script, which is the same thing as false or true, and off or on, in DCS.  
-   (i.e. "Flag On" is the same thing as "Flag is true", and also the same thing as "Flag value = 1")  
+All of them will be value 0 or 1 in the lua script, which is the same thing as false or true, and off or on, in DCS.  
+(i.e. "Flag On" is the same thing as "Flag is true", and also the same thing as "Flag value = 1")  
     
 ## Contact Info:
 Contact GTFreeFlyer (Discord or ED Forums) with any questions regarding group races. The best thing is to check out the included example, "GTFreeFlyers Marianas WWII Races.miz", to see how things are set up.  

@@ -1,7 +1,3 @@
---REQUIRED SETTINGS:-------------
-NumberRaceZones = 1 --[REQUIRED]
-NumberGates = 12 --[REQUIRED]
-NumberPylons = 24 --[REQUIRED]
 --OPTIONAL SETTINGS:------------------
 NumberLaps = 3 --[optional, 0]
 NewPlayerCheckInterval = 1 --[optional, 1]
@@ -13,7 +9,6 @@ GateHeight = 150 --[optional, 300]
 BonusGates = {2, 4} --[optional, {}]
 BonusGateHeight = 15 --[optional, 20]  
 BonusTime = 2 --[optional, 1]
-NumberFireworksZones = 6 --[optional, 0]
 --PENALTY AND DNF SETTINGS:-------------
 PenaltyTimeMissedGate = 4 --[optional, 5]
 PenaltyTimePylonHit = 2 --[optional, 3]
@@ -30,7 +25,6 @@ PaceUnitName = "PacePlane" --[optional, nil]
 GroupRaceParticipantFilter = 6000 --[optional, 999999]
 --NIGHT RACE ILLUMINATION SETTINGS------
 IlluminationOn = false --[optional, true]
-IlluminationNumberZones = 20 --[optional, 0]
 IlluminationStartTime = 65000 --[optional, 64800]
 IlluminationStopTime = 22000 --[optional, 21600]
 IlluminationBrightness = 20000 --[optional, 10000]

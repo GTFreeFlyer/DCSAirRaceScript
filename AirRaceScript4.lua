@@ -1555,6 +1555,22 @@ function crashHandler:onEvent(event)
 	end
 end
 -----------------------------------------------------------------------------------------
+-- counts the number of desired zones
+function countZones(name)
+	local exitLoop = false
+	local counter = 1
+	while exitLoop == false do
+		local triggerZone = trigger.misc.getZone(string.format("%s-%d", name, counter))
+		if triggerZone then ---999 to protect against infinite loop
+			counter = counter + 1
+		else
+			env.info(string.format("%d %s zones detected", counter-1, name))			
+			exitLoop = true --not really necessary since return is on the next line, but extra safety
+			return counter-1
+		end
+	end
+end
+-----------------------------------------------------------------------------------------
 -- Initialize the script
 --
 function Init()
@@ -1565,9 +1581,6 @@ function Init()
     local raceZoneCeiling = RaceZoneCeiling or 99999
 	local course = Course:New()
 	race = nil --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
-	local numberRaceZones = NumberRaceZones or 0
-	local numberPylons = NumberPylons or 0
-	local numberGates = NumberGates or 0
 	local numberLaps = NumberLaps or 0
 	newPlayerCheckInterval = NewPlayerCheckInterval or 1 --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
 	removePlayerCheckInterval = RemovePlayerCheckInterval or 30 --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
@@ -1592,11 +1605,16 @@ function Init()
 	local illuminationStartTime = IlluminationStartTime or 64800
 	local illuminationStopTime = IlluminationStopTime or 21600
 	local illuminationBrightness = IlluminationBrightness or 10000
-	local illuminationNumberZones = IlluminationNumberZones or 0
 	local illuminationAGL = IlluminationAGL or 2600
 	local illuminationRespawnTimer = IlluminationRespawnTimer or 240 --seconds
-	local numberFireworksZones = NumberFireworksZones or 0
 	local fireworksZones = {}
+
+	--count the number of each type of zone
+	local numberRaceZones = countZones("racezone")
+	local numberGates = countZones("gate")
+	local numberPylons = countZones("pylon")
+	local illuminationNumberZones = countZones("illum")
+	local numberFireworksZones = countZones("fireworks")
 
 	--protect values to valid ranges
 	if illuminationBrightness > 1000000 then
@@ -1621,7 +1639,7 @@ function Init()
     startSpeedLimit = startSpeedLimit * 1.852 --convert knots to km/h
     participantFilter = participantFilter * .3048 --convert feet to meters
     illuminationAGL = illuminationAGL * .3048 --convert feet to meters
-    groupRaceTimeout = groupRaceTimeout * 60 --convert minutes to seconds
+    groupRaceTimeout = groupRaceTimeout * 60 --convert minutes to seconds	
 	
 	if numberRaceZones > 0 and numberGates > 0 then
 		for idx = 1, numberRaceZones do
@@ -1647,7 +1665,7 @@ function Init()
 			for gate = 1, numberGates do
 				fastestIntermediates[lap][gate]=0
 			end
-		end
+		end	
 
 		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, 

@@ -10,23 +10,6 @@
 •If you like a clean look, you may remove any comment line that begins with a double-hyphen, --
 (These instructions written by GTFreeFlyer)
 ----------------------------------------------------------------------------------------------
---REQUIRED SETTINGS:-------------
-
-NumberRaceZones = 1
---[REQUIRED] total number of RaceZone triggerzones
---These trigger zones must be named, "racezone-1", "racezone-2", ... "racezone-10", etc.
---Usually, you'll have just one large racezone over the whole course.
-
-NumberGates = 12
---[REQUIRED] total number of gate triggerzones in each lap
---These trigger zones must be named, "gate-1", "gate-2", ... "gate-10", etc.
---No leading zeroes. Start at -1.  Don't skip numbers.  
-
-NumberPylons = 24
---[REQUIRED] total number of Pylon triggerzones
---These trigger zones must be named, "pylon-1", "pylon-2", ... "pylon-10", etc.  
---No leading zeroes. Start at -1.  Don't skip numbers.  
-
 --OPTIONAL SETTINGS:------------------
 
 NumberLaps = 3
@@ -63,13 +46,6 @@ BonusGateHeight = 15
 
 BonusTime = 2
 --{optional, 1] time in seconds to subtract from total time when hitting a bonus gate  
-  
-NumberFireworksZones = 6
---[optional, 0] total number of fireworks triggerzones
---These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.
---No leading zeroes. Start at -1.  Don't skip numbers. 
---Causes fireworks to shoot from 1m above ground level at each trigger zone when 
---any crossing the starting or finish lines 
 
 --PENALTY AND DNF SETTINGS:-------------
 
@@ -134,12 +110,6 @@ GroupRaceParticipantFilter = 6000
 IlluminationOn = false
 --[optional, true] true or false whether you want race course lighting at night
 --If true, the illum. flares appear over all gates plus any additional illum. trigger zones
-
-IlluminationNumberZones = 20
---[optional, 0] number of additional lighting zones
---Trigger zones must named "illum-1", "illum-2" ... "illum-10", etc.
---Numbering must start with -1, no leading zeroes, and you cannot skip any numbers
---You do not need illum zones over gates. Gates will receive illum. flares automatically
 
 IlluminationStartTime = 65000
 --[optional, 64800] time in seconds after midnight. 64800 would be 06:00 PM
