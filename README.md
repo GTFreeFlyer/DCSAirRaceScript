@@ -46,8 +46,8 @@ Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/
    * Please click the Watch button and Star button at the top of the GitHub page to receive notices when there are updates.  
    * Please click Issues at the top of the GitHub page to report bugs and request new features.  
 ![GitHub](screenshots/github.jpg)
-1. From the GitHub page, click Code in the upper right (green button), and select Download ZIP  
-![Click Code](screenshots/clickcode.jpg)
+1. From the GitHub page, click Releases on the right side, and click DCSAirRaceScript.v4.zip to download it. (You do not need to download the Source code zip or tar.gz).    
+![Click Code](screenshots/download.jpg)
 2. Extract the .zip anywhere you like on your PC
 3. If you don't already have MIST downloaded to your PC, get it from https://github.com/mrSkortch/MissionScriptingTools. You only need the single file, mist.lua.  There's no need to download the whole .zip from here. Click on mist.lua from the list of files you see; this will bring you to the page that shows all 9500+ lines of code.  Press ctrl+shift+S to save the file somewhere on your PC.
   

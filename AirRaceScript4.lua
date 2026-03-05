@@ -1257,7 +1257,7 @@ function Airrace:ListPlayers()
 				text = "Racers dropping in!"
 			--if the race started...	
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress. Time: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress | Time: %s", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1267,7 +1267,7 @@ function Airrace:ListPlayers()
 		--if there's no pace plane preset...	
 		else 
 			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress. Time: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress | Time: %s", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 0 and trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1281,9 +1281,8 @@ function Airrace:ListPlayers()
 	end
 	
 	if self.FastestTime > 0 then
-		text = string.format("%s - Best time: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
+		text = string.format("%s | Best time: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
 	end
-	--text = string.format("%s\n---------------------------------------", text)
 
 	if #self.Players > 0 then		
 		if self.GroupRace == true then
@@ -1365,12 +1364,12 @@ function Airrace:ListPlayers()
 			for currentRank, playerData in ipairs(rankTable) do
                 if self.NumberLaps > 1 then
                     if playerData.lap > highestLapNum then
-                        text = string.format("%s\nLap %d of %d", text, playerData.lap, self.NumberLaps)
+                        text = string.format("%s | Lap %d of %d", text, playerData.lap, self.NumberLaps)
                     else
-                        text = string.format("%s\nLap %d of %d", text, highestLapNum, self.NumberLaps)                    
+                        text = string.format("%s | Lap %d of %d", text, highestLapNum, self.NumberLaps)                    
                     end
                 end
-                text = string.format("%s\n---------------------------------------", text)
+                text = string.format("%s\n------------------------------------------------------------------------------", text)
 				text = string.format("%s\n%d. %s (%s)", text, currentRank, playerData.name:sub(1,20), formatAircraftType(playerData.aircraftType))
 
 				--find index position of this player in the Player list...
