@@ -1,6 +1,7 @@
 --OPTIONAL SETTINGS:------------------
+DistanceUnits = "m" --[optional, "ft"] 
 NumberLaps = 3 --[optional, 0]
-NewPlayerCheckInterval = 1 --[optional, 1]
+NewPlayerCheckInterval = 3 --[optional, 1]
 RemovePlayerCheckInterval = 20 --[optional, 30]
 HorizontalGates = {3,6,9,12} --[optional, {1}]
 VerticalGates = {4,7,11} --[optional, {}]

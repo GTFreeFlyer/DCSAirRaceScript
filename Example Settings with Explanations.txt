@@ -13,6 +13,10 @@
 ----------------------------------------------------------------------------------------------
 --OPTIONAL SETTINGS:------------------
 
+DistanceUnits = "m"
+--[optional, "ft"] units to use for the altitude and distance settings below.
+--Your two options are "ft" and "m". Make sure to include the quote marks.
+
 NumberLaps = 3
 --[optional, 0] total number of laps per race
 --If zero, race ends at last pylon, otherwise race will end at gate-1
@@ -30,19 +34,19 @@ VerticalGates = {4,7,11}
 --[optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees
 
 RaceZoneCeiling = 2000
---[optional, 99999] maximum altitude in feet of the racezone. Planes above this
+--[optional, 99999] maximum altitude of the racezone. Planes above this
 --will not be added to the race, or removed if they are. If you are using a pace
---plane, make sure this altitude is at least 500 feet higher than the drop-in alt.
+--plane, make sure this altitude is at least 500 ft (152 m) higher than the drop-in alt.
 
 GateHeight = 150
---[optional, 300] height of the gates in feet
+--[optional, 300] height of the gates
 --Racers flying through a gate higher than this will receive a penalty
 
 CustomGateHeights = { gate1={0,500}, gate12={100,400} }
 --[optional, {}] override the global GateHeight for specific gates.
 --Must define both the min. and max.  The example above will count the gate
---crossing at gate-1 if you cross between 0 and 500 feet AGL, and at
---gate-12 if you cross between 100 and 400 feet AGL. You can use these
+--crossing at gate-1 if you cross between 0 and 500 feet (or m) AGL, and at
+--gate-12 if you cross between 100 and 400 feet (or m) AGL. You can use these
 --overrides at bridges, buildings, "floating" gates, etc.
 --Add more gates as needed, separated by commas like in the example.
 
@@ -50,15 +54,15 @@ BonusGates = {2, 4}
 --[optional, {}] list of gate numbers for low altitude bonus
 
 BonusGateHeight = 15
---[optional, 20] height of the bonus gates in feet
+--[optional, 20] height of the bonus gates
 --Racers flying through a gate below this altitude will get a bonus  
 
 CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
 --[optional, {}] override the global BonusGateHeight for specific gates.
 --These gates MUST also be included in BonusGates (two settings above) in order to work.
 --Must define both the min. and max.  The example above will give you a
---bonus at gate-1 if you cross between 0 and 25 feet AGL, and a bonus at
---gate-11 if you cross through a tiny sliver between 20 and 40 feet AGL.
+--bonus at gate-1 if you cross between 0 and 25 ft (or m) AGL, and a bonus at
+--gate-11 if you cross through a tiny sliver between 20 and 40 ft (or m) AGL.
 --You can use these overrides for bonuses under bridges, thru buildings, etc.
 --Add more gates as needed, separated by commas like in the example.
 
@@ -119,9 +123,9 @@ PaceUnitName = "PacePlane"
 --quotes "like this". Used only when GroupRace=true
 
 GroupRaceParticipantFilter = 6000
---[optional, 999999] distance in feet
+--[optional, 999999] max distance between pilot and pace plane in order for
+--the pilot to be added to the race list before drop-in.
 --Used only when GroupRace=true, and when a pace plane is added
---Pilots only added to the race list if within this range of the pace before drop-in
 
 --NIGHT RACE ILLUMINATION SETTINGS------
 
@@ -142,8 +146,8 @@ IlluminationBrightness = 20000
 --In testing, 10000 to 20000 gives a nice glow that isn't overly bright
               
 IlluminationAGL = 3000 
---[optional, 2600] Elevation in feet above ground level where the illum. flares spawn
---In testing, they fall about 500 feet per minute
+--[optional, 2600] Elevation above ground level where the illum. flares spawn
+--In testing, they fall about 500 ft per minute (152 m/min)
 
 IlluminationRespawnTimer = 120
 --[optional, 240] seconds until respawn. Illum. flares last for 4 minutes before the burn-out

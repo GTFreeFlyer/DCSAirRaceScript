@@ -1,5 +1,12 @@
+(Most recent items on top)
+AirRaceScript4.1 
+Changes by GTFreeFlyer, March 2026  
+
+• Added new user option to set distance units as feet or meters
+
+-------------------------------------------------------------------------------------
 AirRaceScript4  
-Changes by GTFreeFlyer, February 2026  
+Changes by GTFreeFlyer, February 2026   
   
 • Changed the filename from AirRaceScript3 to AirRaceScript4  
 • Many changes and additions!  Script more than doubled in size from ~700 lines to  

@@ -90,7 +90,8 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
    * All trigger zone must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
 
 8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer that as well; these objects have nothing to do with the script and you can do whatever you like with them.  
-   * I recommend Static object -> category Structures -> Type Airshow cone  
+   * I recommend Static object -> category Structures -> Type Airshow cone
+   * Tip: If you plan to use Tacview to debrief your race, place an infantry or vehicle at (or inside) each pylon so that the pylon location is visible in Tacview.  
 
 9. In the example screenshot below, I've placed two groups of three cones to indicate the starting line. Racers will enter East to West. I recommend using a rectangular shaped zone for the start and finish lines so that you have a nice straight line for fairness.  The script checks position every 0.2 seconds, so do some math to figure out how far your plane travels in that amount of time, and make sure the trigger zone is long enough to ensure detection. For example, if you expect to enter the race at Mach 1 (1125 ft/sec), you'll travel 225 ft in 0.2 seconds, so I'd suggest a trigger zone around 300 feet in length.  
 ![Add your first gate](screenshots/gate1.png)  
@@ -195,6 +196,10 @@ Note:
 
 ### Optional Settings: (You can delete them entirely if you like the default values)
 
+DistanceUnits = "m"  
+ * [optional, "ft"] units to use for the altitude and distance settings below.  
+ * Your two options are "ft" and "m". Make sure to include the quote marks.  
+
 NumberLaps = 3  
    * [optional, 0] total number of laps per race
    * If zero, race ends at last pylon, otherwise race will end at gate-1
@@ -212,32 +217,33 @@ VerticalGates = {4,7,11}
    * [optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees
 
 RaceZoneCeiling = 2000  
-   * [optional, 99999] maximum altitude in feet of the racezone. 
+   * [optional, 99999] maximum altitude of the racezone. 
    * Planes above this will not be added to the race, or removed if they are. 
-   * If you are using a pace plane, make sure this altitude is at least 500 feet higher than the drop-in alt.
+   * If you are using a pace plane, make sure this altitude is at least 500 ft (152 m) higher than the drop-in alt.
 
 GateHeight = 150  
-   * [optional, 300] global height of the gates, in feet, for any gate not listed in CustomGateHeights (next setting below). 
+   * [optional, 300] global height of the gates for any gate not listed in CustomGateHeights (next setting below). 
    * Racers flying through a gate higher than this will receive a penalty
 
 CustomGateHeights = { gate1={0,500}, gate12={100,400} }  
-  * [optional, {}] override the global GateHeight for specific gates. Height in feet.  
+  * [optional, {}] override the global GateHeight for specific gates. 
   * Must define both the minimum and maximum heights.  
-  * The example above will count the gate crossing at gate-1 if you cross between 0 and 500 feet AGL, and at gate-12 if you cross between 100 and 400 feet AGL.     * You can use these overrides at bridges, buildings, "floating" gates, etc.  
+  * The example above will count the gate crossing at gate-1 if you cross between 0 and 500 ft (or m) AGL, and at gate-12 if you cross between 100 and 400 ft (or m) AGL.
+  * You can use these overrides at bridges, buildings, "floating" gates, etc.  
   * Add more gates as needed, separated by commas like in the example.  
   
 BonusGates = {2, 4}  
    * [optional, {}] list of gate numbers for low altitude bonus
 
 BonusGateHeight = 15  
-   * [optional, 20] global height of the bonus gates, in feet, for any gate listed in BonusGates and not in CustomBonusGateHeights (next setting below).  
+   * [optional, 20] global height of the bonus gates, for any gate listed in BonusGates and not in CustomBonusGateHeights (next setting below).  
    * Racers flying through a gate below this altitude will get a bonus  
   
 CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
-  * [optional, {}] override the global BonusGateHeight for specific gates. Height in feet.
+  * [optional, {}] override the global BonusGateHeight for specific gates.  
   * These gates MUST also be included in BonusGates (two settings above) for this to work.
   * Must define both the minimum and maximum heights.  
-  * The example above will give you a bonus at gate-1 if you cross between 0 and 25 feet AGL, and a bonus at gate-11 if you cross through a tiny sliver between 20 and 40 feet AGL.  
+  * The example above will give you a bonus at gate-1 if you cross between 0 and 25 ft (or m) AGL, and a bonus at gate-11 if you cross through a tiny sliver between 20 and 40 ft (or m) AGL.  
   * You can use these overrides for bonuses under bridges, thru buildings, etc.
   * Add more gates as needed, separated by commas like in the example.
 
@@ -301,11 +307,10 @@ PaceUnitName = "PacePlane"
    * Used only when GroupRace=true
 
 GroupRaceParticipantFilter = 6000  
-   * [optional, 999999] distance in feet
-   * Used only when GroupRace=true, and when a pace plane is added
-   * Pilots only added to the race list if within this range of the pace before drop-in
+   * [optional, 999999] max distance between pilot and pace plane in order for the pilot to be added to the race list before drop-in.  
+   * Used only when GroupRace=true, and when a pace plane is added  
 
-### Night Race Illumination Settings
+### Night Race Illumination Settings  
 
 IlluminationOn = false  
    * [optional, true] true or false whether you want race course lighting at night
@@ -330,8 +335,8 @@ IlluminationBrightness = 20000
    * In testing, 10000 to 20000 gives a nice glow that isn't overly bright 
               
 IlluminationAGL = 3000   
-   * [optional, 2600] Elevation in feet above ground level where the illum. flares spawn
-   * In testing, they fall about 500 feet per minute
+   * [optional, 2600] Elevation above ground level where the illum. flares spawn
+   * In testing, they fall about 500 ft/min (152 m/min)
 
 IlluminationRespawnTimer = 120  
    * [optional, 240] seconds until respawn. Illum. flares last for 4 minutes before they burn-out

@@ -37,6 +37,7 @@
 -- * Create three required triggers:                                                                                --
 --                                                                                                                  --
 --   1. Mission Start --> <empty> --> Do Script                                                                     --
+--                                    DistanceUnits = <"ft" or "m">                                       [optional]-- default: "ft". This applies to any of the altitude or distance setting below.
 --                                    NumberLaps = <total number of laps per race>                        [optional]-- default: 0 (which means the race ends at the final gate, otherwise race ends at gate-1 of the last lap)
 --                                    NewPlayerCheckInterval = <number of seconds between checks>         [optional]-- default: 1
 --                                    RemovePlayerCheckInterval = <number of seconds between checks>      [optional]-- default: 30
@@ -317,6 +318,7 @@ end
 -- Airrace Properties
 --
 Airrace = {
+    DistanceUnits = "ft",
 	RaceZones = {},
 	Course = {},
 	Players = {},
@@ -361,12 +363,13 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
 	local obj = {
+        DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
 		Course = course,
@@ -610,10 +613,12 @@ function Airrace:CheckBonusAltitudeForPlayer(player, gateNumber)
 	local result = true	
 	local playerAgl = getPlayerAltitudeAGL(player)
 	local gateToCheck = "gate" .. gateNumber
+    local unitConversion = 1
+    if self.DistanceUnits == "ft" then unitConversion = .3048 end 
 
-	if self.CustomBonusGateHeights[gateToCheck] then --if a custom bonus gate height definition exists...
-		if playerAgl <= self.CustomBonusGateHeights[gateToCheck][2]*.3048 then
-			if playerAgl >= self.CustomBonusGateHeights[gateToCheck][1]*.3048 then
+	if self.CustomBonusGateHeights[gateToCheck] then --if a custom bonus gate height definition exists...                   
+		if playerAgl <= self.CustomBonusGateHeights[gateToCheck][2] * unitConversion then
+			if playerAgl >= self.CustomBonusGateHeights[gateToCheck][1] * unitConversion then
 				result = true
 				warnPlayer("Bonus!")
 			else
@@ -643,25 +648,27 @@ function Airrace:CheckGateAltitudeForPlayer(player, gateNumber)
 	local result = true
 	local playerAgl = getPlayerAltitudeAGL(player)	
 	local gateToCheck = "gate" .. gateNumber
+    local unitConversion = 1
+    if self.DistanceUnits == "ft" then unitConversion = .3048 end
 
-	if self.CustomGateHeights[gateToCheck] then --if a custom gate height definition exists...
-		if playerAgl <= self.CustomGateHeights[gateToCheck][2]*.3048 then
-			if playerAgl >= self.CustomGateHeights[gateToCheck][1]*.3048 then
+	if self.CustomGateHeights[gateToCheck] then --if a custom gate height definition exists...        
+		if playerAgl <= self.CustomGateHeights[gateToCheck][2] * unitConversion then
+			if playerAgl >= self.CustomGateHeights[gateToCheck][1] * unitConversion then
 				result = true
 			else
 				result = false
-				warnPlayer(string.format("Flew under the gate! Altitude = %d feet | Penalty: %d sec.", playerAgl * 3.28, self.PenaltyTimeAboveGateHeight), player)	
+				warnPlayer(string.format("Flew under the gate! Altitude = %d %s | Penalty: %d sec.", playerAgl * unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)	
 			end
 		else
 			result = false
-			warnPlayer(string.format("Flew above the gate! Altitude = %d feet | Penalty: %d sec.", playerAgl * 3.28, self.PenaltyTimeAboveGateHeight), player)
+			warnPlayer(string.format("Flew above the gate! Altitude = %d %s | Penalty: %d sec.", playerAgl * unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
 		end	
 	else --use global gate height for checks
 		if playerAgl <= self.GateHeight then
 			result = true
 		else
 			result = false
-			warnPlayer(string.format("Flew above the gate! Altitude = %d feet | Penalty: %d sec.", playerAgl * 3.28, self.PenaltyTimeAboveGateHeight), player)
+			warnPlayer(string.format("Flew above the gate! Altitude = %d %s | Penalty: %d sec.", playerAgl * unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
 		end
 	end
 
@@ -687,7 +694,7 @@ function Airrace:CheckGateSpeedForPlayer(player)
 		result = true
 	else
 		result = false
-		warnPlayer(string.format("EXCEEDING START SPEED LIMIT of %d kts!! speed = %s kts", self.StartSpeedLimit * .54, speed * 3.6 * .54), player)
+		warnPlayer(string.format("Starting speed limit is %d kts! Your speed: %s kts", self.StartSpeedLimit * .54, speed * 3.6 * .54), player)
 	end
 	return result
 end
@@ -851,21 +858,53 @@ end
 --       {name = "name3", gate = gateNum, lap = lapNum, time = timeVal, aircraftType = "F4U-1D"}
 -- }
 -----------------------------------------------------------------------------------------
--- Format aircraft type name into a better formatted string
+-- Format aircraft type name into a better formatted string for display
 function formatAircraftType(aircraftType)
     local aircraftName = aircraftType
-    if aircraftType == "Bf-109k-4"          then aircraftName = "Bf-109"     return aircraftName end
-	if aircraftType == "CH-47D"             then aircraftName = "Chinook"    return aircraftName end
-	if aircraftType == "FA-18C_hornet"      then aircraftName = "Hornet"     return aircraftName end
-    if aircraftType == "F4U-1D"             then aircraftName = "Corsair"    return aircraftName end
-    if aircraftType == "FW-190A8"           then aircraftName = "Anton"      return aircraftName end
-    if aircraftType == "F4U-190D9"          then aircraftName = "Dora"       return aircraftName end
-	if aircraftType == "I-16"               then aircraftName = "I-16"       return aircraftName end
-	if aircraftType == "Ka-27"              then aircraftName = "Helix"      return aircraftName end
-    if aircraftType == "Mig-21Bis"          then aircraftName = "Mig-21"     return aircraftName end
-	if aircraftType == "P-47D-40"           then aircraftName = "P-47D-40"   return aircraftName end
-    if aircraftType == "SpitfireLFMkIXCW"   then aircraftName = "Spitfire"   return aircraftName end
-	if aircraftType == "TF-51D"             then aircraftName = "TF-51D"     return aircraftName end
+
+    if aircraftType == "A-10C"               then aircraftName = "A-10C"       return aircraftName end
+    if aircraftType == "A-10C_2"             then aircraftName = "A-10C"       return aircraftName end
+    if aircraftType == "AJS37"               then aircraftName = "Viggin"      return aircraftName end
+    if aircraftType == "AV8BNA"              then aircraftName = "Harrier"     return aircraftName end
+    if aircraftType == "Bf-109k-4"           then aircraftName = "Bf-109"      return aircraftName end
+    if aircraftType == "C-101CC"             then aircraftName = "C-101"       return aircraftName end
+    if aircraftType == "C-101EB"             then aircraftName = "C-101"       return aircraftName end
+    if aircraftType == "CH-47D"              then aircraftName = "Chinook"     return aircraftName end
+    if aircraftType == "Christen Eagle II"   then aircraftName = "CE II"       return aircraftName end
+    if aircraftType == "F-14A-135-GR"        then aircraftName = "F-14A"       return aircraftName end
+    if aircraftType == "F-14A-135-GR-Early"  then aircraftName = "F-14A"       return aircraftName end
+    if aircraftType == "F-14B"               then aircraftName = "F-14B"       return aircraftName end
+    if aircraftType == "F-15C"               then aircraftName = "F-15C"       return aircraftName end
+    if aircraftType == "F-15E"               then aircraftName = "F-15E"       return aircraftName end
+    if aircraftType == "F-15ESE"             then aircraftName = "F-15E"       return aircraftName end
+    if aircraftType == "F-16C_50"            then aircraftName = "F-16C"       return aircraftName end
+    if aircraftType == "F-18C_hornet"        then aircraftName = "F/A-18C"     return aircraftName end
+    if aircraftType == "F4U-1D"              then aircraftName = "Corsair"     return aircraftName end
+    if aircraftType == "F-5E-3"              then aircraftName = "F-5"         return aircraftName end
+    if aircraftType == "FW-190A8"            then aircraftName = "Anton"       return aircraftName end
+    if aircraftType == "FW-190D9"            then aircraftName = "Dora"        return aircraftName end
+    if aircraftType == "I-16"                then aircraftName = "I-16"        return aircraftName end
+    if aircraftType == "Ka-27"               then aircraftName = "Helix"       return aircraftName end
+    if aircraftType == "L-39ZA"              then aircraftName = "L-39"        return aircraftName end
+    if aircraftType == "M-2000C"             then aircraftName = "Mirage"      return aircraftName end
+    if aircraftType == "MB-339A"             then aircraftName = "MB-339"      return aircraftName end
+    if aircraftType == "MB-339APAN"          then aircraftName = "MB-339"      return aircraftName end
+    if aircraftType == "MiG-15bis"           then aircraftName = "MiG-15"      return aircraftName end
+    if aircraftType == "MiG-19P"             then aircraftName = "MiG-19"      return aircraftName end
+    if aircraftType == "MiG-21Bis"           then aircraftName = "Mig-21"      return aircraftName end
+    if aircraftType == "MiG-29 Fulcrum"      then aircraftName = "MiG-29"      return aircraftName end
+    if aircraftType == "Mirage 2000-5"       then aircraftName = "Mirage"      return aircraftName end
+    if aircraftType == "MosquitoFBMkVI"      then aircraftName = "Mosquito"    return aircraftName end
+    if aircraftType == "P-47D-30"            then aircraftName = "P-47D"       return aircraftName end
+    if aircraftType == "P-47D-30bl1"         then aircraftName = "P-47D"       return aircraftName end
+    if aircraftType == "P-47D-40"            then aircraftName = "P-47D"       return aircraftName end
+    if aircraftType == "P-51D"               then aircraftName = "P-51D"       return aircraftName end
+    if aircraftType == "P-51D-30-NA"         then aircraftName = "P-51D"       return aircraftName end
+    if aircraftType == "SpitfireLFMkIX"      then aircraftName = "Spitfire"    return aircraftName end
+    if aircraftType == "SpitfireLFMkIXCW"    then aircraftName = "Spitfire"    return aircraftName end
+    if aircraftType == "TF-51D"              then aircraftName = "TF-51D"      return aircraftName end
+    if aircraftType == "Yak-52"              then aircraftName = "Yak-52"      return aircraftName end
+
     return aircraftName
 end
 -----------------------------------------------------------------------------------------
@@ -911,48 +950,50 @@ function Airrace:CheckLineupWithPace(player)
 
 	--Check race eligibility:
 	player.RaceEligible = true --Set all players as eligible by default at the start of the following checks:
+    local unitConversion = 1
+    if self.DistanceUnits == "ft" then unitConversion = .3048 end 
 
-	--Check if pilot is within 2000 meters (a little more than 1 mile) of the pace plane
+	--Check if pilot is within 1 nautical mile of the pace plane
 	local distToPace = math.sqrt(playerPos.x^2 + playerPos.y^2 + playerPos.z^2) --meters		
-	if distToPace > 1852 then 	
-		env.info(string.format("Player %s is not eligible for the current group race. Distance to pace plane: %d meters", player.Name, math.floor(distToPace)))
-		warnPlayer(string.format("%s removed from race. (More than 1 nm from the Pace)", player.Name), player)
+	if distToPace > 1852 then 	--1852m = 1 nm
+		env.info(string.format("Player %s is not eligible for the current group race. Distance to pace plane: %d %s", player.Name, math.floor(distToPace / unitConversion), self.DistanceUnits))
+		warnPlayer("(More than 1 nm from the Pace)", player)
 		player.RaceEligible = false 
 	end
 
 	--Check if pilot is on the right side of the pace plane
 	if playerNewZ < 0 then 	
 		env.info(string.format("Player %s is not eligible for the current group race because they are on the left side of the pace plane", player.Name))
-		warnPlayer(string.format("%s removed from race. (Wrong side of the Pace)", player.Name), player)
+		warnPlayer("(Wrong side of the Pace)", player)
 		player.RaceEligible = false 
 	end
 
 	--Check if pilot is behind the pace plane
 	if playerNewX > 40 then 	
 		env.info(string.format("Player %s is not eligible for the current group race because they are too far ahead of the pace plane", player.Name))
-		warnPlayer(string.format("%s removed from race. (Too far ahead of the Pace)", player.Name), player)
+		warnPlayer("(Too far ahead of the Pace)", player)
 		player.RaceEligible = false 
 	end
 
 	--Check if pilot is within altitude limits the pace plane
-	if playerPos.y > 38.48 then -- 38.48 meters = 100 feet
+	if playerPos.y > 30.48 then -- 30.48 meters = 100 feet
 		env.info(string.format("Player %s is not eligible for the current group race because they are more than 100 ft above the pace plane", player.Name))
-		warnPlayer(string.format("%s removed from race. (More than 100 ft above the Pace)", player.Name), player)
+		warnPlayer(string.format("(More than %d %s above the Pace)", math.floor(30.48/unitConversion), self.DistanceUnits), player)
 		player.RaceEligible = false 
 	elseif not Unit.getByName(player.UnitName):inAir() then 	
 		env.info(string.format("Player %s is not eligible for the current group race because they are on the ground", player.Name))
-		warnPlayer(string.format("%s removed from race. (Not airborne)", player.Name), player)
+		warnPlayer("(Not airborne)", player)
 		player.RaceEligible = false 
 	elseif playerPos.y < -152.4 then -- 152.4 meters = 500 feet
 		env.info(string.format("Player %s is not eligible for the current group race because they are less than 500 ft below the pace plane", player.Name))
-		warnPlayer(string.format("%s removed from race. (Less than 500 ft below the Pace)", player.Name), player)
+		warnPlayer(string.format("(Less than %d %s below the Pace)", math.floor(152.4/unitConversion), self.DistanceUnits), player)
 		player.RaceEligible = false 
-	end
+	end    
 
 	--Now decide final eligibility:
 	if player.RaceEligible == false then
-		player.StatusText = "Not eligible for race | Bad pace position"
-		warnPlayer(string.format("%s, STAY CLEAR of the course area immediately!", player.Name), player)
+		player.StatusText = "Not eligible for race. Removed! | Bad pace position"
+		warnPlayer("STAY CLEAR of the course area immediately!", player)
 		player.DNF = true
 		self:AddToGroupCurrentRankings(player.Name, 1, 1, 0, player.AircraftType) -- fixed entry with time=0 at first gate, for comparison to other racers
 	else
@@ -962,15 +1003,15 @@ function Airrace:CheckLineupWithPace(player)
 		if playerNewX > 1 then --allow a 1 meter buffer
 			local penaltyIncrement = 2 + math.floor(playerNewX/20) --add 2 seconds plus an additional second for every 20 meters ahead of the pace plane
 			player.Penalty = player.Penalty + penaltyIncrement
-			env.info(string.format("%s was %dm ahead of the Pace. Penalty: %d sec.", player.Name, math.floor(playerNewX), penaltyIncrement))
-			warnPlayer(string.format("%s was %dm ahead of the Pace.  | Penalty: %d sec.", player.Name, math.floor(playerNewX), penaltyIncrement), player)									
+			env.info(string.format("%d m ahead of the Pace. Penalty: %d sec.", math.floor(playerNewX), penaltyIncrement))
+			warnPlayer(string.format("%d %s ahead of the Pace.  | Penalty: %d sec.", math.floor(playerNewX/unitConversion), self.DistanceUnits, penaltyIncrement), player)									
 		end
 
 		if playerPos.y > 2 then 	
 			local penaltyIncrement = 2 + math.floor(playerPos.y/5) --add 2 seconds plus an additional second for every 20 meters above the pace plane
 			player.Penalty = player.Penalty + penaltyIncrement
-			env.info(string.format("%s was %dm above the Pace. Penalty: %d sec.", player.Name, math.floor(playerPos.y), penaltyIncrement))
-			warnPlayer(string.format("%s was %dm above the Pace.     | Penalty: %d sec.", player.Name, math.floor(playerPos.y), penaltyIncrement), player)
+			env.info(string.format("%s was %d m above the Pace. Penalty: %d sec.", player.Name, math.floor(playerPos.y), penaltyIncrement))
+			warnPlayer(string.format("%d %s above the Pace.     | Penalty: %d sec.", math.floor(playerPos.y/unitConversion), self.DistanceUnits, penaltyIncrement), player)
 		end
 	end
 
@@ -1280,10 +1321,12 @@ function Airrace:ListPlayers()
 		text = string.format("%d racers in course", #self.Players)
 	end
 	
+    --check to see if there is already a best time recorded for the course, and display it if so
 	if self.FastestTime > 0 then
 		text = string.format("%s | Best time: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
 	end
 
+    --begin loop to check for players in the racezone, their statuses, and create the text display for them
 	if #self.Players > 0 then		
 		if self.GroupRace == true then
 
@@ -1630,6 +1673,7 @@ end
 -- Initialize the script
 --
 function Init()
+    local distanceUnits = DistanceUnits or "ft"
 	local raceZones = {}
 	local racePylons = {}
 	local horizontalGates = HorizontalGates or {1}
@@ -1696,14 +1740,17 @@ function Init()
     end
 
     --unit conversions for script usage
-    raceZoneCeiling = raceZoneCeiling * .3048 --convert feet to meters
-    gateHeight = gateHeight * .3048 --convert feet to meters
-    bonusGateHeight = bonusGateHeight * .3048 --convert feet to meters
-    startSpeedLimit = startSpeedLimit * 1.852 --convert knots to km/h
-    participantFilter = participantFilter * .3048 --convert feet to meters
-    illuminationAGL = illuminationAGL * .3048 --convert feet to meters
+    startSpeedLimit = startSpeedLimit * 1.852 --convert knots to km/h    
     groupRaceTimeout = groupRaceTimeout * 60 --convert minutes to seconds	
+    if distanceUnits == "ft" then
+        raceZoneCeiling = raceZoneCeiling * .3048
+        gateHeight = gateHeight * .3048
+        bonusGateHeight = bonusGateHeight * .3048
+        participantFilter = participantFilter * .3048
+        illuminationAGL = illuminationAGL * .3048
+    end    
 	
+    --add the trigger zones to tables
 	if numberRaceZones > 0 and numberGates > 0 then
 		for idx = 1, numberRaceZones do
 			table.insert(raceZones, string.format("racezone-%d", idx))
@@ -1729,7 +1776,7 @@ function Init()
 			end
 		end	
 
-		race = Airrace:New(raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+		race = Airrace:New(distanceUnits, raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, 
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
