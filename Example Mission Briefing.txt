@@ -31,7 +31,7 @@ Triple pylons: Always in pairs.  Pass between the two sets of 3 with wings level
 Horizontal requirement: Within 500 feet of single and double pylons
 Vertical requirement: Below 500 feet AGL, marked by balloons.
 ---------------------------------------------------------------------
-PENALTY INFO:
+PENALTY AND BONUS INFO:
 
 When the pace plane drops in, your position relative to the pace plane is evaluated:
   *Ahead of the pace? +2 sec plus 1 additional sec per every 65 feet
@@ -47,6 +47,9 @@ Pylon hit: +3 seconds (3 pylon hits and you are disqualified (DNF!))
 Missed pylon: +5 seconds (3 misses and you are disqualified (DNF!))
 Too high at pylon: +2 seconds
 Wings not level where required: +2 seconds
+
+Flight through gate 8 below 50 feet: -1 second
+Flight through gate 9 below 30 feet: -1 second  
 ---------------------------------------------------------------------
 EXTRA INFO:
 

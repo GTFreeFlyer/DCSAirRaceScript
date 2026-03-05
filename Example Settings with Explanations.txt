@@ -9,6 +9,7 @@
    is for informational purposes only. 
 •If you like a clean look, you may remove any comment line that begins with a double-hyphen, --
 (These instructions written by GTFreeFlyer)
+•Note: These settings only work with AirRaceScript4.lua or later!
 ----------------------------------------------------------------------------------------------
 --OPTIONAL SETTINGS:------------------
 
