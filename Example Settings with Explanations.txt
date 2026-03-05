@@ -1,0 +1,149 @@
+•Copy and paste the first three required settings (at a minimum) from below the line
+   into the first trigger of the mission which should be:
+      Type: Mission start | Conditions: (none) | Actions: DO SCRIPT
+      (Hint: click the small quad-arrow icon next to the text box to open up an editor)
+•Change values as needed.
+•All the optional settings can be omitted if you like the default values.
+•Values next to optional, i.e. [optional, 30], are the default values the script will use
+   if you choose to omit the setting. Changing the default value here has no effect and
+   is for informational purposes only. 
+•If you like a clean look, you may remove any comment line that begins with a double-hyphen, --
+(These instructions written by GTFreeFlyer)
+----------------------------------------------------------------------------------------------
+--OPTIONAL SETTINGS:------------------
+
+NumberLaps = 3
+--[optional, 0] total number of laps per race
+--If zero, race ends at last pylon, otherwise race will end at gate-1
+
+NewPlayerCheckInterval = 1
+--[optional, 1] seconds between checks for new players entering the racezone
+
+RemovePlayerCheckInterval = 20
+--[optional, 30] seconds between checks for players that have exited the racezone
+
+HorizontalGates = {3,6,9,12}
+--[optional, {1}] list of gate numbers requiring level flight +/- 10 degrees
+
+VerticalGates = {4,7,11}
+--[optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees
+
+RaceZoneCeiling = 2000
+--[optional, 99999] maximum altitude in feet of the racezone. Planes above this
+--will not be added to the race, or removed if they are. If you are using a pace
+--plane, make sure this altitude is at least 500 feet higher than the drop-in alt.
+
+GateHeight = 150
+--[optional, 300] height of the gates in feet
+--Racers flying through a gate higher than this will receive a penalty
+
+CustomGateHeights = { gate1={0,500}, gate12={100,400} }
+--[optional, {}] override the global GateHeight for specific gates.
+--Must define both the min. and max.  The example above will count the gate
+--crossing at gate-1 if you cross between 0 and 500 feet AGL, and at
+--gate-12 if you cross between 100 and 400 feet AGL. You can use these
+--overrides at bridges, buildings, "floating" gates, etc.
+--Add more gates as needed, separated by commas like in the example.
+
+BonusGates = {2, 4}
+--[optional, {}] list of gate numbers for low altitude bonus
+
+BonusGateHeight = 15
+--[optional, 20] height of the bonus gates in feet
+--Racers flying through a gate below this altitude will get a bonus  
+
+CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
+--[optional, {}] override the global BonusGateHeight for specific gates.
+--These gates MUST also be included in BonusGates (two settings above) in order to work.
+--Must define both the min. and max.  The example above will give you a
+--bonus at gate-1 if you cross between 0 and 25 feet AGL, and a bonus at
+--gate-11 if you cross through a tiny sliver between 20 and 40 feet AGL.
+--You can use these overrides for bonuses under bridges, thru buildings, etc.
+--Add more gates as needed, separated by commas like in the example.
+
+BonusTime = 2
+--{optional, 1] time in seconds to subtract from total time when hitting a bonus gate  
+
+--PENALTY AND DNF SETTINGS:-------------
+
+PenaltyTimeMissedGate = 4
+--[optional, 5] time in seconds added to your race time for each missed gate
+--Valid range: 0 to any positive integer
+
+PenaltyTimePylonHit = 2
+--[optional, 3] time in seconds added to your race time for each pylon hit
+--Valid range: 0 to any positive integer
+
+PenaltyTimeAboveGateHeight = 2
+--[optional, 2] time in seconds added to your race time each time you hit
+--a race zone above the height limit defined by setting named GateHeight.
+--Valid range: 0 to any positive integer
+
+PenaltyTimeHorizontalGate = 1
+--[optional, 2] time in seconds added to your race time when passing through
+--a horizontal gate zone when wings not level +/- 10 degrees
+--Valid range: 0 to any positive integer
+
+PenaltyTimeVerticalGate = 1
+--[optional, 2] time in seconds added to your race time when passing through
+--a vertical gate zone when wings not knife-edge (90) +/- 10 degrees
+--Valid range: 0 to any positive integer
+
+NumberMissedGatesDNF = 3
+--[optional, 999] how many missed gates will trigger a DNF
+--Valid range: 1 to infinity
+
+NumberPylonHitsDNF = 3
+--[optional, 999] how many pylon hits will trigger a DNF
+--Valid range: 1 to infinity
+
+StartSpeedLimit = 300
+--[optional, 999] first gate speed limit in knots
+--Passing the first gate above this speed limit will result in a DNF
+
+--GROUP RACE SETTINGS------------------
+
+GroupRace = true
+--[optional, false] same timer for all, or individual timers
+--If true, timer starts for all players as soon as the 1st racer crosses the start
+
+GroupRaceTimeout = 30
+--[optional, 120] minutes after clock starts, or pace drops in.  Offers protection if a 
+--racer decides to fly around in the racezone, purposefully starting, but not finishing
+--the race.  Script will stop without warning, and you'll be able to begin the next race.
+
+PaceUnitName = "PacePlane"
+--[optional, nil]
+--Pace plane's unit name (pilot name) from the editor. Case-sensitive, placed in 
+--quotes "like this". Used only when GroupRace=true
+
+GroupRaceParticipantFilter = 6000
+--[optional, 999999] distance in feet
+--Used only when GroupRace=true, and when a pace plane is added
+--Pilots only added to the race list if within this range of the pace before drop-in
+
+--NIGHT RACE ILLUMINATION SETTINGS------
+
+IlluminationOn = false
+--[optional, true] true or false whether you want race course lighting at night
+--If true, the illum. flares appear over all gates plus any additional illum. trigger zones
+
+IlluminationStartTime = 65000
+--[optional, 64800] time in seconds after midnight. 64800 would be 06:00 PM
+--Flares are respawned every 4 minutes from start time until stop time
+
+IlluminationStopTime = 22000
+--[optional, 21600] time in seconds after midnight. 21600 would be 06:00 AM
+--Flares are respawned every 4 minutes from start time until stop time
+
+IlluminationBrightness = 20000
+--[optional, 10000] value 1 to 1000000 
+--In testing, 10000 to 20000 gives a nice glow that isn't overly bright
+              
+IlluminationAGL = 3000 
+--[optional, 2600] Elevation in feet above ground level where the illum. flares spawn
+--In testing, they fall about 500 feet per minute
+
+IlluminationRespawnTimer = 120
+--[optional, 240] seconds until respawn. Illum. flares last for 4 minutes before the burn-out
+--If you want multiple flares stacked high, change the default to lower number

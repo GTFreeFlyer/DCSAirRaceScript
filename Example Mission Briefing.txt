@@ -1,0 +1,65 @@
+(Copy and paste all lines below, then edit as needed. It's important to give good instructions, and credits to the scripters!)
+
+---------------------------------------------------------------------
+INSTRUCTIONS:
+
+Open the F10 map, make sure "Show Drawings" filter is enabled on the top toolbar, and get familiar with all of the information presented there. Zoom out to see everything, and read each of the white boxes.
+!NO EXCUSES!
+---------------------------------------------------------------------
+SRS FREQUENCIES:
+
+Ch.1 (124 MHz) - Common traffic not in the race course.
+Ch.2 (121 MHz) - Pilots active in the course or in formation with the pace plane.
+Ch.3 (122 MHz) - Spare
+Ch.4 (123 MHz) - Spare
+---------------------------------------------------------------------
+RACING RULES:
+
+Passing:
+An aircraft overtaken must not in any way impede or interfere with a faster overtaking plane. The overtaken pilot must keep the overtaken aircraft in sight at all times during the pass.
+
+An aircraft over taking a slower airplane will not pass between the aircraft and a pylon. It must pass on the outside unless the overtaken craft is extremely wide and be kept in sight at all times during the pass by the overtaking pilot. 
+
+If your engine quits or you receive a DNF (Did not finish), check your surroundings and turn out of the course immediately! Get out of the way of other racers.
+---------------------------------------------------------------------
+PYLON INFO:
+
+Single pylons: Pass to the right of them.
+Double pylons: Pass to the left of them.
+Triple pylons: Always in pairs.  Pass between the two sets of 3 with wings level +/- 10 deg.
+
+Horizontal requirement: Within 500 feet of single and double pylons
+Vertical requirement: Below 500 feet AGL, marked by balloons.
+---------------------------------------------------------------------
+PENALTY INFO:
+
+When the pace plane drops in, your position relative to the pace plane is evaluated:
+  *Ahead of the pace? +2 sec plus 1 additional sec per every 65 feet
+  *Above the pace? +2 sec + 1 additional sec per every 65 feet
+  *Left of the pace? +2 sec
+  *You will not be entered into the race if you are...
+       ...more than 100 ft above or 500 feet below the pace, or
+       ...more than 130 ft ahead of the pace, or
+       ...left of the pace.
+       ...(At the moment of drop-in)        
+
+Pylon hit: +3 seconds (3 pylon hits and you are disqualified (DNF!))
+Missed pylon: +5 seconds (3 misses and you are disqualified (DNF!))
+Too high at pylon: +2 seconds
+Wings not level where required: +2 seconds
+---------------------------------------------------------------------
+EXTRA INFO:
+
+-Night racing is available! Simply set the time in the .miz to night and illumination flares will automatically spawn over the course.
+---------------------------------------------------------------------
+CONTACT INFO:
+
+Contact GTFreeFlyer (Discord or ED Forums) if you have questions.
+Good luck!
+---------------------------------------------------------------------
+CREDITS:
+
+Mission design: GTFreeFlyer
+Original race script: Bas 'Joe Kurr' Weijers, Dutch Flanker Display Team
+GTFreeFlyer later contributed group racing, night racing, and multiple lap capability
+
