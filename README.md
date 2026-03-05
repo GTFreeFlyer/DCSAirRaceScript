@@ -1,8 +1,6 @@
 # DCS Air Race Script
 This script is for DCS World mission creators who want to create epic race courses easily.  
-Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/  
-Please click the Watch button, and Star button at the top of the GitHub page to receive notices when there are updates.  
-Please click Issues at the top of the GitHub page to report bugs and suggestions.  
+ 
 ![Race1](screenshots/race1.jpg)
 ![Race3](screenshots/race3.jpg)
 This README was created by GTFreeFlyer. You may find me on Discord or the ED Forums with the same username if you have questions or comments.   
@@ -34,15 +32,22 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Info display for keeping track of your progress. Group races have a dynamic leaderboard that changes as players overtake each other.  
 * Define the number of laps for your race.
 * Detects pylon hits, missed gates, etc.
-* Define the height of your gates (planes must stay below this altitude when passing through)
+* Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
+* Set up an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
 * Define the ceiling of your race airspace.
 * Gates can have wings-level or knife-edge requirement.
-* Night racing is possible with automatic lighting of the course.
-* Fireworks (signal flares) when planes cross the start or finish lines.
-* Many general-purpose flags, based on events in the race, are available for the mission creator to use for whatever creative purpose he/she can come up with.
+* Night racing is possible with automatic lighting of the course at each gate, and also at any additional location marked by a trigger zone with name "illum".  
+* Fireworks (signal flares) when planes cross the start or finish lines. They originate from wherever you drop a trigger zone with name "fireworks".  
+* Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.
+* Many general-purpose flags, based on events in the race, are available for the mission creator to use for whatever creative purpose he/she can come up with.  
   
-## Download and Installation
-1. From the GitHub page, click Code in the upper right (green button), and select Download ZIP
+## Download and Installation  
+Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/  
+   * Please click the Watch button and Star button at the top of the GitHub page to receive notices when there are updates.  
+   * Please click Issues at the top of the GitHub page to report bugs and request new features.  
+![GitHub](screenshots/github.jpg)
+1. From the GitHub page, click Code in the upper right (green button), and select Download ZIP  
+![Click Code](screenshots/clickcode.jpg)
 2. Extract the .zip anywhere you like on your PC
 3. If you don't already have MIST downloaded to your PC, get it from https://github.com/mrSkortch/MissionScriptingTools. You only need the single file, mist.lua.  There's no need to download the whole .zip from here. Click on mist.lua from the list of files you see; this will bring you to the page that shows all 9500+ lines of code.  Press ctrl+shift+S to save the file somewhere on your PC.
   
@@ -58,7 +63,6 @@ Hit CTRL+A to select all text, and CTRL+C to copy it to your clipboard.
 TYPE: MISSION START, NAME: Race Settings  
 CONDITIONS: none (leave empty)  
 ACTIONS: DO SCRIPT, and then click in the text box and hit CTRL+V to paste all the settings. Don't bother changing them now. We'll come back to this and explain everything in there after you have designed your race course. Just move on for now...  
-
 ![Create 1st trigger](screenshots/trigger1.png)  
 
 4. Create the 2nd trigger:  
@@ -76,8 +80,8 @@ You do not need to open or edit the .lua file. Just load it into the mission and
 TYPE: ONCE, NAME: Load Sounds  
 CONDITIONS: FLAG EQUALS, Flag: 999, Value: 999 (we are creating a flag that will never execute, just to load the sounds into the .miz)  
 ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and select one of the .ogg files from soundEffects/required folder. Create another action and select another .ogg from that folder. Repeat until all .ogg files are loaded.  
-   * Note: This 4th trigger is actually optional. You may decide not to use these sounds if they interfere with other sounds you load into your mission.
 
+   Note: This 4th trigger is actually optional. You may decide not to use these sounds if they interfere with other sounds you load into your mission.
 ![Load the sound files](screenshots/sounds.png)  
   
 ### Design Your Race Course:
@@ -89,53 +93,61 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
    * I recommend Static object -> category Structures -> Type Airshow cone  
 
 9. In the example screenshot below, I've placed two groups of three cones to indicate the starting line. Racers will enter East to West. I recommend using a rectangular shaped zone for the start and finish lines so that you have a nice straight line for fairness.  The script checks position every 0.2 seconds, so do some math to figure out how far your plane travels in that amount of time, and make sure the trigger zone is long enough to ensure detection. For example, if you expect to enter the race at Mach 1 (1125 ft/sec), you'll travel 225 ft in 0.2 seconds, so I'd suggest a trigger zone around 300 feet in length.  
-
 ![Add your first gate](screenshots/gate1.png)  
 
 10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on.   
-   * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2.  
-   * Identifying the pylons with triggerzones is optional, but recommended. It will allow you to assign penalties for pylon hits.  However, due to their small size, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.  
-
+      * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2.  
+      * Identifying the pylons with triggerzones is optional, but recommended. It will allow you to assign penalties for pylon hits.  However, due to their small size, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.
 ![Mark your pylons](screenshots/pylonZone.png)  
 
 11. Let's add more gates now. We'll keep the course small for this tutorial, perhaps good for helicopters?  
-   * When adding gate zones, you must always start with gate-1, then gate-2, gate-3, etc.  
-   * The course does NOT have to end where it starts. You can do a race from gate-1 to the last gate if you wish. This is defined in the Race Settings. More on that later.
-   * Do not add leading zeroes, and do not skip any numbers.  
-   * Gate trigger zones must be numbered in the order you plan to fly through them.  
-   * Pylon zone numbering must follow the same naming rules, but they can be placed in any order (i.e. you can have pylon-4 near gate-1, and pylon-1 near gate-3).  
-   * Don't forget to add your static objects for the pilots to know where to go!  
-
+      * When adding gate zones, you must always start with gate-1, then gate-2, gate-3, etc.  
+      * The course does NOT have to end where it starts. You can do a race from gate-1 to the last gate if you wish. This is defined in the Race Settings. More on that later.
+      * Do not add leading zeroes, and do not skip any numbers.  
+      * Gate trigger zones must be numbered in the order you plan to fly through them.  
+      * Pylon zone numbering must follow the same naming rules, but they can be placed in any order (i.e. you can have pylon-4 near gate-1, and pylon-1 near gate-3).  
+      * Don't forget to add your static objects for the pilots to know where to go!
 ![Adding additional gates](screenshots/addGates.png)  
 
 12. We must now define the racing zone that will detect players and add them to the race.  Players outside of this zone will be removed from the race, and their names will not clog up the display in the list of active racers on your screen while racing.  
-   * A single trigger zone over the whole course is sufficient. Name it "racezone-1".  
-   * If you have a long and skinny course, you can get more creative and define the race area with multiple zones as seen in the second screenshot below.  Try to minimize the number of race zones to reduce the processing overhead of the script.  
-
+      * A single trigger zone over the whole course is sufficient. Name it "racezone-1".  
+      * If you have a long and skinny course, you can get more creative and define the race area with multiple zones as seen in the second screenshot below.  Try to minimize the number of race zones to reduce the processing overhead of the script.  
 ![Adding a single racezone](screenshots/racezone1.png)  
 or...  
 ![Adding a single racezone](screenshots/racezone2.png)  
 
 13. Place your desired airplanes into the mission as usual. This is a basic editor skill and not covered in this tutorial.  
-   * You can place as many normal or dynamic spawns as you like, and name them whatever you want. The script will detect any human-controlled aircraft in the race zone.  
-   * Note: If you place them at the airfield shown in this tutorial, they will be immediately entered into the race, and if you happen to takeoff through gate-1, the race will start! You can place them at a nearby airfield, or air start, as desired.  
+      * You can place as many normal or dynamic spawns as you like, and name them whatever you want. The script will detect any human-controlled aircraft in the race zone.  
+      * Note: If you place them at the airfield shown in this tutorial, they will be immediately entered into the race, and if you happen to takeoff through gate-1, the race will start! You can place them at a nearby airfield, or air start, as desired.  
 
 14. Create a detailed briefing that explains how the race works so others know what to do. One of my biggest pet peeves in DCS is missions that don't give you any information. I've made this simple for you. Open "Example Mission Briefing.txt" from the extracted .zip, copy and paste the info into the mission briefing, and tweak it to match your mission setup. You can even go above and beyond and draw on the map...
-
 ![Drawings](screenshots/mapdrawings.png)
   
 Okay, that covers all the required stuff, but wait!... There are more (optional) goodies below, and we still need to go back to the Race Settings. More on that in a later section below.
 
-15. Let's get fancy and add some fireworks effects! Fireworks (signal flares) will pop up from trigger zones names "fireworks-1" and so on. The size of the zone is irrelevant. They fire off whenever any racer crosses the starting line (solo racing), the first racer crosses the starting line (group racing), or when any aircraft crosses the finish line. They originate 1 meter above the ground.  Optional: I suggest placing a static object, such as an M92 Oil Barrel, at the location so you don't see the fireworks coming from nowhere.  
+15. Let's get fancy and add some fireworks effects! Fireworks (signal flares) will pop up from trigger zones names "fireworks-1" and so on.  
+      * The size of the zone is irrelevant.  
+      * They fire off whenever any racer crosses the starting line (solo racing), the first racer crosses the starting line (group racing), or when any aircraft crosses the finish line.  
+      * They originate 1 meter above the ground.  
+      * Optional: I suggest placing a static object, such as an M92 Oil Barrel, at the location so you don't see the fireworks coming from nowhere.  
 ![Adding fireworks for effect](screenshots/fireworks.png)
 ![Fireworks](screenshots/fireworks%20night.png)
 
-16. Interested in night racing? It's wild! The script will automatically light up the course with illumination flares above every gate trigger zone. Want additional lighting? Easy! Place trigger zones named "illum-1", "illum-2", and so on.  
+16. Interested in night racing? It's wild!  
+      * The script will automatically light up the course with illumination flares above every gate trigger zone.  
+      * Want additional lighting? Easy! Place trigger zones named "illum-1", "illum-2", and so on.  
 ![Adding additional night lighting](screenshots/illum.png)  
 ![Race4](screenshots/race4.jpg)  
 ![Race5](screenshots/race5.jpg)
 
-17. Need to add smoke markers? Just drop a trigger zone name "Green smoke-1", "Green smoke-2", and so on. Color choices are Green, Blue, White, Orange and Red. The numbering is per color. For example: "Green smoke-1", "Green smoke-2", "Blue smoke-1", "Green smoke-3", "Red smoke-1", etc.  Simply start with -1 for each color you want, then copy and paste the trigger zones and they should automatically be named appropriately. As always, no leading zeroes, and don't skip numbers!  The script will automatically create the smoke at these trigger zones AND keep them refreshed every 5 minutes.  
+17. Need to add smoke markers? Just drop a trigger zone name "Green smoke-1", "Green smoke-2", and so on.  
+      * Color choices are Green, Blue, White, Orange and Red.  
+      * The numbering is per color. For example: "Green smoke-1", "Green smoke-2", "Blue smoke-1", "Green smoke-3", "Red smoke-1", etc.  Simply start with -1 for each color you want, then copy and paste the trigger zones and they should automatically be named appropriately.  
+      * As always, no leading zeroes, and don't skip numbers!  
+      * The script will automatically create the smoke at these trigger zones AND keep them refreshed every 5 minutes.  
+      * In the example below, I placed the different colors along either side of the runway.  
+![SmokeTZ](screenshots/smokeTZ.jpg)
+![Smoke](screenshots/smoke.jpg)
   
 ### Setup Required for Group Races:
 Group races are loads of fun when coordinated properly between a group of friends, or when using an AI pace plane (more on this later below). The timer will start for everyone as soon as the first racer crosses the starting line. You can communicate with each other over voice chat to get everyone into a line-abreast formation, then call 3-2-1-Go! The group race option is set in the Race Settings. One neat feature with group racing is that the standings display in the upper-right of your screen is dynamic, meaning you'll see yourself moving up and down the list if you are gaining or falling back on the competition.  
@@ -205,15 +217,29 @@ RaceZoneCeiling = 2000
    * If you are using a pace plane, make sure this altitude is at least 500 feet higher than the drop-in alt.
 
 GateHeight = 150  
-   * [optional, 300] height of the gates in feet
+   * [optional, 300] global height of the gates, in feet, for any gate not listed in CustomGateHeights (next setting below). 
    * Racers flying through a gate higher than this will receive a penalty
 
+CustomGateHeights = { gate1={0,500}, gate12={100,400} }  
+  * [optional, {}] override the global GateHeight for specific gates. Height in feet.  
+  * Must define both the minimum and maximum heights.  
+  * The example above will count the gate crossing at gate-1 if you cross between 0 and 500 feet AGL, and at gate-12 if you cross between 100 and 400 feet AGL.     * You can use these overrides at bridges, buildings, "floating" gates, etc.  
+  * Add more gates as needed, separated by commas like in the example.  
+  
 BonusGates = {2, 4}  
    * [optional, {}] list of gate numbers for low altitude bonus
 
 BonusGateHeight = 15  
-   * [optional, 20] height of the bonus gates in feet
-   * Racers flying through a gate below this altitude will get a bonus
+   * [optional, 20] global height of the bonus gates, in feet, for any gate listed in BonusGates and not in CustomBonusGateHeights (next setting below).  
+   * Racers flying through a gate below this altitude will get a bonus  
+  
+CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
+  * [optional, {}] override the global BonusGateHeight for specific gates. Height in feet.
+  * These gates MUST also be included in BonusGates (two settings above) for this to work.
+  * Must define both the minimum and maximum heights.  
+  * The example above will give you a bonus at gate-1 if you cross between 0 and 25 feet AGL, and a bonus at gate-11 if you cross through a tiny sliver between 20 and 40 feet AGL.  
+  * You can use these overrides for bonuses under bridges, thru buildings, etc.
+  * Add more gates as needed, separated by commas like in the example.
 
 BonusTime = 2  
  * [optional, 1] time in seconds to subtract when hitting a bonus gate  

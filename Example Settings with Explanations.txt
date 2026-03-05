@@ -37,12 +37,29 @@ GateHeight = 150
 --[optional, 300] height of the gates in feet
 --Racers flying through a gate higher than this will receive a penalty
 
+CustomGateHeights = { gate1={0,500}, gate12={100,400} }
+--[optional, {}] override the global GateHeight for specific gates.
+--Must define both the min. and max.  The example above will count the gate
+--crossing at gate-1 if you cross between 0 and 500 feet AGL, and at
+--gate-12 if you cross between 100 and 400 feet AGL. You can use these
+--overrides at bridges, buildings, "floating" gates, etc.
+--Add more gates as needed, separated by commas like in the example.
+
 BonusGates = {2, 4}
 --[optional, {}] list of gate numbers for low altitude bonus
 
 BonusGateHeight = 15
 --[optional, 20] height of the bonus gates in feet
 --Racers flying through a gate below this altitude will get a bonus  
+
+CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
+--[optional, {}] override the global BonusGateHeight for specific gates.
+--These gates MUST also be included in BonusGates (two settings above) in order to work.
+--Must define both the min. and max.  The example above will give you a
+--bonus at gate-1 if you cross between 0 and 25 feet AGL, and a bonus at
+--gate-11 if you cross through a tiny sliver between 20 and 40 feet AGL.
+--You can use these overrides for bonuses under bridges, thru buildings, etc.
+--Add more gates as needed, separated by commas like in the example.
 
 BonusTime = 2
 --{optional, 1] time in seconds to subtract from total time when hitting a bonus gate  

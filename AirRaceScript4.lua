@@ -15,7 +15,7 @@
 --                More contributors are listed at the bottom of the README at the GitHub link below.                --
 ----------------------------------------------------------------------------------------------------------------------
 -- VIEW THE README!                                                                                                 --
--- https://github.com/GTFreeFlyer/DCSAirRaceScript/tree/master                                                      --
+-- https://github.com/GTFreeFlyer/DCSAirRaceScript                                                                  --
 -- It's much more detailed than what you'll find written here. There is no need to continue reading below!          --
 ----------------------------------------------------------------------------------------------------------------------
 -- This script enables mission builders to create an airrace course.                                                --
@@ -44,8 +44,10 @@
 --                                    VerticalGates = <list of gate numbers requiring knife-edge flight>  [optional]-- default: {} (empty list)  --example: {3, 6, 8} for gates 3, 6, and 8
 --                                    RaceZoneCeiling = <max. detect altitude (ft) of planes in racezone  [optional]-- default: 99999 --make sure this is at least 500 feet above where the pace drop-in occurs
 --                                    GateHeight = <global height of the gates in feet>                   [optional]-- default: 300 --maximum height of plane above ground to "hit" gate
---                                    BonusGateHeight = <global height of the bonus gates in feet>        [optional]-- default: 20
+--                                    CustomGateHeights = <overrides for GateHeight, per gate>            [optional]-- default: {} (empty list). Override the global GateHeight for specified gate(s). Example: {gate1={0,50}, gate14={100,200}} makes gate-1 between 0 and 50 feet AGL, and gate-14 between 100 and 200 feet AGL
 --                                    BonusGates = <list of gate numbers for low alt bonus>               [optional]-- default: {} (empty list) --example: {2, 5} for gates 2, and 5
+--                                    BonusGateHeight = <global height of the bonus gates in feet>        [optional]-- default: 15
+--                                    CustomBonusGateHeights = <overrides for BonusGateHeight, per gate>  [optional]-- default: {} (empty list). Override the global BonusGateHeight for specified gate(s). Example: {gate3={0,10}, gate8={80,100}} makes gate-3 bonusbetween 0 and 10 feet AGL, and gate-8 between 800 and 100 feet AGL
 --                                    BonusTime = <time in seconds to subtract when hitting a bonus gate> [optional]-- default: 1
 --                                    PenaltyTimeMissedGate = <penalty time in seconds>                   [optional]-- default: 5
 --                                    PenaltyTimePylonHit = <penalty time in seconds>                     [optional]-- default: 3
@@ -182,7 +184,6 @@ GroupWinnerCrossedFinishLine = false --flag to indicate if the winner has crosse
 -- Start the timer for the current player
 --
 function Player:StartTimer()
-	env.info(string.format("running StartTimer() function for player %s", self.Name))
 	if not self.Started then
 
 		--this if-statement decides how to set the player's start time
@@ -321,15 +322,18 @@ Airrace = {
 	Players = {},
 	FastestTime = 0,
 	FastestPlayer = '',
+	FastestAircraft = '',
 	LastMessage = '',
 	LastMessageId = 0,
 	GateHeight = 300 * .3048, --convert to m
+    CustomGateHeights = {},
 	HorizontalGates = {1},
 	VerticalGates = {},
     RaceZoneCeiling = 99999 * .3048, --convert to m
 	StartSpeedLimit = 999 * 1.852, --convert to km/h
+    BonusGates = {},
 	BonusGateHeight = 15 * .3048, --convert to m
-	BonusGates = {},
+    CustomBonusGateHeights = {},
     BonusTime = 1,
 	PenaltyTimeMissedGate = 5,
 	PenaltyTimePylonHit = 3,
@@ -357,10 +361,10 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, 
-						startSpeedLimit, bonusGateHeight, bonusGates, bonusTime, penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, 
-						penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, 
-						paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
+function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
+                        penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	
+                        numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
 	local obj = {
 		RaceZones = triggerZoneNames,
@@ -369,13 +373,16 @@ function Airrace:New(triggerZoneNames, triggerZonePylonNames, course, gateHeight
 		Players = {},
 		FastestTime = 0,
 		FastestPlayer = '',
+		FastestAircraft = '',
 		FastestIntermediates = fastestIntermediates,
 		GateHeight = gateHeight,
+        CustomGateHeights = customGateHeights or {},
 		HorizontalGates = horizontalGates or {1},
 		VerticalGates = verticalGates or {},
         RaceZoneCeiling = raceZoneCeiling,
-		BonusGateHeight = bonusGateHeight,
 		BonusGates = bonusGates,
+        BonusGateHeight = bonusGateHeight,
+        CustomBonusGateHeights = customBonusGateHeights or {},
         BonusTime = bonusTime,
 		PenaltyTimeMissedGate = penaltyTimeMissedGate,
 		PenaltyTimePylonHit = penaltyTimePylonHit,
@@ -499,26 +506,11 @@ function Airrace:RemoveExitedPlayers()
 
 			if not playerExists then
 				table.remove(self.Players, playerIndex)
-				env.info(string.format("%s removed from player list", player.Name))
+				env.info(string.format("%s removed from player list. Player not found in a racezone", player.Name))
 			end
 		end
 	end
 end
-
------------------------------------------------------------------------------------------
--- Remove a player from a group race
--- function Airrace:removePlayerFromGroupRace(player, reason)
--- 	env.info("Attempting to remove" .. player.Name .. " from the group race list. Reason: " .. reason)
--- 	if self.GroupRace then
--- 		for racerIndex, racer in ipairs(self.Players) do
--- 			if racer.Name == player.Name then
--- 				table.remove(self.Players, racerIndex)
--- 				env.info(player.Name .. " successfully removed from the player list")
--- 				break
--- 			end
--- 		end	
--- 	end
--- end
 -----------------------------------------------------------------------------------------
 -- Return a list of players currently flying through a gate
 --
@@ -579,16 +571,13 @@ function Airrace:CheckPylonHitForPlayer(player)
 				player.DNF = true
 				player.StatusText = string.format("DNF! | Too many pylons hit")
 				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
-				--local reason = "Too many pylon hits"
-				--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timer.getTime()+10)
 			end
 			break
 		end
 	end
 end
 -----------------------------------------------------------------------------------------
-function Airrace:CheckPylonAltitudeForPlayer(player)
-	local result = true
+function getPlayerAltitudeAGL(player)
 	local pos = Unit.getByName(player.UnitName):getPosition().p
 	local playerPos = { 
 	   x = pos["x"], 
@@ -596,7 +585,13 @@ function Airrace:CheckPylonAltitudeForPlayer(player)
 	   z = pos["z"] 
 	} 
 	local TerrainPos = land.getHeight({x = playerPos.x, y = playerPos.z})
-	playerAgl = playerPos.y - TerrainPos		
+	local playerAgl = playerPos.y - TerrainPos
+	return playerAgl
+end
+-----------------------------------------------------------------------------------------
+function Airrace:CheckPylonAltitudeForPlayer(player)
+	local result = true
+	local playerAgl = getPlayerAltitudeAGL(player)	
 	if playerAgl <= self.GateHeight then
 		result = true
 	else
@@ -611,21 +606,32 @@ end
 -- Returns true if the player is below the bonus height, or false when flying too high
 -- Use Case: Extra points for being low in a gate, like flying under a bridge
 --
-function Airrace:CheckBonusAltitudeForPlayer(player)
-	local result = true
-	local pos = Unit.getByName(player.UnitName):getPosition().p
-	local playerPos = {
-		x = pos["x"],
-		y = pos["y"],
-		z = pos["z"]
-	}
-	local TerrainPos = land.getHeight({x = playerPos.x, y = playerPos.z})
-	playerAgl = playerPos.y - TerrainPos
-	if playerAgl <= self.BonusGateHeight then
-		result = true
-	else
-		result = false
+function Airrace:CheckBonusAltitudeForPlayer(player, gateNumber)
+	local result = true	
+	local playerAgl = getPlayerAltitudeAGL(player)
+	local gateToCheck = "gate" .. gateNumber
+
+	if self.CustomBonusGateHeights[gateToCheck] then --if a custom bonus gate height definition exists...
+		if playerAgl <= self.CustomBonusGateHeights[gateToCheck][2]*.3048 then
+			if playerAgl >= self.CustomBonusGateHeights[gateToCheck][1]*.3048 then
+				result = true
+				warnPlayer("Bonus!")
+			else
+				result = false
+				
+			end
+		else
+			result = false
+		end	
+	else --use global bonus gate height for checks
+		if playerAgl <= self.BonusGateHeight then
+			result = true
+			warnPlayer("Bonus!")
+		else
+			result = false
+		end
 	end
+
 	return result
 end
 -----------------------------------------------------------------------------------------
@@ -633,21 +639,30 @@ end
 -- Parameter player: Reference to a player in the active players list
 -- Returns true if the player is below the gate height, or false when flying too high
 --
-function Airrace:CheckGateAltitudeForPlayer(player)
+function Airrace:CheckGateAltitudeForPlayer(player, gateNumber)
 	local result = true
-	local pos = Unit.getByName(player.UnitName):getPosition().p
-	local playerPos = { 
-	   x = pos["x"], 
-	   y = pos["y"], 
-	   z = pos["z"] 
-	} 
-	local TerrainPos = land.getHeight({x = playerPos.x, y = playerPos.z})
-	playerAgl = playerPos.y - TerrainPos		
-	if playerAgl <= self.GateHeight then
-		result = true
-	else
-		result = false
-		warnPlayer(string.format("Flying too high! Altitude = %d feet | Penalty: %d sec.", playerAgl * 3.28, self.PenaltyTimeAboveGateHeight), player)
+	local playerAgl = getPlayerAltitudeAGL(player)	
+	local gateToCheck = "gate" .. gateNumber
+
+	if self.CustomGateHeights[gateToCheck] then --if a custom gate height definition exists...
+		if playerAgl <= self.CustomGateHeights[gateToCheck][2]*.3048 then
+			if playerAgl >= self.CustomGateHeights[gateToCheck][1]*.3048 then
+				result = true
+			else
+				result = false
+				warnPlayer(string.format("Flew under the gate! Altitude = %d feet | Penalty: %d sec.", playerAgl * 3.28, self.PenaltyTimeAboveGateHeight), player)	
+			end
+		else
+			result = false
+			warnPlayer(string.format("Flew above the gate! Altitude = %d feet | Penalty: %d sec.", playerAgl * 3.28, self.PenaltyTimeAboveGateHeight), player)
+		end	
+	else --use global gate height for checks
+		if playerAgl <= self.GateHeight then
+			result = true
+		else
+			result = false
+			warnPlayer(string.format("Flew above the gate! Altitude = %d feet | Penalty: %d sec.", playerAgl * 3.28, self.PenaltyTimeAboveGateHeight), player)
+		end
 	end
 
 	--also grab the speed at the gate, in knots
@@ -752,11 +767,20 @@ end
 -----------------------------------------------------------------------------------------
 -- Smoke markers
 function PopSmokeMarkers()
-    local smokeColorChoices = {Green=NumberGreenSmokeZones, 
-                                 Red=NumberRedSmokeZones, 
-                               White=NumberWhiteSmokeZones, 
-                              Orange=NumberOrangeSmokeZones,
-                                Blue=NumberBlueSmokeZones}
+    local smokeColorChoices = {
+		Green=NumberGreenSmokeZones, 
+        Red=NumberRedSmokeZones, 
+		White=NumberWhiteSmokeZones, 
+		Orange=NumberOrangeSmokeZones,
+		Blue=NumberBlueSmokeZones
+	}
+	local smokeColorMap = {
+		Green  = trigger.smokeColor.Green,
+		Red    = trigger.smokeColor.Red,
+		White  = trigger.smokeColor.White,
+		Orange = trigger.smokeColor.Orange,
+		Blue   = trigger.smokeColor.Blue
+	}
     for color, numZones in pairs(smokeColorChoices) do
         if numZones > 0 then
             for zone = 1, numZones do
@@ -766,7 +790,7 @@ function PopSmokeMarkers()
                     local smokeZoneVec3 = smokeZoneInfo.point
                     local terrainElevation = land.getHeight({x = smokeZoneVec3.x, y = smokeZoneVec3.z})
                     local smokeLocation = {x=smokeZoneVec3.x, y=terrainElevation, z=smokeZoneVec3.z}
-                    trigger.action.smoke(smokeLocation, color)
+                    trigger.action.smoke(smokeLocation, smokeColorMap[color])
                 end
             end
         end
@@ -791,7 +815,6 @@ end
   -- 2) highest gate, then by..
   -- 3) lowest time
 function Airrace:SortRanks(currentRaceData)
-	env.info("Sorting...")
 	local added = {}    -- track which players already ranked
 	local bucket = {}   -- a temporary holding table that will be sorted
 	local numLaps = 0   -- initialize the variable as a local
@@ -831,15 +854,18 @@ end
 -- Format aircraft type name into a better formatted string
 function formatAircraftType(aircraftType)
     local aircraftName = aircraftType
-    if aircraftType = "Bf-109k-4"          then aircraftName = "Bf-109"     return end
-    if aircraftType = "F4U-1D"             then aircraftName = "Corsair"    return end
-    if aircraftType = "FW-190A8"           then aircraftName = "Anton"      return end`
-    if aircraftType = "F4U-190D9"          then aircraftName = "Dora"       return end
-    if aircraftType = "Mig-21Bis"          then aircraftName = "Mig-21"     return end
-    if aircraftType = "SpitfireLFMkIXCW"   then aircraftName = "Spitfire"   return end
-    if aircraftType = "FA-18C_hornet"      then aircraftName = "Hornet"     return end
-    if aircraftType = "CH-47D"             then aircraftName = "Chinook"    return end
-    if aircraftType = "Ka-27"              then aircraftName = "Helix"      return end
+    if aircraftType == "Bf-109k-4"          then aircraftName = "Bf-109"     return aircraftName end
+	if aircraftType == "CH-47D"             then aircraftName = "Chinook"    return aircraftName end
+	if aircraftType == "FA-18C_hornet"      then aircraftName = "Hornet"     return aircraftName end
+    if aircraftType == "F4U-1D"             then aircraftName = "Corsair"    return aircraftName end
+    if aircraftType == "FW-190A8"           then aircraftName = "Anton"      return aircraftName end
+    if aircraftType == "F4U-190D9"          then aircraftName = "Dora"       return aircraftName end
+	if aircraftType == "I-16"               then aircraftName = "I-16"       return aircraftName end
+	if aircraftType == "Ka-27"              then aircraftName = "Helix"      return aircraftName end
+    if aircraftType == "Mig-21Bis"          then aircraftName = "Mig-21"     return aircraftName end
+	if aircraftType == "P-47D-40"           then aircraftName = "P-47D-40"   return aircraftName end
+    if aircraftType == "SpitfireLFMkIXCW"   then aircraftName = "Spitfire"   return aircraftName end
+	if aircraftType == "TF-51D"             then aircraftName = "TF-51D"     return aircraftName end
     return aircraftName
 end
 -----------------------------------------------------------------------------------------
@@ -866,13 +892,9 @@ function Airrace:CheckLineupWithPace(player)
 	local pos = Unit.getByName(player.UnitName):getPosition().p
 	local playerPos = { 
 	   x = pos["x"], --N/S position in meters
-	   y = pos["y"], --altitude in meters
+	   y = pos["y"], --altitude in meters`
 	   z = pos["z"]  --E/W position in meters
 	} 
-
-	--check height above ground for later evaluation
-	local TerrainPos = land.getHeight({x = playerPos.x, y = playerPos.z})
-	playerAgl = playerPos.y - TerrainPos	
 
 	--rebase player position relative to pace plane at (0,0)
 	playerPos.x = playerPos.x - pacePos.x
@@ -952,7 +974,7 @@ function Airrace:CheckLineupWithPace(player)
 		end
 	end
 
-	player.RaceEligible = true --used for debug and testing. take this out after testing.  It is used to force eligibility when the test plane is not close enough to the pace plane.
+	--player.RaceEligible = true --used for debug and testing. take this out after testing.  It is used to force eligibility when the test plane is not close enough to the pace plane.
 
 	player.PacePositionEvaluated = true --set this flag to true so that the player won't be evaluated again until next race	
 end
@@ -1010,7 +1032,7 @@ function Airrace:UpdatePlayerStatus(player)
 				end			
 			end
 			trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
-			local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)	
+			local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player, gateNumber)	
 			if gateAltitudeOk == false then
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
@@ -1045,8 +1067,6 @@ function Airrace:UpdatePlayerStatus(player)
 							player.DNF = true
 							player.StatusText = string.format("DNF! | Too many missed gates")
 							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
-							--local reason = "Too many missed gates"
-							--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow + 10)
 							return					
 						else
 							if missedGates == 1 then
@@ -1066,8 +1086,6 @@ function Airrace:UpdatePlayerStatus(player)
 							player.DNF = true
 							player.StatusText = string.format("DNF! | Too many missed gates!")
 							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
-							--local reason = "Too many missed gates"
-							--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow + 10)
 							return
 						else
 							if missedGates == 1 then
@@ -1107,15 +1125,15 @@ function Airrace:UpdatePlayerStatus(player)
 
 -- Player is passing the final gate, stop timer
 			if (gateNumber == #self.Course.Gates and self.NumberLaps == 0) or (gateNumber == 1 and player.CurrentLapNumber > self.NumberLaps) then
-				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
+				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player, gateNumber)
 				self:evaluateRollAngle(gateNumber, player)
 				player.PylonFlag = false
-				local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
+				local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player, gateNumber)
 				for i = 1, #self.BonusGates do
 					if self.BonusGates[i] == gateNumber then
 						if bonusGateAltitudeOk == true then
 							player.Bonus = player.Bonus + self.BonusTime
-							warnPlayer(string.format("Low alt. bonus: -%d sec", self.BonusTime), player)
+							warnPlayer(string.format("Bonus! -%d sec", self.BonusTime), player)
 						end
 					end
 				end
@@ -1126,10 +1144,10 @@ function Airrace:UpdatePlayerStatus(player)
 				player.PylonFlag = false
 				player:StopTimer()
 				if #self.BonusGates > 0 then
-					player.StatusText = string.format("Finished | Time: %s + Penalty: %d sec. - Bonus: %d sec.\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%ds - Bonus:%ds\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
 				else
-					player.StatusText = string.format("Finished | Time: %s + Penalty: %d sec.\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%ds\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
 				end        
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
@@ -1137,6 +1155,7 @@ function Airrace:UpdatePlayerStatus(player)
 				if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then
 					self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
 					self.FastestPlayer = player.Name
+					self.FastestAircraft = player.AircraftType
 					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
 					self.FastestIntermediates = player.IntermediateTimes
 					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
@@ -1163,8 +1182,6 @@ function Airrace:UpdatePlayerStatus(player)
 				if self.GroupRace == true then
 					self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, player.TotalTime + player.Penalty - player.Bonus, player.AircraftType)
 				end
-				--local reason = "Completed course"
-				--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow + 15)
 				return
 			end
 
@@ -1172,19 +1189,19 @@ function Airrace:UpdatePlayerStatus(player)
 
 -- Player is passing intermediate gate, set intermediate time
 			if gateNumber ~= player.CurrentGateNumber then --prevents repeated gate detection
-				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player)
+				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player, gateNumber)
 				local intermediate = player:GetIntermediateTime(player.CurrentLapNumber, gateNumber)
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
 				player.StatusText = string.format("Speed: %d kts | Time: %s", player.GateSpeed, formatTime(intermediate))
 				env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
 				self:evaluateRollAngle(gateNumber, player)
 				player.PylonFlag = false
-				local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player)
+				local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player, gateNumber)
 				for i = 1, #self.BonusGates do
 					if self.BonusGates[i] == gateNumber then
 						if bonusGateAltitudeOk == true then
 							player.Bonus = player.Bonus + self.BonusTime
-							warnPlayer(string.format("Low alt. bonus -%d sec", self.BonusTime), player)
+							warnPlayer(string.format("Bonus! -%d sec", self.BonusTime), player)
 						end
 					end
 				end
@@ -1264,7 +1281,7 @@ function Airrace:ListPlayers()
 	end
 	
 	if self.FastestTime > 0 then
-		text = string.format("%s - Best time: %s by %s", text, formatTime(self.FastestTime), self.FastestPlayer)
+		text = string.format("%s - Best time: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
 	end
 	--text = string.format("%s\n---------------------------------------", text)
 
@@ -1354,7 +1371,7 @@ function Airrace:ListPlayers()
                     end
                 end
                 text = string.format("%s\n---------------------------------------", text)
-				text = string.format("%s\n%d. %s (%s)", text, currentRank, playerData.name:sub(1,22), formatAircraftType(playerData.aircraftType))
+				text = string.format("%s\n%d. %s (%s)", text, currentRank, playerData.name:sub(1,20), formatAircraftType(playerData.aircraftType))
 
 				--find index position of this player in the Player list...
 				for index, player in ipairs(self.Players) do					
@@ -1366,7 +1383,7 @@ function Airrace:ListPlayers()
 								text = string.format("%s | Pylon %d | %s", text, player.CurrentGateNumber, player.StatusText)
 							end
 						else --if you haven't begun the race yet...
-							text = string.format("%s - %s", text, player.StatusText)
+							text = string.format("%s | %s", text, player.StatusText)
 						end
 
 						for messageIdx, message in ipairs(player.Warnings) do
@@ -1383,7 +1400,7 @@ function Airrace:ListPlayers()
 		else --for individual races, or for group races that have not started yet
 			for playerIndex, player in ipairs(self.Players) do
                 text = string.format("%s\n---------------------------------------", text)
-				text = string.format("%s\n%s (%s)", text, player.Name:sub(1,22), player.AircraftType)
+				text = string.format("%s\n%s (%s)", text, player.Name:sub(1,20), player.AircraftType)
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
 						text = string.format("%s | %s", text, player.StatusText)
@@ -1401,12 +1418,6 @@ function Airrace:ListPlayers()
 						text = text .. "\n     !!! " .. message[1]
 					end
 				end
-				
-				--if self.GroupRace == true and player.RaceEligible == false and player.ScheduledForRemoval == false then
-					--local reason = "Not eligible for upcoming race"
-					--mist.scheduleFunction(function() self:removePlayerFromGroupRace(player, reason) end, {}, timeNow+15)
-					--player.ScheduledForRemoval = true
-				--end
 			end	 			
 		end
 	
@@ -1631,9 +1642,11 @@ function Init()
 	newPlayerCheckInterval = NewPlayerCheckInterval or 1 --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
 	removePlayerCheckInterval = RemovePlayerCheckInterval or 30 --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
 	local gateHeight = GateHeight or 300
+    local customGateHeights = CustomGateHeights or {}
 	local startSpeedLimit = StartSpeedLimit or 999
+    local bonusGates = BonusGates or {}
 	local bonusGateHeight = BonusGateHeight or 20
-	local bonusGates = BonusGates or {}
+    local customBonusGateHeights = CustomBonusGateHeights or {}
     local bonusTime = BonusTime or 1
 	local penaltyTimeMissedGate = PenaltyTimeMissedGate or 5
 	local penaltyTimePylonHit = PenaltyTimePylonHit or 3
@@ -1717,7 +1730,8 @@ function Init()
 			end
 		end	
 
-		race = Airrace:New(raceZones, racePylons, course, gateHeight, horizontalGates, verticalGates, raceZoneCeiling, startSpeedLimit, bonusGateHeight, bonusGates, bonusTime,
+		race = Airrace:New(raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+                            startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, 
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)

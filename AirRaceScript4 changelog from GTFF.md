@@ -2,9 +2,12 @@ AirRaceScript4
 Changes by GTFreeFlyer, February 2026  
   
 • Changed the filename from AirRaceScript3 to AirRaceScript4  
-• Many changes as shown below.  Script more than doubled in size from ~700 lines to  
-   nearly 1,500 lines.  
+• Many changes and additions!  Script more than doubled in size from ~700 lines to  
+   nearly 1,800 lines.  
 • Crashed racers are not removed from race, preventing further racing - FIXED  
+• Added option to override global gate height and global bonus gate height, PER gate!  
+   This means you can easily set a custom height and bonus height for each gate, if  
+   desired.  Great for bridges, buildings, etc.
 • Readme updated - major overhaul. Example settings file and suggested .miz breifing text  
    files added to root folder in repo.  
 • Added auto-counting of triggerzones which now eliminates the required settings for that.  
