@@ -34,11 +34,12 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Detects pylon hits, missed gates, etc.
 * Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
 * Set up an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
-* Define the ceiling of your race airspace.
-* Gates can have wings-level, knife-edge, or inverted flight requirement.
+* Define the ceiling of your race airspace.  
+* Gates can have wings-level, knife-edge, or inverted flight requirement.  
+* Immediately disqualify pilots who have entered any triggerzone with name "DNF".  
 * Night racing is possible with automatic lighting of the course at each gate, and also at any additional location marked by a trigger zone with name "illum".  
 * Fireworks (signal flares) when planes cross the start or finish lines. They originate from wherever you drop a trigger zone with name "fireworks".  
-* Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.
+* Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.  
 * Many general-purpose flags, based on events in the race, are available for the mission creator to use for whatever creative purpose he/she can come up with.  
 * Option to automatically draw lines between the gates and place labels on the F10 map.  
   
@@ -149,7 +150,10 @@ Okay, that covers all the required stuff, but wait!... There are more (optional)
       * The script will automatically create the smoke at these trigger zones AND keep them refreshed every 5 minutes.  
       * In the example below, I placed the different colors along either side of the runway.  
 ![SmokeTZ](screenshots/smokeTZ.jpg)
-![Smoke](screenshots/smoke.jpg)
+![Smoke](screenshots/smoke.jpg)  
+
+18. Need to protect certain areas of the course? You can trigger an immediate DNF (Did Not Finish) on a player that enters any zone named "DNF-1", "DNF-2", and so on.
+
   
 ### Setup Required for Group Races:
 Group races are loads of fun when coordinated properly between a group of friends, or when using an AI pace plane (more on this later below). The timer will start for everyone as soon as the first racer crosses the starting line. You can communicate with each other over voice chat to get everyone into a line-abreast formation, then call 3-2-1-Go! The group race option is set in the Race Settings. One neat feature with group racing is that the standings display in the upper-right of your screen is dynamic, meaning you'll see yourself moving up and down the list if you are gaining or falling back on the competition.  

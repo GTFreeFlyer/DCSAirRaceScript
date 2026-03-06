@@ -316,13 +316,12 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- AIRRACE CLASS
 ----------------------------------------------------------------------------------------------------------------------
-
------------------------------------------------------------------------------------------
 -- Airrace Properties
 --
 Airrace = {
     DistanceUnits = "ft",
 	RaceZones = {},
+	DNFZones = {},
 	Course = {},
 	Players = {},
 	FastestTime = 0,
@@ -369,7 +368,7 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
+function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, triggerZonesDNF, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
@@ -378,6 +377,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
         DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
+		DNFZones = triggerZonesDNF,
 		Course = course,
 		Players = {},
 		FastestTime = 0,
@@ -547,7 +547,6 @@ end
 -----------------------------------------------------------------------------------------
 -- Return the number of the gate the given player is flying through, or 0 if not in gate
 -- Parameter player: Reference to a player in the active players List
---
 function Airrace:GetGateNumberForPlayer(player)
 	local result = 0
 	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
@@ -564,7 +563,6 @@ end
 -- Check if the player hit the pylon
 -- Player parameter: link to the player in the list of active players
 -- Gives a penalty for a downed pylon, and gives a DNF if 3 pylons are downed
------------------------------------------------------------------------------------------
 function Airrace:CheckPylonHitForPlayer(player)
 	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
 	for pylonIndex, pylonName in ipairs(self.PylonZones) do
@@ -572,18 +570,33 @@ function Airrace:CheckPylonHitForPlayer(player)
 		if #playersInsideZone > 0 and player.PylonFlag == false then
 			local gateAltitudeOk = self:CheckPylonAltitudeForPlayer(player)
 			if  gateAltitudeOk == true then
-				warnPlayer(string.format("PYLON HIT!!! pylon %d ", pylonIndex), player)
+				warnPlayer(string.format("Pylon %d hit! Penalty: %d sec.", pylonIndex, self.PenaltyTimePylonHit), player)
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimePylonHit
 				player.HitPylon = player.HitPylon + 1
 				player.PylonFlag = true
-				env.info(string.format("Player %s hit a pylon (%d)", player.Name, player.HitPylon))
+				env.info(string.format("Player %s hit pylon %d", player.Name, player.HitPylon))
 			end
 			if player.HitPylon >= self.NumberPylonHitsDNF then
 				player.DNF = true
 				player.StatusText = string.format("DNF! | Too many pylons hit")
 				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
 			end
+			break
+		end
+	end
+end
+----------------------------------------------------------------------------------------- 
+-- Check if the player is in a DNF zone
+function Airrace:CheckDNFZone(player)
+	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
+	for DNFIndex, DNFName in ipairs(self.DNFZones) do
+		local playersInsideZone = mist.getUnitsInZones(playerUnitTable, { DNFName })
+		if #playersInsideZone > 0 then
+			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+			player.DNF = true
+			player.StatusText = string.format("DNF! | You entered a restricted area")
+			env.info(string.format("Player %s entered restricted zone DNF-%d. DNF!", player.Name, DNFIndex))
 			break
 		end
 	end
@@ -1450,9 +1463,8 @@ function Airrace:ListPlayers()
 		if #playersInGates > 0 then	
 			for playerIndex, player in ipairs(playersInGates) do		
 				if self.GroupRace == false or (self.GroupRace == true and player.Finished == false) then
-					if player.DNF == false then 
-						self:CheckPylonHitForPlayer(player)
-					end
+					if player.DNF == false then self:CheckDNFZone(player) end
+					if player.DNF == false then self:CheckPylonHitForPlayer(player) end
 					self:UpdatePlayerStatus(player) --we'll check for DNF in the next function. Necessary to restart an individual race.
 				end
 			end
@@ -1738,6 +1750,7 @@ function Init()
     local distanceUnits = DistanceUnits or "ft"
 	local raceZones = {}
 	local racePylons = {}
+	local DNFZones = {}
 	local horizontalGates = HorizontalGates or {1}
 	local verticalGates = VerticalGates or {}
 	local invertedGates = InvertedGates or {}
@@ -1780,6 +1793,7 @@ function Init()
 	local numberRaceZones = countZones("racezone")
 	local numberGates = countZones("gate")
 	local numberPylons = countZones("pylon")
+	local numberDNFZones = countZones("DNF")
 	IlluminationNumberZones = countZones("illum")
 	NumberFireworksZones = countZones("fireworks")
     NumberGreenSmokeZones = countZones("Green smoke")
@@ -1840,6 +1854,9 @@ function Init()
 		for idx = 1, numberPylons do
 			table.insert(racePylons, string.format("pylon-%d", idx))
 		end
+		for idx = 1, numberDNFZones do
+			table.insert(DNFZones, string.format("DNF-%d", idx))
+		end
 		for idx = 1, numberGates do
 			course:AddGate(idx)
 		end
@@ -1858,7 +1875,7 @@ function Init()
 			end
 		end			
 
-		race = Airrace:New(distanceUnits, raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
+		race = Airrace:New(distanceUnits, raceZones, racePylons, DNFZones, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 

@@ -5,6 +5,7 @@ Changes by GTFreeFlyer, TBD
 • Added inverted gate options where pilot must be inverted with wings level +/- 10 deg
 • Added some more protections against invalid user inputs
 • Added AutoDraw option which will draw lines on the map between the gates and put labels.
+• Added DNF Zones
 
 -------------------------------------------------------------------------------------
 AirRaceScript4.1 
