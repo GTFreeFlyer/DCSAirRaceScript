@@ -1,4 +1,11 @@
 (Most recent items on top)
+AirRaceScript4.2 
+Changes by GTFreeFlyer, TBD
+
+• Added inverted gate options where pilot must be inverted with wings level +/- 10 deg
+• Added some more protections against invalid user inputs
+
+-------------------------------------------------------------------------------------
 AirRaceScript4.1 
 Changes by GTFreeFlyer, March 5, 2026  
 

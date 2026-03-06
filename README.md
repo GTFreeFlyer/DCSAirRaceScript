@@ -35,7 +35,7 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
 * Set up an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
 * Define the ceiling of your race airspace.
-* Gates can have wings-level or knife-edge requirement.
+* Gates can have wings-level, knife-edge, or inverted flight requirement.
 * Night racing is possible with automatic lighting of the course at each gate, and also at any additional location marked by a trigger zone with name "illum".  
 * Fireworks (signal flares) when planes cross the start or finish lines. They originate from wherever you drop a trigger zone with name "fireworks".  
 * Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.
@@ -214,7 +214,10 @@ HorizontalGates = {3,6,9,12}
    * [optional, {1}] list of gate numbers requiring level flight +/- 10 degrees
 
 VerticalGates = {4,7,11}  
-   * [optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees
+   * [optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees  
+
+InvertedGates = {2,5}  
+   * [optional, {}] list of gate numbers requiring inverted wings level flight +/- 10 degrees
 
 RaceZoneCeiling = 2000  
    * [optional, 99999] maximum altitude of the racezone. 
@@ -260,37 +263,41 @@ NumberFireworksZones = 6
   
 PenaltyTimeMissedGate = 4  
    * [optional, 5] time in seconds added to your race time for each missed gate
-   * Valid range: 0 to any positive integer
+   * Valid range: 0 to any positive integer  
   
 PenaltyTimePylonHit = 2  
    * [optional, 3] time in seconds added to your race time for each pylon hit
-   * Valid range: 0 to any positive integer
+   * Valid range: 0 to any positive integer  
 
 PenaltyTimeAboveGateHeight = 2  
    * [optional, 2] time in seconds added to your race time each time you hit a race zone above the height limit defined by setting named GateHeight.  
-   * Valid range: 0 to any positive integer
+   * Valid range: 0 to any positive integer  
 
 PenaltyTimeHorizontalGate = 1  
    * [optional, 2] time in seconds added to your race time when passing through a horizontal gate zone when wings not level +/- 10 degrees  
-   * Valid range: 0 to any positive integer
+   * Valid range: 0 to any positive integer  
 
 PenaltyTimeVerticalGate = 1  
    * [optional, 2] time in seconds added to your race time when passing through a vertical gate zone when wings not knife-edge (90) +/- 10 degrees  
-   * Valid range: 0 to any positive integer
+   * Valid range: 0 to any positive integer    
+
+PenaltyInvertedGate = 1  
+   * [optional, 2] time in seconds added to your race time when passing through a inverted gate zone when not inverted with wings level +/- 10 degrees  
+   * Valid range: 0 to any positive integer  
 
 NumberMissedGatesDNF = 3  
    * [optional, 999] how many missed gates will trigger a DNF
-   * Valid range: 1 to infinity
+   * Valid range: 1 to infinity  
 
 NumberPylonHitsDNF = 3  
    * [optional, 999] how many pylon hits will trigger a DNF
-   * Valid range: 1 to infinity
+   * Valid range: 1 to infinity  
   
 StartSpeedLimit = 300  
-   * [optional, 999] first gate speed limit in knots
-   * Passing the first gate above this speed limit will result in a DNF
+   * [optional, 999] first gate speed limit in knots  
+   * Passing the first gate above this speed limit will result in a DNF  
 
-### Group Race Settings:
+### Group Race Settings:  
 
 GroupRace = true  
    * [optional, false] same timer for all, or individual timers

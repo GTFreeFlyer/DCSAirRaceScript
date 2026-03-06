@@ -43,6 +43,7 @@
 --                                    RemovePlayerCheckInterval = <number of seconds between checks>      [optional]-- default: 30
 --                                    HorizontalGates = <list of gate numbers requiring level flight>     [optional]-- default: {1} (first gate only) --example: {1, 2, 5} for gates 1, 2, and 5
 --                                    VerticalGates = <list of gate numbers requiring knife-edge flight>  [optional]-- default: {} (empty list)  --example: {3, 6, 8} for gates 3, 6, and 8
+--                                    InvertedGates = <list of gate numbers requiring inverted flight>	  [optional]-- default: {} (empty list)  --example: {4, 7} for gates 4 and 7
 --                                    RaceZoneCeiling = <max. detect altitude (ft) of planes in racezone  [optional]-- default: 99999 --make sure this is at least 500 feet above where the pace drop-in occurs
 --                                    GateHeight = <global height of the gates in feet>                   [optional]-- default: 300 --maximum height of plane above ground to "hit" gate
 --                                    CustomGateHeights = <overrides for GateHeight, per gate>            [optional]-- default: {} (empty list). Override the global GateHeight for specified gate(s). Example: {gate1={0,50}, gate14={100,200}} makes gate-1 between 0 and 50 feet AGL, and gate-14 between 100 and 200 feet AGL
@@ -55,6 +56,7 @@
 --                                    PenaltyTimeAboveGateHeight = <penalty time in seconds>              [optional]-- default: 2
 --                                    PenaltyTimeHorizontalGate = <penalty time in seconds>               [optional]-- default: 2
 --                                    PenaltyTimeVerticalGate = <penalty time in seconds>                 [optional]-- default: 2
+--                                    PenaltyTimeInvertedGate = <penalty time in seconds>                 [optional]-- default: 2
 --                                    NumberMissedGatesDNF = <number of missed gates to trigger a DNF>    [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
 --                                    NumberPylonHitsDNF = <number of pylon hits to trigger a DNF>        [optional]-- default: 999. Range 1 to 9999. 
 --                                    StartSpeedLimit = <first gate speed limit in knots>                 [optional]-- default: 999
@@ -331,6 +333,7 @@ Airrace = {
     CustomGateHeights = {},
 	HorizontalGates = {1},
 	VerticalGates = {},
+	InvertedGates = {},
     RaceZoneCeiling = 99999 * .3048, --convert to m
 	StartSpeedLimit = 999 * 1.852, --convert to km/h
     BonusGates = {},
@@ -342,6 +345,7 @@ Airrace = {
 	PenaltyTimeAboveGateHeight = 2,
 	PenaltyTimeHorizontalGate = 2,
 	PenaltyTimeVerticalGate = 2,
+	PenaltyTimeInvertedGate = 2,
 	NumberMissedGatesDNF = 999,
 	NumberPylonHitsDNF = 999,
 	MessageLogged = false,
@@ -363,9 +367,9 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
-                        penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	
+                        penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
 	local obj = {
@@ -381,6 +385,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
 		GateHeight = gateHeight,
         CustomGateHeights = customGateHeights or {},
 		HorizontalGates = horizontalGates or {1},
+		InvertedGates = invertedGates or {},
 		VerticalGates = verticalGates or {},
         RaceZoneCeiling = raceZoneCeiling,
 		BonusGates = bonusGates,
@@ -392,6 +397,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
 		PenaltyTimeAboveGateHeight = penaltyTimeAboveGateHeight,
 		PenaltyTimeHorizontalGate = penaltyTimeHorizontalGate,
 		PenaltyTimeVerticalGate = penaltyTimeVerticalGate,
+		PenaltyTimeInvertedGate = penaltyTimeInvertedGate,
 		NumberMissedGatesDNF = numberMissedGatesDNF,
 		NumberPylonHitsDNF = numberPylonHitsDNF,
 		StartSpeedLimit = startSpeedLimit,
@@ -702,18 +708,18 @@ end
 ---Check the player's roll angle for wings level or knife edge requirements at gate
 function Airrace:evaluateRollAngle(gateNumber, player)
 	--check for wings level requirement
+	local result = true
+	local myUnit = Unit.getByName(player.UnitName)
+	local roll = 180 * mist.getRoll(myUnit) / math.pi --degreees
+
 	for i = 1 , #self.HorizontalGates do
-		if self.HorizontalGates[i] == gateNumber then
-			local result = true
-			local myUnit = Unit.getByName(player.UnitName)
-			local roll = 180 * mist.getRoll(myUnit) / math.pi --degreees
+		if self.HorizontalGates[i] == gateNumber then			
 			if roll >= -10 and roll <= 10 then
-				result = true
+				--do nothing, result is alread preset true
 			else
 				result = false
 				warnPlayer(string.format("Wings not level! Roll = %d deg. | Penalty: %d sec.", roll, self.PenaltyTimeHorizontalGate), player)
 			end
-
 			if result == false then
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimeHorizontalGate
@@ -724,11 +730,8 @@ function Airrace:evaluateRollAngle(gateNumber, player)
 	--check for knife edge requirement
 	for i = 1 , #self.VerticalGates do
 		if self.VerticalGates[i] == gateNumber then
-			local result = true
-			local myUnit = Unit.getByName(player.UnitName)
-			local roll = 180 * mist.getRoll(myUnit) / math.pi --degreees
 			if (roll >= 80 and roll <= 100) or (roll >= -100 and roll <= -80) or (roll >= 260 and roll <= 280) then
-				result = true
+				--do nothing, result is alread preset true
 			else
 				result = false
 				warnPlayer(string.format("Wings not vertical! Roll = %d deg. | Penalty: %d sec.", roll, self.PenaltyTimeVerticalGate), player)
@@ -736,6 +739,22 @@ function Airrace:evaluateRollAngle(gateNumber, player)
 			if result == false then
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimeVerticalGate
+			end
+			break
+		end
+	end
+	--check for inverted requirement
+	for i = 1 , #self.InvertedGates do
+		if self.InvertedGates[i] == gateNumber then
+			if (roll >= 170 and roll <= 190) or (roll >= -170 and roll <= -190) then
+				--do nothing, result is alread preset true
+			else
+				result = false
+				warnPlayer(string.format("Wings not level while inverted! Roll = %d deg. | Penalty: %d sec.", roll, self.PenaltyTimeInvertedGate), player)
+			end
+			if result == false then
+				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+				player.Penalty = player.Penalty + self.PenaltyTimeInvertedGate
 			end
 			break
 		end
@@ -1679,6 +1698,7 @@ function Init()
 	local racePylons = {}
 	local horizontalGates = HorizontalGates or {1}
 	local verticalGates = VerticalGates or {}
+	local invertedGates = InvertedGates or {}
     local raceZoneCeiling = RaceZoneCeiling or 99999
 	local course = Course:New()
 	race = nil --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
@@ -1697,6 +1717,7 @@ function Init()
 	local penaltyTimeAboveGateHeight = PenaltyTimeAboveGateHeight or 2
 	local penaltyTimeHorizontalGate = PenaltyTimeHorizontalGate or 2
 	local penaltyTimeVerticalGate = PenaltyTimeVerticalGate or 2
+	local penaltyTimeInvertedGate = penaltyTimeInvertedGate or 2
 	local numberMissedGatesDNF = NumberMissedGatesDNF or 999
 	local numberPylonHitsDNF = NumberPylonHitsDNF or 999
 	local groupRace = GroupRace or false
@@ -1725,6 +1746,19 @@ function Init()
     NumberBlueSmokeZones = countZones("Blue smoke")    
 
 	--protect values to valid ranges
+	if distanceUnits ~= "ft" or distanceUnits ~= "m" then 
+		distanceUnits = "ft" 
+		env.info("Invalid setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
+	end
+	if groupRace ~= true or groupRace ~= false then 
+		groupRace = false
+		env.info("Invalid setting for GroupRace. Must be true or false. Resetting to default: false.")
+	end
+	if illuminationOn ~= true or illuminationOn ~= false then 
+		illuminationOn = true
+		env.info("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true)
+	end
+	numberLaps = math.floor(numberLaps)
 	if illuminationBrightness > 1000000 then
 		illuminationBrightness = 1000000
 	elseif illuminationBrightness < 1 then
@@ -1738,7 +1772,7 @@ function Init()
 	end
     if bonusTime < 0 then --in case the user thinks they must use a negative number to subtract time
         bonusTime = -bonusTime
-    end
+    end	
 
     --unit conversions for script usage
     startSpeedLimit = startSpeedLimit * 1.852 --convert knots to km/h    
@@ -1777,9 +1811,9 @@ function Init()
 			end
 		end	
 
-		race = Airrace:New(distanceUnits, raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+		race = Airrace:New(distanceUnits, raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
-							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, 
+							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
 
