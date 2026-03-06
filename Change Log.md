@@ -1,4 +1,10 @@
 (Most recent items on top)
+AirRaceScript4.2 
+Changes by GTFreeFlyer, TBD
+
+• TBD
+
+-------------------------------------------------------------------------------------
 AirRaceScript4.1 
 Changes by GTFreeFlyer, March 5, 2026  
 
