@@ -34,11 +34,12 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Detects pylon hits, missed gates, etc.
 * Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
 * Set up an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
-* Define the ceiling of your race airspace.
-* Gates can have wings-level, knife-edge, or inverted flight requirement.
+* Define the ceiling of your race airspace.  
+* Gates can have wings-level, knife-edge, or inverted flight requirement.  
+* Immediately disqualify pilots who have entered any triggerzone with name "DNF".  
 * Night racing is possible with automatic lighting of the course at each gate, and also at any additional location marked by a trigger zone with name "illum".  
 * Fireworks (signal flares) when planes cross the start or finish lines. They originate from wherever you drop a trigger zone with name "fireworks".  
-* Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.
+* Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.  
 * Many general-purpose flags, based on events in the race, are available for the mission creator to use for whatever creative purpose he/she can come up with.  
 * Option to automatically draw lines between the gates and place labels on the F10 map.  
   
@@ -87,20 +88,23 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
   
 ### Design Your Race Course:
 7. Create the first gate by placing a trigger zone named "gate-1".  
-   * Note: All trigger zone names mentioned in this tutorial are case-sensitive, so type them exactly as shown.  
-   * All trigger zone must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
+      * Note: All trigger zone names mentioned in this tutorial are case-sensitive, so type them exactly as shown.  
+      * All trigger zones must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
 
-8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer that as well; these objects have nothing to do with the script and you can do whatever you like with them.  
-   * I recommend Static object -> category Structures -> Type Airshow cone
-   * Tip: If you plan to use Tacview to debrief your race, place an infantry or vehicle at (or inside) each pylon so that the pylon location is visible in Tacview.  
+8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer it that way.  
+      * Make sure these object are INSIDE of the gate zone, so that you'll be able to detect pylon hits.  
+      * These objects have nothing to do with the script and you can do whatever you like with them.  
+      * I recommend Static object -> category Structures -> Type Airshow cone
+      * Tip: If you plan to use Tacview to debrief your race, place an infantry or vehicle at (or inside) each pylon so that the pylon location is visible in Tacview.  
 
 9. In the example screenshot below, I've placed two groups of three cones to indicate the starting line. Racers will enter East to West. I recommend using a rectangular shaped zone for the start and finish lines so that you have a nice straight line for fairness.  The script checks position every 0.2 seconds, so do some math to figure out how far your plane travels in that amount of time, and make sure the trigger zone is long enough to ensure detection. For example, if you expect to enter the race at Mach 1 (1125 ft/sec), you'll travel 225 ft in 0.2 seconds, so I'd suggest a trigger zone around 300 feet in length.  
-![Add your first gate](screenshots/gate1.png)  
+![Add your first gate](screenshots/gate1.jpg)  
 
-10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on.   
-      * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2.  
-      * Identifying the pylons with triggerzones is optional, but recommended. It will allow you to assign penalties for pylon hits.  However, due to their small size, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.
-![Mark your pylons](screenshots/pylonZone.png)  
+10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on. This is optional, only if you want to assign penalties for hitting pylons.
+      * Again, make sure the pylons and their zones are located just INSIDE the edges of the gate zone. If they are outside, then a pylon hit might not get registered, and if it does, you'll receive a penalty for a pylon hit AND another penalty for a missed gate. Keep them just inside the gate zones so that you only get the pylon hit penalty and receive credit for passing through the gate.    
+      * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2, and so on.  
+      * Due to their small size, depending on what you use as a pylon, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.
+![Mark your pylons](screenshots/pylonzone.jpg)  
 
 11. Let's add more gates now. We'll keep the course small for this tutorial, perhaps good for helicopters?  
       * When adding gate zones, you must always start with gate-1, then gate-2, gate-3, etc.  
@@ -149,7 +153,10 @@ Okay, that covers all the required stuff, but wait!... There are more (optional)
       * The script will automatically create the smoke at these trigger zones AND keep them refreshed every 5 minutes.  
       * In the example below, I placed the different colors along either side of the runway.  
 ![SmokeTZ](screenshots/smokeTZ.jpg)
-![Smoke](screenshots/smoke.jpg)
+![Smoke](screenshots/smoke.jpg)  
+
+18. Need to protect certain areas of the course? You can trigger an immediate DNF (Did Not Finish) on a player that enters any zone named "DNF-1", "DNF-2", and so on.
+
   
 ### Setup Required for Group Races:
 Group races are loads of fun when coordinated properly between a group of friends, or when using an AI pace plane (more on this later below). The timer will start for everyone as soon as the first racer crosses the starting line. You can communicate with each other over voice chat to get everyone into a line-abreast formation, then call 3-2-1-Go! The group race option is set in the Race Settings. One neat feature with group racing is that the standings display in the upper-right of your screen is dynamic, meaning you'll see yourself moving up and down the list if you are gaining or falling back on the competition.  
@@ -256,7 +263,8 @@ BonusTime = 2
   
 AutoDraw = false
    * [optional, true] draws lines on the F10 map between the gates and places gate labels.   
-   * Set it to false if you intended to make your own map drawings.  
+   * Set it to false if you intend to make your own map drawings.  
+   ![autodraw](screenshots/autodraw.jpg)
   
 ### Penalty and DNF Settings:
   

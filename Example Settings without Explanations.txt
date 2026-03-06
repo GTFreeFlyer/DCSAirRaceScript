@@ -22,15 +22,16 @@ PenaltyTimeAboveGateHeight = 2 --[optional, 2]
 PenaltyTimeHorizontalGate = 1 --[optional, 2]
 PenaltyTimeVerticalGate = 1 --[optional, 2]
 PenaltyTimeInvertedGate = 1 --[optional, 2]
---Valid range: 0 to any positive integer
 NumberMissedGatesDNF = 3 --[optional, 999]
 NumberPylonHitsDNF = 3 --[optional, 999]
 StartSpeedLimit = 300 --[optional, 999]
+
 --GROUP RACE SETTINGS------------------
 GroupRace = true --[optional, false]
 GroupRaceTimeout = 30 --[optional, 120]
 PaceUnitName = "PacePlane" --[optional, nil]
 GroupRaceParticipantFilter = 6000 --[optional, 999999]
+
 --NIGHT RACE ILLUMINATION SETTINGS------
 IlluminationOn = false --[optional, true]
 IlluminationStartTime = 65000 --[optional, 64800]

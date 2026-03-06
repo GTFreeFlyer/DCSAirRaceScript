@@ -316,13 +316,12 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- AIRRACE CLASS
 ----------------------------------------------------------------------------------------------------------------------
-
------------------------------------------------------------------------------------------
 -- Airrace Properties
 --
 Airrace = {
     DistanceUnits = "ft",
 	RaceZones = {},
+	DNFZones = {},
 	Course = {},
 	Players = {},
 	FastestTime = 0,
@@ -369,7 +368,7 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
+function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, triggerZonesDNF, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
@@ -378,6 +377,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
         DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
+		DNFZones = triggerZonesDNF,
 		Course = course,
 		Players = {},
 		FastestTime = 0,
@@ -547,7 +547,6 @@ end
 -----------------------------------------------------------------------------------------
 -- Return the number of the gate the given player is flying through, or 0 if not in gate
 -- Parameter player: Reference to a player in the active players List
---
 function Airrace:GetGateNumberForPlayer(player)
 	local result = 0
 	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
@@ -564,7 +563,6 @@ end
 -- Check if the player hit the pylon
 -- Player parameter: link to the player in the list of active players
 -- Gives a penalty for a downed pylon, and gives a DNF if 3 pylons are downed
------------------------------------------------------------------------------------------
 function Airrace:CheckPylonHitForPlayer(player)
 	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
 	for pylonIndex, pylonName in ipairs(self.PylonZones) do
@@ -572,18 +570,33 @@ function Airrace:CheckPylonHitForPlayer(player)
 		if #playersInsideZone > 0 and player.PylonFlag == false then
 			local gateAltitudeOk = self:CheckPylonAltitudeForPlayer(player)
 			if  gateAltitudeOk == true then
-				warnPlayer(string.format("PYLON HIT!!! pylon %d ", pylonIndex), player)
+				warnPlayer(string.format("Pylon %d hit! Penalty: %d sec.", pylonIndex, self.PenaltyTimePylonHit), player)
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimePylonHit
 				player.HitPylon = player.HitPylon + 1
 				player.PylonFlag = true
-				env.info(string.format("Player %s hit a pylon (%d)", player.Name, player.HitPylon))
+				env.info(string.format("Player %s hit pylon %d", player.Name, player.HitPylon))
 			end
 			if player.HitPylon >= self.NumberPylonHitsDNF then
 				player.DNF = true
 				player.StatusText = string.format("DNF! | Too many pylons hit")
 				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
 			end
+			break
+		end
+	end
+end
+----------------------------------------------------------------------------------------- 
+-- Check if the player is in a DNF zone
+function Airrace:CheckDNFZone(player)
+	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
+	for DNFIndex, DNFName in ipairs(self.DNFZones) do
+		local playersInsideZone = mist.getUnitsInZones(playerUnitTable, { DNFName })
+		if #playersInsideZone > 0 then
+			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+			player.DNF = true
+			player.StatusText = string.format("DNF! | You entered a restricted area")
+			env.info(string.format("Player %s entered restricted zone DNF-%d. DNF!", player.Name, DNFIndex))
 			break
 		end
 	end
@@ -749,7 +762,7 @@ function Airrace:evaluateRollAngle(gateNumber, player)
 	--check for inverted requirement
 	for i = 1 , #self.InvertedGates do
 		if self.InvertedGates[i] == gateNumber then
-			if (roll >= 170 and roll <= 190) or (roll >= -170 and roll <= -190) then
+			if (roll >= 170 and roll <= 190) or (roll <= -170 and roll >= -190) then
 				--do nothing, result is alread preset true
 			else
 				result = false
@@ -1321,7 +1334,7 @@ function Airrace:UpdatePlayerStatus(player)
 						if difference < 0 then
 							sign = "-"
 						end
-						player.StatusText = string.format("%s (%s%s sec.)", player.StatusText, sign, math.abs(difference))
+						player.StatusText = string.format("%s (%s%s sec.)", player.StatusText, sign, tonumber(string.format("%.2f", math.abs(difference))))
 					end
 				end
 				player.CurrentGateNumber = gateNumber
@@ -1360,7 +1373,7 @@ function Airrace:ListPlayers()
 				text = "Racers dropping in!"
 			--if the race started...	
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress | Time: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1370,7 +1383,7 @@ function Airrace:ListPlayers()
 		--if there's no pace plane preset...	
 		else 
 			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress | Time: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 0 and trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1450,9 +1463,8 @@ function Airrace:ListPlayers()
 		if #playersInGates > 0 then	
 			for playerIndex, player in ipairs(playersInGates) do		
 				if self.GroupRace == false or (self.GroupRace == true and player.Finished == false) then
-					if player.DNF == false then 
-						self:CheckPylonHitForPlayer(player)
-					end
+					if player.DNF == false then self:CheckDNFZone(player) end
+					if player.DNF == false then self:CheckPylonHitForPlayer(player) end
 					self:UpdatePlayerStatus(player) --we'll check for DNF in the next function. Necessary to restart an individual race.
 				end
 			end
@@ -1466,18 +1478,29 @@ function Airrace:ListPlayers()
 			local playerIndex = 0 --initialize
             local highestLapNum = 0 --initialize
 
+			--continue building the header text with the highest lap number reached so far
 			for currentRank, playerData in ipairs(rankTable) do
-                if self.NumberLaps > 1 then
-                    if playerData.lap > highestLapNum then
-                        text = string.format("%s | Lap %d of %d", text, playerData.lap, self.NumberLaps)
-                    else
-                        text = string.format("%s | Lap %d of %d", text, highestLapNum, self.NumberLaps)                    
-                    end
+                if self.NumberLaps > 1 and playerData.lap > highestLapNum then
+                    highestLapNum = playerData.lap
                 end
-                text = string.format("%s\n------------------------------------------------------------------------------", text)
-				text = string.format("%s\n%d. %s (%s)", text, currentRank, playerData.name:sub(1,20), formatAircraftType(playerData.aircraftType))
+			end
+			if trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
+				text = string.format("%s | Lap %d of %d | Timer: %s ", text, highestLapNum, self.NumberLaps, formatTime(timeNow-GroupStartTime))
+			end 
 
-				--find index position of this player in the Player list...
+			--check to see if there is already a best time recorded for the course, and display it if so
+			if self.FastestTime > 0 then
+				text = string.format("%s\nBest: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
+			end
+
+			text = string.format("%s\n------------------------------------------------------------------------------", text)
+
+			--now build the ranked list of players and their data
+			for currentRank, playerData in ipairs(rankTable) do
+				--first, print the rank and the player's name...
+				text = string.format("%s\n%d. %s", text, currentRank, playerData.name:sub(1,20))
+
+				--find index position of this player in the Player list, then print their data next to their name
 				for index, player in ipairs(self.Players) do					
 					if player.Name == playerData.name then
 						if player.CurrentGateNumber > 0 and player.Finished == false then							
@@ -1502,9 +1525,14 @@ function Airrace:ListPlayers()
 			end	
 
 		else --for individual races, or for group races that have not started yet
-			for playerIndex, player in ipairs(self.Players) do
-                text = string.format("%s\n---------------------------------------", text)
-				text = string.format("%s\n%s (%s)", text, player.Name:sub(1,20), formatAircraftType(player.AircraftType))
+			--and only for individual races, display the best time, if there is one...
+			if self.GroupRace == false and self.FastestTime > 0 then
+				text = string.format("%s\nBest: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
+			end
+			text = string.format("%s\n---------------------------------------", text)
+			--now print all the racer data...
+			for playerIndex, player in ipairs(self.Players) do                
+				text = string.format("%s\n%s", text, player.Name:sub(1,20))
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
 						text = string.format("%s | %s", text, player.StatusText)
@@ -1738,6 +1766,7 @@ function Init()
     local distanceUnits = DistanceUnits or "ft"
 	local raceZones = {}
 	local racePylons = {}
+	local DNFZones = {}
 	local horizontalGates = HorizontalGates or {1}
 	local verticalGates = VerticalGates or {}
 	local invertedGates = InvertedGates or {}
@@ -1780,6 +1809,7 @@ function Init()
 	local numberRaceZones = countZones("racezone")
 	local numberGates = countZones("gate")
 	local numberPylons = countZones("pylon")
+	local numberDNFZones = countZones("DNF")
 	IlluminationNumberZones = countZones("illum")
 	NumberFireworksZones = countZones("fireworks")
     NumberGreenSmokeZones = countZones("Green smoke")
@@ -1840,6 +1870,9 @@ function Init()
 		for idx = 1, numberPylons do
 			table.insert(racePylons, string.format("pylon-%d", idx))
 		end
+		for idx = 1, numberDNFZones do
+			table.insert(DNFZones, string.format("DNF-%d", idx))
+		end
 		for idx = 1, numberGates do
 			course:AddGate(idx)
 		end
@@ -1858,7 +1891,7 @@ function Init()
 			end
 		end			
 
-		race = Airrace:New(distanceUnits, raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
+		race = Airrace:New(distanceUnits, raceZones, racePylons, DNFZones, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
