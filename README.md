@@ -40,6 +40,7 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Fireworks (signal flares) when planes cross the start or finish lines. They originate from wherever you drop a trigger zone with name "fireworks".  
 * Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.
 * Many general-purpose flags, based on events in the race, are available for the mission creator to use for whatever creative purpose he/she can come up with.  
+* Option to automatically draw lines between the gates and place labels on the F10 map.  
   
 ## Download and Installation  
 Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/  
@@ -229,11 +230,11 @@ GateHeight = 150
    * Racers flying through a gate higher than this will receive a penalty
 
 CustomGateHeights = { gate1={0,500}, gate12={100,400} }  
-  * [optional, {}] override the global GateHeight for specific gates. 
-  * Must define both the minimum and maximum heights.  
-  * The example above will count the gate crossing at gate-1 if you cross between 0 and 500 ft (or m) AGL, and at gate-12 if you cross between 100 and 400 ft (or m) AGL.
-  * You can use these overrides at bridges, buildings, "floating" gates, etc.  
-  * Add more gates as needed, separated by commas like in the example.  
+   * [optional, {}] override the global GateHeight for specific gates. 
+   * Must define both the minimum and maximum heights.  
+   * The example above will count the gate crossing at gate-1 if you cross between 0 and 500 ft (or m) AGL, and at gate-12 if you cross between 100 and 400 ft (or m) AGL.
+   * You can use these overrides at bridges, buildings, "floating" gates, etc.  
+   * Add more gates as needed, separated by commas like in the example.  
   
 BonusGates = {2, 4}  
    * [optional, {}] list of gate numbers for low altitude bonus
@@ -243,21 +244,19 @@ BonusGateHeight = 15
    * Racers flying through a gate below this altitude will get a bonus  
   
 CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
-  * [optional, {}] override the global BonusGateHeight for specific gates.  
-  * These gates MUST also be included in BonusGates (two settings above) for this to work.
-  * Must define both the minimum and maximum heights.  
-  * The example above will give you a bonus at gate-1 if you cross between 0 and 25 ft (or m) AGL, and a bonus at gate-11 if you cross through a tiny sliver between 20 and 40 ft (or m) AGL.  
-  * You can use these overrides for bonuses under bridges, thru buildings, etc.
-  * Add more gates as needed, separated by commas like in the example.
+   * [optional, {}] override the global BonusGateHeight for specific gates.  
+   * These gates MUST also be included in BonusGates (two settings above) for this to work.
+   * Must define both the minimum and maximum heights.  
+   * The example above will give you a bonus at gate-1 if you cross between 0 and 25 ft (or m) AGL, and a bonus at gate-11 if you cross through a tiny sliver between 20 and 40 ft (or m) AGL.  
+   * You can use these overrides for bonuses under bridges, thru buildings, etc.
+   * Add more gates as needed, separated by commas like in the example.
 
 BonusTime = 2  
- * [optional, 1] time in seconds to subtract when hitting a bonus gate  
+   * [optional, 1] time in seconds to subtract when hitting a bonus gate  
   
-NumberFireworksZones = 6  
-   * [optional, 0] total number of fireworks triggerzones
-   * These trigger zones must be named, "fireworks-1", "fireworks-2", ... "fireworks-10", etc.
-   * No leading zeroes. Start at -1.  Don't skip numbers. 
-   * Causes fireworks to shoot from 1m above ground level at each trigger zone when any aircraft crosses the starting line, or the finish line  
+AutoDraw = false
+   * [optional, true] draws lines on the F10 map between the gates and places gate labels.   
+   * Set it to false if you intended to make your own map drawings.  
   
 ### Penalty and DNF Settings:
   
