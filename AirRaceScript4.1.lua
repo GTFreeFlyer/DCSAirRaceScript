@@ -880,6 +880,7 @@ function formatAircraftType(aircraftType)
     if aircraftType == "F-16C_50"            then aircraftName = "F-16C"       return aircraftName end
     if aircraftType == "F-18C_hornet"        then aircraftName = "F/A-18C"     return aircraftName end
     if aircraftType == "F4U-1D"              then aircraftName = "Corsair"     return aircraftName end
+	if aircraftType == "F4U-1D_CW"           then aircraftName = "Corsair"     return aircraftName end
     if aircraftType == "F-5E-3"              then aircraftName = "F-5"         return aircraftName end
     if aircraftType == "FW-190A8"            then aircraftName = "Anton"       return aircraftName end
     if aircraftType == "FW-190D9"            then aircraftName = "Dora"        return aircraftName end
@@ -1196,7 +1197,7 @@ function Airrace:UpdatePlayerStatus(player)
 				if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then
 					self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
 					self.FastestPlayer = player.Name
-					self.FastestAircraft = player.AircraftType
+					self.FastestAircraft = formatAircraftType(playerData.aircraftType)
 					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
 					self.FastestIntermediates = player.IntermediateTimes
 					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
@@ -1442,7 +1443,7 @@ function Airrace:ListPlayers()
 		else --for individual races, or for group races that have not started yet
 			for playerIndex, player in ipairs(self.Players) do
                 text = string.format("%s\n---------------------------------------", text)
-				text = string.format("%s\n%s (%s)", text, player.Name:sub(1,20), player.AircraftType)
+				text = string.format("%s\n%s (%s)", text, player.Name:sub(1,20), formatAircraftType(player.AircraftType))
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
 						text = string.format("%s | %s", text, player.StatusText)
