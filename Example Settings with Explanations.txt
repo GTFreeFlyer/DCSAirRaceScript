@@ -72,6 +72,9 @@ CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
 BonusTime = 2
 --{optional, 1] time in seconds to subtract from total time when hitting a bonus gate  
 
+AutoDraw = false 
+--[optional, true] draws lines on the F10 map between the gates and places gate labels
+
 --PENALTY AND DNF SETTINGS:-------------
 
 PenaltyTimeMissedGate = 4

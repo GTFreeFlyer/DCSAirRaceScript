@@ -13,8 +13,9 @@ BonusGates = {2, 4} --[optional, {}]
 BonusGateHeight = 15 --[optional, 20]
 CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} } --[optional, {}]
 BonusTime = 2 --[optional, 1]
+AutoDraw = false --[optional, true]
 
---PENALTY AND DNF SETTINGS:-------------
+--PENALTY AND DNF SETTINGS:------------
 PenaltyTimeMissedGate = 4 --[optional, 5]
 PenaltyTimePylonHit = 2 --[optional, 3]
 PenaltyTimeAboveGateHeight = 2 --[optional, 2]

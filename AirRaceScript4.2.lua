@@ -70,6 +70,7 @@
 --									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 10000   
 --                                    IlluminationAGL = <Elevation AGL in feet where they spawn>          [optional]-- default: 2600
 --                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
+--                                    AutoDraw = <true or false to draw the route on the map>             [optional]-- default: true
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
 --                                    mist_4_5_126.lua (or later)                                                   --
@@ -360,6 +361,7 @@ Airrace = {
 	IlluminationAGL = 2600* .3048, --convert to meters
 	FireworksZones = {},
 	GroupCurrentRankings = {},
+	AutoDraw = true,
 }
 -----------------------------------------------------------------------------------------
 -- Airrace Constructor
@@ -371,7 +373,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
+						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, autoDraw)
 	local obj = {
         DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
@@ -413,6 +415,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
 		IlluminationAGL = illuminationAGL,
 		FireworksZones = fireworksZones,
 		GroupCurrentRankings = {},
+		AutoDraw = autoDraw or true
 	}
 	setmetatable(obj, { __index = Airrace })
 	return obj
@@ -926,6 +929,45 @@ function formatAircraftType(aircraftType)
     if aircraftType == "Yak-52"              then aircraftName = "Yak-52"      return aircraftName end
 
     return aircraftName
+end
+-----------------------------------------------------------------------------------------
+-- automatically draw the route on the map and add gate labels
+function autoDraw(gateNames)
+	local totalNumberOfGates = #gateNames	
+	local coalitionAll = -1
+	local coalitionNeutral = 0
+	local coalitionRed = 1
+	local coalitionBlue = 2
+	local red = {1,0,0,0} --r,g,b,alpha
+	local green = {0,1,0,0}
+	local blue = {0,0,1,0}
+	local white = {1,1,1,0}
+	local black = {0,0,0,0}
+	local magenta = {1,0,1,0}
+	local lineNone = 0
+	local lineSolid = 1
+	local lineDashed = 2
+	local lineDotted = 3
+	local lineDotDash = 4
+	local lineLongDash = 5
+	local lineTwoDash = 6
+	
+	if totalNumberOfGates > 1 then --no point in drawing a line if it only has one point!
+	--collect gate zone locations...
+		for gateNum, gateName in ipairs(gateNames) do
+			local startingPoint = trigger.misc.getZone(gateName).point --vec3			
+			if gateNum < totalNumberOfGates then
+				--draw a line between two trigger zones
+				local endPoint = trigger.misc.getZone(gateNames[gateNum+1]).point --vec3
+				trigger.action.lineToAll(coalitionAll, 100 + gateNum, startingPoint, endPoint, magenta, lineSolid) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+			elseif gateNum == totalNumberOfGates and race.NumberLaps > 0 then
+				--close the polygon if there are more than zero laps
+				trigger.action.lineToAll(coalitionAll, 100+#gateNames, startingPoint, gateNames[1], magenta, lineSolid) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+			end
+			--add the gate labels
+			trigger.action.textToAll(coalitionAll, 200 + gateNum, startingPoint, black, white, 12, 1, false, string.format("Gate %d", gateNum)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
+		end
+	end
 end
 -----------------------------------------------------------------------------------------
 -- Only for group races with pace planes:
@@ -1732,6 +1774,7 @@ function Init()
 	local illuminationAGL = IlluminationAGL or 2600
 	local illuminationRespawnTimer = IlluminationRespawnTimer or 240 --seconds
 	local fireworksZones = {}
+	local autoDraw = AutoDraw or true
 
 	--count the number of each type of zone
 	local numberRaceZones = countZones("racezone")
@@ -1756,7 +1799,11 @@ function Init()
 	end
 	if illuminationOn ~= true or illuminationOn ~= false then 
 		illuminationOn = true
-		env.info("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true)
+		env.info("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true")
+	end
+	if autoDraw ~= true or autoDraw ~= false then 
+		autoDraw = true
+		env.info("Invalid setting for AutoDraw. Must be true or false. Resetting to default: true")
 	end
 	numberLaps = math.floor(numberLaps)
 	if illuminationBrightness > 1000000 then
@@ -1809,13 +1856,13 @@ function Init()
 			for gate = 1, numberGates do
 				fastestIntermediates[lap][gate]=0
 			end
-		end	
+		end			
 
 		race = Airrace:New(distanceUnits, raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
+							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, autoDraw)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
@@ -1824,6 +1871,8 @@ function Init()
 			ScheduledFunctionRemovePlayerTimer = mist.scheduleFunction(RemovePlayerTimer, { race }, timer.getTime(), removePlayerCheckInterval)
 			env.info("Start Airrace script")
 		end
+
+		if autoDraw == true then autoDraw(race.Course.Gates) end
 	else
 		logMessage("Variables 'NumberRaceZones' or 'NumberGates' not set")
 	end
