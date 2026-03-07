@@ -1336,7 +1336,7 @@ function Airrace:UpdatePlayerStatus(player)
 						if difference < 0 then
 							sign = "-"
 						end
-						player.StatusText = string.format("%s (%s%s sec.)", player.StatusText, sign, math.abs(difference))
+						player.StatusText = string.format("%s (%s%s sec.)", player.StatusText, sign, tonumber(string.format("%.2f", math.abs(difference))))
 					end
 				end
 				player.CurrentGateNumber = gateNumber
@@ -1375,7 +1375,7 @@ function Airrace:ListPlayers()
 				text = "Racers dropping in!"
 			--if the race started...	
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress | Timer: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1385,7 +1385,7 @@ function Airrace:ListPlayers()
 		--if there's no pace plane preset...	
 		else 
 			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress | Timer: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 0 and trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1482,23 +1482,29 @@ function Airrace:ListPlayers()
 			local playerIndex = 0 --initialize
             local highestLapNum = 0 --initialize
 
+			--continue building the header text with the highest lap number reached so far
 			for currentRank, playerData in ipairs(rankTable) do
-                if self.NumberLaps > 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-                    if playerData.lap > highestLapNum then
-                        text = string.format("%s | Lap %d of %d", text, playerData.lap, self.NumberLaps)
-                    else
-                        text = string.format("%s | Lap %d of %d", text, highestLapNum, self.NumberLaps)                    
-                    end
+                if self.NumberLaps > 1 and playerData.lap > highestLapNum then
+                    highestLapNum = playerData.lap
                 end
-				--check to see if there is already a best time recorded for the course, and display it if so
-				if self.FastestTime > 0 then
-					text = string.format("%s\nBest: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
-				end
+			end
+			if trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
+				text = string.format("%s | Lap %d of %d | Timer: %s ", text, highestLapNum, self.NumberLaps, formatTime(timeNow-GroupStartTime))
+			end 
 
-                text = string.format("%s\n------------------------------------------------------------------------------", text)
+			--check to see if there is already a best time recorded for the course, and display it if so
+			if self.FastestTime > 0 then
+				text = string.format("%s\nBest: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
+			end
+
+			text = string.format("%s\n------------------------------------------------------------------------------", text)
+
+			--now build the ranked list of players and their data
+			for currentRank, playerData in ipairs(rankTable) do
+				--first, print the rank and the player's name...
 				text = string.format("%s\n%d. %s", text, currentRank, playerData.name:sub(1,20))
 
-				--find index position of this player in the Player list...
+				--find index position of this player in the Player list, then print their data next to their name
 				for index, player in ipairs(self.Players) do					
 					if player.Name == playerData.name then
 						if player.CurrentGateNumber > 0 and player.Finished == false then							
@@ -1523,8 +1529,13 @@ function Airrace:ListPlayers()
 			end	
 
 		else --for individual races, or for group races that have not started yet
-			for playerIndex, player in ipairs(self.Players) do
-                text = string.format("%s\n---------------------------------------", text)
+			--and only for individual races, display the best time, if there is one...
+			if self.GroupRace == false and self.FastestTime > 0 then
+				text = string.format("%s\nBest: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
+			end
+			text = string.format("%s\n---------------------------------------", text)
+			--now print all the racer data...
+			for playerIndex, player in ipairs(self.Players) do                
 				text = string.format("%s\n%s", text, player.Name:sub(1,20))
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
