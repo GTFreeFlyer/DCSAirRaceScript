@@ -763,7 +763,7 @@ function Airrace:evaluateRollAngle(gateNumber, player)
 	--check for inverted requirement
 	for i = 1 , #self.InvertedGates do
 		if self.InvertedGates[i] == gateNumber then
-			if (roll >= 170 and roll <= 190) or (roll >= -170 and roll <= -190) then
+			if (roll >= 170 and roll <= 190) or (roll <= -170 and roll >= -190) then
 				--do nothing, result is alread preset true
 			else
 				result = false

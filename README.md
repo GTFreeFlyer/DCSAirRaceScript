@@ -92,19 +92,19 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
       * All trigger zones must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
 
 8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer it that way.  
-      * Make sure these object are INSIDE of the gate zone, so that you'll be able to detect pylon hits. (Screenshot below needs updating to reflect this)  
+      * Make sure these object are INSIDE of the gate zone, so that you'll be able to detect pylon hits.  
       * These objects have nothing to do with the script and you can do whatever you like with them.  
       * I recommend Static object -> category Structures -> Type Airshow cone
       * Tip: If you plan to use Tacview to debrief your race, place an infantry or vehicle at (or inside) each pylon so that the pylon location is visible in Tacview.  
 
 9. In the example screenshot below, I've placed two groups of three cones to indicate the starting line. Racers will enter East to West. I recommend using a rectangular shaped zone for the start and finish lines so that you have a nice straight line for fairness.  The script checks position every 0.2 seconds, so do some math to figure out how far your plane travels in that amount of time, and make sure the trigger zone is long enough to ensure detection. For example, if you expect to enter the race at Mach 1 (1125 ft/sec), you'll travel 225 ft in 0.2 seconds, so I'd suggest a trigger zone around 300 feet in length.  
-![Add your first gate](screenshots/gate1.png)  
+![Add your first gate](screenshots/gate1.jpg)  
 
 10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on. This is optional, only if you want to assign penalties for hitting pylons.
-      * Again, make sure the pylons and their zones are located just INSIDE the edges of the gate zone. If they are outside, then a pylon hit might not get registered, and if it does, you'll receive a penalty for a pylon hit AND another penalty for a missed gate. Keep them just inside the gate zones so that you only get the pylon hit penalty and receive credit for passing through the gate. (Screenshot below needs updating to reflect this)  
+      * Again, make sure the pylons and their zones are located just INSIDE the edges of the gate zone. If they are outside, then a pylon hit might not get registered, and if it does, you'll receive a penalty for a pylon hit AND another penalty for a missed gate. Keep them just inside the gate zones so that you only get the pylon hit penalty and receive credit for passing through the gate.    
       * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2, and so on.  
       * Due to their small size, depending on what you use as a pylon, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.
-![Mark your pylons](screenshots/pylonZone.png)  
+![Mark your pylons](screenshots/pylonzone.jpg)  
 
 11. Let's add more gates now. We'll keep the course small for this tutorial, perhaps good for helicopters?  
       * When adding gate zones, you must always start with gate-1, then gate-2, gate-3, etc.  
@@ -263,7 +263,8 @@ BonusTime = 2
   
 AutoDraw = false
    * [optional, true] draws lines on the F10 map between the gates and places gate labels.   
-   * Set it to false if you intended to make your own map drawings.  
+   * Set it to false if you intend to make your own map drawings.  
+   ![autodraw](screenshots/autodraw.jpg)
   
 ### Penalty and DNF Settings:
   
