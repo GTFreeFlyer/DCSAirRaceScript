@@ -88,19 +88,22 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
   
 ### Design Your Race Course:
 7. Create the first gate by placing a trigger zone named "gate-1".  
-   * Note: All trigger zone names mentioned in this tutorial are case-sensitive, so type them exactly as shown.  
-   * All trigger zone must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
+      * Note: All trigger zone names mentioned in this tutorial are case-sensitive, so type them exactly as shown.  
+      * All trigger zones must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
 
-8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer that as well; these objects have nothing to do with the script and you can do whatever you like with them.  
-   * I recommend Static object -> category Structures -> Type Airshow cone
-   * Tip: If you plan to use Tacview to debrief your race, place an infantry or vehicle at (or inside) each pylon so that the pylon location is visible in Tacview.  
+8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer it that way.  
+      * Make sure these object are INSIDE of the gate zone, so that you'll be able to detect pylon hits. (Screenshot below needs updating to reflect this)  
+      * These objects have nothing to do with the script and you can do whatever you like with them.  
+      * I recommend Static object -> category Structures -> Type Airshow cone
+      * Tip: If you plan to use Tacview to debrief your race, place an infantry or vehicle at (or inside) each pylon so that the pylon location is visible in Tacview.  
 
 9. In the example screenshot below, I've placed two groups of three cones to indicate the starting line. Racers will enter East to West. I recommend using a rectangular shaped zone for the start and finish lines so that you have a nice straight line for fairness.  The script checks position every 0.2 seconds, so do some math to figure out how far your plane travels in that amount of time, and make sure the trigger zone is long enough to ensure detection. For example, if you expect to enter the race at Mach 1 (1125 ft/sec), you'll travel 225 ft in 0.2 seconds, so I'd suggest a trigger zone around 300 feet in length.  
 ![Add your first gate](screenshots/gate1.png)  
 
-10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on.   
-      * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2.  
-      * Identifying the pylons with triggerzones is optional, but recommended. It will allow you to assign penalties for pylon hits.  However, due to their small size, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.
+10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on. This is optional, only if you want to assign penalties for hitting pylons.
+      * Again, make sure the pylons and their zones are located just INSIDE the edges of the gate zone. If they are outside, then a pylon hit might not get registered, and if it does, you'll receive a penalty for a pylon hit AND another penalty for a missed gate. Keep them just inside the gate zones so that you only get the pylon hit penalty and receive credit for passing through the gate. (Screenshot below needs updating to reflect this)  
+      * If you copy and paste pylon-1 triggerzone, it will automatically rename it to pylon-2, and so on.  
+      * Due to their small size, depending on what you use as a pylon, it is very possible that fast moving aircraft may fly completely through the pylon zones before detection, so just be aware of this.
 ![Mark your pylons](screenshots/pylonZone.png)  
 
 11. Let's add more gates now. We'll keep the course small for this tutorial, perhaps good for helicopters?  
