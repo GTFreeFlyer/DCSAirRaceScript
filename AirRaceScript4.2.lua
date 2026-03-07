@@ -43,6 +43,7 @@
 --                                    RemovePlayerCheckInterval = <number of seconds between checks>      [optional]-- default: 30
 --                                    HorizontalGates = <list of gate numbers requiring level flight>     [optional]-- default: {1} (first gate only) --example: {1, 2, 5} for gates 1, 2, and 5
 --                                    VerticalGates = <list of gate numbers requiring knife-edge flight>  [optional]-- default: {} (empty list)  --example: {3, 6, 8} for gates 3, 6, and 8
+--                                    InvertedGates = <list of gate numbers requiring inverted flight>	  [optional]-- default: {} (empty list)  --example: {4, 7} for gates 4 and 7
 --                                    RaceZoneCeiling = <max. detect altitude (ft) of planes in racezone  [optional]-- default: 99999 --make sure this is at least 500 feet above where the pace drop-in occurs
 --                                    GateHeight = <global height of the gates in feet>                   [optional]-- default: 300 --maximum height of plane above ground to "hit" gate
 --                                    CustomGateHeights = <overrides for GateHeight, per gate>            [optional]-- default: {} (empty list). Override the global GateHeight for specified gate(s). Example: {gate1={0,50}, gate14={100,200}} makes gate-1 between 0 and 50 feet AGL, and gate-14 between 100 and 200 feet AGL
@@ -55,6 +56,7 @@
 --                                    PenaltyTimeAboveGateHeight = <penalty time in seconds>              [optional]-- default: 2
 --                                    PenaltyTimeHorizontalGate = <penalty time in seconds>               [optional]-- default: 2
 --                                    PenaltyTimeVerticalGate = <penalty time in seconds>                 [optional]-- default: 2
+--                                    PenaltyTimeInvertedGate = <penalty time in seconds>                 [optional]-- default: 2
 --                                    NumberMissedGatesDNF = <number of missed gates to trigger a DNF>    [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
 --                                    NumberPylonHitsDNF = <number of pylon hits to trigger a DNF>        [optional]-- default: 999. Range 1 to 9999. 
 --                                    StartSpeedLimit = <first gate speed limit in knots>                 [optional]-- default: 999
@@ -68,6 +70,7 @@
 --									  IlluminationBrightness = <value 1 to 1000000>                       [optional]-- default: 10000   
 --                                    IlluminationAGL = <Elevation AGL in feet where they spawn>          [optional]-- default: 2600
 --                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
+--                                    AutoDraw = <true or false to draw the route on the map>             [optional]-- default: true
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
 --                                    mist_4_5_126.lua (or later)                                                   --
@@ -313,13 +316,12 @@ end
 ----------------------------------------------------------------------------------------------------------------------
 -- AIRRACE CLASS
 ----------------------------------------------------------------------------------------------------------------------
-
------------------------------------------------------------------------------------------
 -- Airrace Properties
 --
 Airrace = {
     DistanceUnits = "ft",
 	RaceZones = {},
+	DNFZones = {},
 	Course = {},
 	Players = {},
 	FastestTime = 0,
@@ -331,6 +333,7 @@ Airrace = {
     CustomGateHeights = {},
 	HorizontalGates = {1},
 	VerticalGates = {},
+	InvertedGates = {},
     RaceZoneCeiling = 99999 * .3048, --convert to m
 	StartSpeedLimit = 999 * 1.852, --convert to km/h
     BonusGates = {},
@@ -342,6 +345,7 @@ Airrace = {
 	PenaltyTimeAboveGateHeight = 2,
 	PenaltyTimeHorizontalGate = 2,
 	PenaltyTimeVerticalGate = 2,
+	PenaltyTimeInvertedGate = 2,
 	NumberMissedGatesDNF = 999,
 	NumberPylonHitsDNF = 999,
 	MessageLogged = false,
@@ -356,6 +360,7 @@ Airrace = {
 	IlluminationAGL = 2600* .3048, --convert to meters
 	FireworksZones = {},
 	GroupCurrentRankings = {},
+	AutoDraw = true,
 }
 -----------------------------------------------------------------------------------------
 -- Airrace Constructor
@@ -363,15 +368,16 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, triggerZonesDNF, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
-                        penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	
+                        penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
+						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, autoDraw)
 	local obj = {
         DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
+		DNFZones = triggerZonesDNF,
 		Course = course,
 		Players = {},
 		FastestTime = 0,
@@ -381,6 +387,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
 		GateHeight = gateHeight,
         CustomGateHeights = customGateHeights or {},
 		HorizontalGates = horizontalGates or {1},
+		InvertedGates = invertedGates or {},
 		VerticalGates = verticalGates or {},
         RaceZoneCeiling = raceZoneCeiling,
 		BonusGates = bonusGates,
@@ -392,6 +399,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
 		PenaltyTimeAboveGateHeight = penaltyTimeAboveGateHeight,
 		PenaltyTimeHorizontalGate = penaltyTimeHorizontalGate,
 		PenaltyTimeVerticalGate = penaltyTimeVerticalGate,
+		PenaltyTimeInvertedGate = penaltyTimeInvertedGate,
 		NumberMissedGatesDNF = numberMissedGatesDNF,
 		NumberPylonHitsDNF = numberPylonHitsDNF,
 		StartSpeedLimit = startSpeedLimit,
@@ -407,6 +415,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, cou
 		IlluminationAGL = illuminationAGL,
 		FireworksZones = fireworksZones,
 		GroupCurrentRankings = {},
+		AutoDraw = autoDraw or true
 	}
 	setmetatable(obj, { __index = Airrace })
 	return obj
@@ -479,6 +488,7 @@ end
 -- the list of active players
 --
 function Airrace:RemoveExitedPlayers()
+	env.info("Checking for exited racers...")
 	if #self.Players > 0 then
 		local allUnits = mist.makeUnitTable( { '[blue][plane]' } )
 		local unitsInZone = mist.getUnitsInZones(allUnits, self.RaceZones)
@@ -538,7 +548,6 @@ end
 -----------------------------------------------------------------------------------------
 -- Return the number of the gate the given player is flying through, or 0 if not in gate
 -- Parameter player: Reference to a player in the active players List
---
 function Airrace:GetGateNumberForPlayer(player)
 	local result = 0
 	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
@@ -555,7 +564,6 @@ end
 -- Check if the player hit the pylon
 -- Player parameter: link to the player in the list of active players
 -- Gives a penalty for a downed pylon, and gives a DNF if 3 pylons are downed
------------------------------------------------------------------------------------------
 function Airrace:CheckPylonHitForPlayer(player)
 	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
 	for pylonIndex, pylonName in ipairs(self.PylonZones) do
@@ -563,18 +571,33 @@ function Airrace:CheckPylonHitForPlayer(player)
 		if #playersInsideZone > 0 and player.PylonFlag == false then
 			local gateAltitudeOk = self:CheckPylonAltitudeForPlayer(player)
 			if  gateAltitudeOk == true then
-				warnPlayer(string.format("PYLON HIT!!! pylon %d ", pylonIndex), player)
+				warnPlayer(string.format("Pylon %d hit! Penalty: %d sec.", pylonIndex, self.PenaltyTimePylonHit), player)
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimePylonHit
 				player.HitPylon = player.HitPylon + 1
 				player.PylonFlag = true
-				env.info(string.format("Player %s hit a pylon (%d)", player.Name, player.HitPylon))
+				env.info(string.format("Player %s hit pylon %d", player.Name, player.HitPylon))
 			end
 			if player.HitPylon >= self.NumberPylonHitsDNF then
 				player.DNF = true
 				player.StatusText = string.format("DNF! | Too many pylons hit")
 				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
 			end
+			break
+		end
+	end
+end
+----------------------------------------------------------------------------------------- 
+-- Check if the player is in a DNF zone
+function Airrace:CheckDNFZone(player)
+	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
+	for DNFIndex, DNFName in ipairs(self.DNFZones) do
+		local playersInsideZone = mist.getUnitsInZones(playerUnitTable, { DNFName })
+		if #playersInsideZone > 0 then
+			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+			player.DNF = true
+			player.StatusText = string.format("DNF! | You entered a restricted area")
+			env.info(string.format("Player %s entered restricted zone DNF-%d. DNF!", player.Name, DNFIndex))
 			break
 		end
 	end
@@ -694,7 +717,7 @@ function Airrace:CheckGateSpeedForPlayer(player)
 		result = true
 	else
 		result = false
-		warnPlayer(string.format("Starting speed limit is %d kts! Your speed: %s kts", self.StartSpeedLimit * .54, speed * 3.6 * .54), player)
+		warnPlayer(string.format("Starting speed limit is %d kts! You: %s kts", self.StartSpeedLimit * .54, speed * 3.6 * .54), player)
 	end
 	return result
 end
@@ -702,18 +725,18 @@ end
 ---Check the player's roll angle for wings level or knife edge requirements at gate
 function Airrace:evaluateRollAngle(gateNumber, player)
 	--check for wings level requirement
+	local result = true
+	local myUnit = Unit.getByName(player.UnitName)
+	local roll = 180 * mist.getRoll(myUnit) / math.pi --degreees
+
 	for i = 1 , #self.HorizontalGates do
-		if self.HorizontalGates[i] == gateNumber then
-			local result = true
-			local myUnit = Unit.getByName(player.UnitName)
-			local roll = 180 * mist.getRoll(myUnit) / math.pi --degreees
+		if self.HorizontalGates[i] == gateNumber then			
 			if roll >= -10 and roll <= 10 then
-				result = true
+				--do nothing, result is alread preset true
 			else
 				result = false
 				warnPlayer(string.format("Wings not level! Roll = %d deg. | Penalty: %d sec.", roll, self.PenaltyTimeHorizontalGate), player)
 			end
-
 			if result == false then
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimeHorizontalGate
@@ -724,11 +747,8 @@ function Airrace:evaluateRollAngle(gateNumber, player)
 	--check for knife edge requirement
 	for i = 1 , #self.VerticalGates do
 		if self.VerticalGates[i] == gateNumber then
-			local result = true
-			local myUnit = Unit.getByName(player.UnitName)
-			local roll = 180 * mist.getRoll(myUnit) / math.pi --degreees
 			if (roll >= 80 and roll <= 100) or (roll >= -100 and roll <= -80) or (roll >= 260 and roll <= 280) then
-				result = true
+				--do nothing, result is alread preset true
 			else
 				result = false
 				warnPlayer(string.format("Wings not vertical! Roll = %d deg. | Penalty: %d sec.", roll, self.PenaltyTimeVerticalGate), player)
@@ -736,6 +756,22 @@ function Airrace:evaluateRollAngle(gateNumber, player)
 			if result == false then
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimeVerticalGate
+			end
+			break
+		end
+	end
+	--check for inverted requirement
+	for i = 1 , #self.InvertedGates do
+		if self.InvertedGates[i] == gateNumber then
+			if (roll >= 170 and roll <= 190) or (roll >= -170 and roll <= -190) then
+				--do nothing, result is alread preset true
+			else
+				result = false
+				warnPlayer(string.format("Wings not level while inverted! Roll = %d deg. | Penalty: %d sec.", roll, self.PenaltyTimeInvertedGate), player)
+			end
+			if result == false then
+				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+				player.Penalty = player.Penalty + self.PenaltyTimeInvertedGate
 			end
 			break
 		end
@@ -909,6 +945,46 @@ function formatAircraftType(aircraftType)
     return aircraftName
 end
 -----------------------------------------------------------------------------------------
+-- automatically draw the route on the map and add gate labels
+function autoDrawOnMap(gateNames)
+	local totalNumberOfGates = #gateNames	
+	local coalitionAll = -1
+	local coalitionNeutral = 0
+	local coalitionRed = 1
+	local coalitionBlue = 2
+	local red = {1,0,0,1} --r,g,b,alpha (values 0 to 1). Alpha 0 is fully transparent
+	local green = {0,1,0,1}
+	local blue = {0,0,1,1}
+	local white = {1,1,1,1}
+	local black = {0,0,0,1}
+	local magenta = {1,0,1,1}
+	local lineNone = 0
+	local lineSolid = 1
+	local lineDashed = 2
+	local lineDotted = 3
+	local lineDotDash = 4
+	local lineLongDash = 5
+	local lineTwoDash = 6
+	
+	if totalNumberOfGates > 1 then --no point in drawing a line if it only has one point!
+	--collect gate zone locations...
+		for gateNum, gateName in ipairs(gateNames) do
+			local startingPoint = trigger.misc.getZone(gateName).point --vec3			
+			if gateNum < totalNumberOfGates then
+				--draw a line between two trigger zones
+				local endPoint = trigger.misc.getZone(gateNames[gateNum+1]).point --vec3
+				trigger.action.lineToAll(coalitionAll, 100 + gateNum, startingPoint, endPoint, magenta, lineSolid) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+			elseif gateNum == totalNumberOfGates and race.NumberLaps > 0 then
+				--close the polygon if there are more than zero laps
+				local endPoint = trigger.misc.getZone(gateNames[1]).point --vec3
+				trigger.action.lineToAll(coalitionAll, 100+#gateNames, startingPoint, endPoint, magenta, lineSolid) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+			end
+			--add the gate labels
+			trigger.action.textToAll(coalitionAll, 200 + gateNum, startingPoint, black, white, 12, false, string.format("Gate %d", gateNum)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
+		end
+	end
+end
+-----------------------------------------------------------------------------------------
 -- Only for group races with pace planes:
 -- Check line-up of the player with the pace plane.
 -- Assign penalty if the player is ahead of the pace plane at time of drop in.
@@ -1047,7 +1123,7 @@ function Airrace:UpdatePlayerStatus(player)
 			if gateSpeedOk == false then
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player:StopTimer()
-				player.StatusText = string.format("DNF! | Exceeded start speed limit | Speed: %d kts", speedKnots)
+				player.StatusText = string.format("DNF! | Exceeded start speed limit | %d kts", speedKnots)
 				player.DNF = true
 				return
 			else
@@ -1061,15 +1137,15 @@ function Airrace:UpdatePlayerStatus(player)
 						sign = "-"
 					end
 					if self.GroupRace == true then
-						player.StatusText = string.format("Speed: %d kts (%s%d kts) | Time: %s", speedKnots, sign, math.abs(difference), formatTime(timeNow - GroupStartTime))
+						player.StatusText = string.format("%d kts (%s%d kts) | %s", speedKnots, sign, math.abs(difference), formatTime(timeNow - GroupStartTime))
 					else
-						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(0))
+						player.StatusText = string.format("%d kts | %s", speedKnots, formatTime(0))
 					end
 				else --the race has not yet been completed in the past...
 					if self.GroupRace == true then
-						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(timeNow - GroupStartTime))
+						player.StatusText = string.format("%d kts | %s", speedKnots, formatTime(timeNow - GroupStartTime))
 					else
-						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(0))
+						player.StatusText = string.format("%d kts | %s", speedKnots, formatTime(0))
 					end
 				end			
 			end
@@ -1093,11 +1169,11 @@ function Airrace:UpdatePlayerStatus(player)
 
 -- define what to do if player didn't go through the expected gate...
 		if player.DNF == false then
-			if gateNumber ~= player.CurrentGateNumber + 1 and not (player.CurrentGateNumber == #self.Course.Gates and gateNumber == 1) then 					
+			if gateNumber ~= player.CurrentGateNumber + 1 and not (player.CurrentGateNumber == #self.Course.Gates and gateNumber == 1) then 	
 				if player.CurrentGateNumber == 0 and not player.Finished and player.CurrentLapNumber == 1 then
 					-- Player passed unexpected gate at start of race
 					player.StatusText = "Wrong start gate! Go back to Gate 1 to start."
-					env.info(string.format("Player %s did not enter the course at Gate 1", player.Name))
+					env.info(string.format("%s did not enter the course at Gate 1", player.Name))
 					return
 				elseif not player.Finished then
 					-- Player has missed one or more gates
@@ -1108,15 +1184,15 @@ function Airrace:UpdatePlayerStatus(player)
 						if player.MissedGates >= self.NumberMissedGatesDNF then
 							player.DNF = true
 							player.StatusText = string.format("DNF! | Too many missed gates")
-							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+							env.info(string.format("%s missed %d gate(s). DNF!", player.Name, player.MissedGates))
 							return					
 						else
 							if missedGates == 1 then
 								warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1, self.PenaltyTimeMissedGate), player)
-								env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1))
+								env.info(string.format("%s missed gate %d", player.Name, player.CurrentGateNumber + 1))
 							else
 								warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", player.CurrentGateNumber + 1, gateNumber - 1, self.PenaltyTimeMissedGate * missedGates), player)
-								env.info(string.format("Player %s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
+								env.info(string.format("%s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
 							end
 						end
 					elseif gateNumber < player.CurrentGateNumber then --Either going backwards or on a new lap with a lower gate number.  
@@ -1127,12 +1203,12 @@ function Airrace:UpdatePlayerStatus(player)
 						if player.MissedGates >= self.NumberMissedGatesDNF then
 							player.DNF = true
 							player.StatusText = string.format("DNF! | Too many missed gates!")
-							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+							env.info(string.format("%s missed %d gate(s). DNF!", player.Name, player.MissedGates))
 							return
 						else
 							if missedGates == 1 then
 								warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1 - #self.Course.Gates, self.PenaltyTimeMissedGate), player) --this should always be gate 1 if only 1 gate was missed, but we'll calculate it anyway.
-								env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
+								env.info(string.format("%s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
 							else
 								--we use some logic here to see if the gate numbers wrapped back around to 1
 								local firstMissedGate = player.CurrentGateNumber + 1
@@ -1146,7 +1222,7 @@ function Airrace:UpdatePlayerStatus(player)
 									lastMissedGate = gateNumber - 1
 								end
 								warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", firstMissedGate, lastMissedGate, self.PenaltyTimeMissedGate * missedGates), player)
-								env.info(string.format("Player %s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
+								env.info(string.format("%s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
 							end
 						end
 						-- Player has started a new lap, so increase lap number
@@ -1186,10 +1262,10 @@ function Airrace:UpdatePlayerStatus(player)
 				player.PylonFlag = false
 				player:StopTimer()
 				if #self.BonusGates > 0 then
-					player.StatusText = string.format("Finished | Time: %s + Penalty:%ds - Bonus:%ds\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s - Bonus:%d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
 				else
-					player.StatusText = string.format("Finished | Time: %s + Penalty:%ds\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
 				end        
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
@@ -1197,7 +1273,7 @@ function Airrace:UpdatePlayerStatus(player)
 				if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then
 					self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
 					self.FastestPlayer = player.Name
-					self.FastestAircraft = formatAircraftType(playerData.aircraftType)
+					self.FastestAircraft = formatAircraftType(player.AircraftType)
 					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
 					self.FastestIntermediates = player.IntermediateTimes
 					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
@@ -1234,7 +1310,7 @@ function Airrace:UpdatePlayerStatus(player)
 				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player, gateNumber)
 				local intermediate = player:GetIntermediateTime(player.CurrentLapNumber, gateNumber)
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
-				player.StatusText = string.format("Speed: %d kts | Time: %s", player.GateSpeed, formatTime(intermediate))
+				player.StatusText = string.format("%d kts | %s", player.GateSpeed, formatTime(intermediate))
 				env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
 				self:evaluateRollAngle(gateNumber, player)
 				player.PylonFlag = false
@@ -1299,7 +1375,7 @@ function Airrace:ListPlayers()
 				text = "Racers dropping in!"
 			--if the race started...	
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress | Time: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress | Timer: %s", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1309,7 +1385,7 @@ function Airrace:ListPlayers()
 		--if there's no pace plane preset...	
 		else 
 			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("Race in progress | Time: %s", formatTime(timeNow-GroupStartTime))
+				text = string.format("Race in progress | Timer: %s", formatTime(timeNow-GroupStartTime))
 			--if the race finished...
 			elseif trigger.misc.getUserFlag("GroupRaceStarted") == 0 and trigger.misc.getUserFlag("GroupRaceFinished") == 1 then
 				text = "Race finished"
@@ -1318,14 +1394,9 @@ function Airrace:ListPlayers()
 			end
 		end
 	--if not a group race...
-	else 
+	else
 		text = string.format("%d racers in course", #self.Players)
-	end
-	
-    --check to see if there is already a best time recorded for the course, and display it if so
-	if self.FastestTime > 0 then
-		text = string.format("%s | Best time: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
-	end
+	end	
 
     --begin loop to check for players in the racezone, their statuses, and create the text display for them
 	if #self.Players > 0 then		
@@ -1334,16 +1405,17 @@ function Airrace:ListPlayers()
 			--First, check to make sure there's at least one player still racing in the group race...
 			local allPlayersAreFinished = true
 			for playerIndex, player in ipairs(self.Players) do
-				if player.DNF == false or player.Finished == false then 
+				if player.DNF == false and player.Finished == false then
 					allPlayersAreFinished = false 
 				end
 			end
 			if allPlayersAreFinished == true then
+				if trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
+					env.info("All racers are now DNF or finished the race. Flag GroupRaceFinished = 1")
+				end
 				trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
-				trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose
-				env.info("All racers are now DNF or finished the race. Flag GroupRaceFinished = 1")
+				trigger.action.setUserFlag("GroupRaceFinished", 1) --optional flag to be used in the .miz for whatever purpose				
 				mist.scheduleFunction(stopRaceScript, nil, timeNow + 30)
-				return
 			end		
 
 			--In group races with a pace plane, check the player's line-up with the pace plane at the moment of drop in			
@@ -1384,21 +1456,26 @@ function Airrace:ListPlayers()
 			end	
 		end
 
+		--If the race is still going on...
+		if trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
+		--Check if any players are in the DNF zones
+			for playerIndex, player in ipairs(self.Players) do
+				if player.DNF == false then self:CheckDNFZone(player) end
+			end		
+
 		-- Check if any players are currently flying through a gate, and if so check for pylon hits and update their status
-		local playersInGates = self:GetPlayersInGates()
-		if #playersInGates > 0 then	
-			for playerIndex, player in ipairs(playersInGates) do		
-				if self.GroupRace == false or (self.GroupRace == true and player.Finished == false) then
-					if player.DNF == false then 
-						self:CheckPylonHitForPlayer(player)
+			local playersInGates = self:GetPlayersInGates()
+			if #playersInGates > 0 then	
+				for playerIndex, player in ipairs(playersInGates) do		
+					if self.GroupRace == false or (self.GroupRace == true and player.Finished == false) then					
+						if player.DNF == false then self:CheckPylonHitForPlayer(player) end
+						self:UpdatePlayerStatus(player) --we'll check for DNF in the next function. Necessary to restart an individual race.
 					end
-					self:UpdatePlayerStatus(player) --we'll check for DNF in the next function. Necessary to restart an individual race.
 				end
 			end
 		end
 
 		-- Now build the text to be displayed to the racers.. (displays are different for group races vs. individual races)
-
 		if self.GroupRace == true and GroupTimerStarted then
 		--for group races that have started...
 			local rankTable = self:SortRanks(self.GroupCurrentRankings)
@@ -1406,15 +1483,20 @@ function Airrace:ListPlayers()
             local highestLapNum = 0 --initialize
 
 			for currentRank, playerData in ipairs(rankTable) do
-                if self.NumberLaps > 1 then
+                if self.NumberLaps > 1 and trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
                     if playerData.lap > highestLapNum then
                         text = string.format("%s | Lap %d of %d", text, playerData.lap, self.NumberLaps)
                     else
                         text = string.format("%s | Lap %d of %d", text, highestLapNum, self.NumberLaps)                    
                     end
                 end
+				--check to see if there is already a best time recorded for the course, and display it if so
+				if self.FastestTime > 0 then
+					text = string.format("%s\nBest: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
+				end
+
                 text = string.format("%s\n------------------------------------------------------------------------------", text)
-				text = string.format("%s\n%d. %s (%s)", text, currentRank, playerData.name:sub(1,20), formatAircraftType(playerData.aircraftType))
+				text = string.format("%s\n%d. %s", text, currentRank, playerData.name:sub(1,20))
 
 				--find index position of this player in the Player list...
 				for index, player in ipairs(self.Players) do					
@@ -1443,7 +1525,7 @@ function Airrace:ListPlayers()
 		else --for individual races, or for group races that have not started yet
 			for playerIndex, player in ipairs(self.Players) do
                 text = string.format("%s\n---------------------------------------", text)
-				text = string.format("%s\n%s (%s)", text, player.Name:sub(1,20), formatAircraftType(player.AircraftType))
+				text = string.format("%s\n%s", text, player.Name:sub(1,20))
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
 						text = string.format("%s | %s", text, player.StatusText)
@@ -1538,7 +1620,7 @@ end
 -- Format the given time in seconds to HH:mm:ss.mil (e.g. 01:42:38.382)
 -- Parameter seconds: a float containing the number of seconds (from timer.getTime())
 function formatTime(seconds)
-	return string.format("%02d:%02d:%06.3f", seconds / (60 * 60), seconds / 60 % 60, seconds % 60)
+	return string.format("%02d:%05.2f", seconds / 60 % 60, seconds % 60)
 end
 
 -----------------------------------------------------------------------------------------
@@ -1677,8 +1759,10 @@ function Init()
     local distanceUnits = DistanceUnits or "ft"
 	local raceZones = {}
 	local racePylons = {}
+	local DNFZones = {}
 	local horizontalGates = HorizontalGates or {1}
 	local verticalGates = VerticalGates or {}
+	local invertedGates = InvertedGates or {}
     local raceZoneCeiling = RaceZoneCeiling or 99999
 	local course = Course:New()
 	race = nil --this is used in the startRaceScript function, so it cannot be a local variable inside the Init function
@@ -1697,6 +1781,7 @@ function Init()
 	local penaltyTimeAboveGateHeight = PenaltyTimeAboveGateHeight or 2
 	local penaltyTimeHorizontalGate = PenaltyTimeHorizontalGate or 2
 	local penaltyTimeVerticalGate = PenaltyTimeVerticalGate or 2
+	local penaltyTimeInvertedGate = penaltyTimeInvertedGate or 2
 	local numberMissedGatesDNF = NumberMissedGatesDNF or 999
 	local numberPylonHitsDNF = NumberPylonHitsDNF or 999
 	local groupRace = GroupRace or false
@@ -1711,11 +1796,13 @@ function Init()
 	local illuminationAGL = IlluminationAGL or 2600
 	local illuminationRespawnTimer = IlluminationRespawnTimer or 240 --seconds
 	local fireworksZones = {}
+	local autoDraw = AutoDraw or true
 
 	--count the number of each type of zone
 	local numberRaceZones = countZones("racezone")
 	local numberGates = countZones("gate")
 	local numberPylons = countZones("pylon")
+	local numberDNFZones = countZones("DNF")
 	IlluminationNumberZones = countZones("illum")
 	NumberFireworksZones = countZones("fireworks")
     NumberGreenSmokeZones = countZones("Green smoke")
@@ -1725,6 +1812,23 @@ function Init()
     NumberBlueSmokeZones = countZones("Blue smoke")    
 
 	--protect values to valid ranges
+	if distanceUnits ~= "ft" and distanceUnits ~= "m" then 
+		distanceUnits = "ft" 
+		env.info("Invalid setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
+	end
+	if groupRace ~= true and groupRace ~= false then 
+		groupRace = false
+		env.info("Invalid setting for GroupRace. Must be true or false. Resetting to default: false.")
+	end
+	if illuminationOn ~= true and illuminationOn ~= false then 
+		illuminationOn = true
+		env.info("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true")
+	end
+	if autoDraw ~= true and autoDraw ~= false then 
+		autoDraw = true
+		env.info("Invalid setting for AutoDraw. Must be true or false. Resetting to default: true")
+	end
+	numberLaps = math.floor(numberLaps)
 	if illuminationBrightness > 1000000 then
 		illuminationBrightness = 1000000
 	elseif illuminationBrightness < 1 then
@@ -1738,7 +1842,7 @@ function Init()
 	end
     if bonusTime < 0 then --in case the user thinks they must use a negative number to subtract time
         bonusTime = -bonusTime
-    end
+    end	
 
     --unit conversions for script usage
     startSpeedLimit = startSpeedLimit * 1.852 --convert knots to km/h    
@@ -1759,6 +1863,9 @@ function Init()
 		for idx = 1, numberPylons do
 			table.insert(racePylons, string.format("pylon-%d", idx))
 		end
+		for idx = 1, numberDNFZones do
+			table.insert(DNFZones, string.format("DNF-%d", idx))
+		end
 		for idx = 1, numberGates do
 			course:AddGate(idx)
 		end
@@ -1775,13 +1882,13 @@ function Init()
 			for gate = 1, numberGates do
 				fastestIntermediates[lap][gate]=0
 			end
-		end	
+		end			
 
-		race = Airrace:New(distanceUnits, raceZones, racePylons, course, gateHeight, customGateHeights, horizontalGates, verticalGates, raceZoneCeiling, 
+		race = Airrace:New(distanceUnits, raceZones, racePylons, DNFZones, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
-							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, 
+							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones)
+							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, autoDraw)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
@@ -1790,6 +1897,8 @@ function Init()
 			ScheduledFunctionRemovePlayerTimer = mist.scheduleFunction(RemovePlayerTimer, { race }, timer.getTime(), removePlayerCheckInterval)
 			env.info("Start Airrace script")
 		end
+
+		if autoDraw == true then autoDrawOnMap(race.Course.Gates) end
 	else
 		logMessage("Variables 'NumberRaceZones' or 'NumberGates' not set")
 	end

@@ -33,6 +33,9 @@ HorizontalGates = {3,6,9,12}
 VerticalGates = {4,7,11}
 --[optional, {}] list of gate numbers requiring knife-edge flight +/- 10 degrees
 
+InvertedGates = {2,5}
+--[optional, {}] list of gate numbers requiring inverted level flight +/- 10 degrees
+
 RaceZoneCeiling = 2000
 --[optional, 99999] maximum altitude of the racezone. Planes above this
 --will not be added to the race, or removed if they are. If you are using a pace
@@ -69,6 +72,9 @@ CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
 BonusTime = 2
 --{optional, 1] time in seconds to subtract from total time when hitting a bonus gate  
 
+AutoDraw = false 
+--[optional, true] draws lines on the F10 map between the gates and places gate labels
+
 --PENALTY AND DNF SETTINGS:-------------
 
 PenaltyTimeMissedGate = 4
@@ -92,6 +98,11 @@ PenaltyTimeHorizontalGate = 1
 PenaltyTimeVerticalGate = 1
 --[optional, 2] time in seconds added to your race time when passing through
 --a vertical gate zone when wings not knife-edge (90) +/- 10 degrees
+--Valid range: 0 to any positive integer
+
+PenaltyTimeInvertedGate = 1
+--[optional, 2] time in seconds added to your race time when passing through
+--an inverted gate zone when not inverted with wings level +/- 10 degrees
 --Valid range: 0 to any positive integer
 
 NumberMissedGatesDNF = 3
