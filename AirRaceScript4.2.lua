@@ -180,31 +180,50 @@ function Player:New(playerUnit)
 	return obj
 end
 -----------------------------------------------------------------------------------------
+--GLOBALS:
 GroupStartTime = 0 --initialize this variable to 0, it will be set to the time of the first player passing through gate-1 if GroupRace is true
 PaceDropTime = 0 --initialize this variable to 0, it will be set to the time when the pace drops in, if there is a pace
 GroupTimerStarted = false --flag to indicate whether the group timer has been started
 GroupWinnerCrossedFinishLine = false --flag to indicate if the winner has crossed the finish line (group races only)
+__CoalitionAll = -1
+__CoalitionNeutral = 0
+__CoalitionRed = 1
+__CoalitionBlue = 2
+__Red = {1,0,0,1} --r,g,b,alpha (values 0 to 1). Alpha 0 is fully transparent
+__Green = {0,1,0,1}
+__Blue = {0,0,1,1}
+__White = {1,1,1,1}
+__Black = {0,0,0,1}
+__Magenta = {1,0,1,1}
+__LineNone = 0
+__LineSolid = 1
+__LineDashed = 2
+__LineDotted = 3
+__LineDotDash = 4
+__LineLongDash = 5
+__LineTwoDash = 6
 -----------------------------------------------------------------------------------------
 -- Start the timer for the current player
 --
 function Player:StartTimer()
 	if not self.Started then
-
 		--this if-statement decides how to set the player's start time
 		if not race.GroupRace then --(if this is an individual race where everyone has their own clock, then...)
 		    self.StartTime = timer.getTime()
+			race:ErasePlayerBreadCrumbs(self)
 			if #race.FireworksZones > 0 then shootFireworks(race.FireworksZones) end
 			env.info(string.format("Individual timer started for player %s. Start time: %d", self.Name, self.StartTime))
 		else  --(if this is a group race where everyone shares the same clock start time, then...)
-			if not GroupTimerStarted then --this player is the first one to pass through gate-1, so start the group timer and set the player's start time to the group start time
+			if GroupTimerStarted == false then --this player is the first one to pass through gate-1, so start the group timer and set the player's start time to the group start time
 				GroupStartTime = timer.getTime()
 				self.StartTime = GroupStartTime
 				GroupTimerStarted = true
-				trigger.action.setUserFlag("GroupRaceStarted", 1) --optional flag to be used in the .miz for whatever purpose 
+				trigger.action.setUserFlag("GroupRaceStarted", 1) --optional flag to be used in the .miz for whatever purpose
 				trigger.action.setUserFlag("GroupRaceFinished", 0) --optional flag to be used in the .miz for whatever purpose
-                trigger.action.setUserFlag("Lap1Gate1Reached", 1) --optional flag to be used in the .miz for whatever purpose                  
-				trigger.action.setUserFlag("PaceDrop", 0) -- reset this flag
+                trigger.action.setUserFlag("Lap1Gate1Reached", 1) --optional flag to be used in the .miz for whatever purpose    
+				trigger.action.setUserFlag("PaceDrop", 0) -- reset this flag				
 				if #race.FireworksZones > 0 then shootFireworks(race.FireworksZones) end
+				race:EraseAllBreadCrumbs()
 				env.info(string.format("Group timer started by player %s. Group start time: %d", self.Name, GroupStartTime))
 			else --the group timer has already been started by a previous player, so set this player's start time to the group start time
 				self.StartTime = GroupStartTime
@@ -225,7 +244,7 @@ function Player:StartTimer()
 		self.Finished = false
 		self.Warnings = {}
 		self.CurrentLapNumber = 1
-		self.ResultsDisplayed = false --resets this flag	
+		self.ResultsDisplayed = false --resets this flag
 
 		--reset the intermediate times to 0 for each gate, on each lap
         if race.NumberLaps > 1 then
@@ -361,6 +380,8 @@ Airrace = {
 	FireworksZones = {},
 	GroupCurrentRankings = {},
 	AutoDraw = true,
+	BreadCrumbs = {CurrentIndex = 1201},
+	BestRacingLine = {}
 }
 -----------------------------------------------------------------------------------------
 -- Airrace Constructor
@@ -415,7 +436,9 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		IlluminationAGL = illuminationAGL,
 		FireworksZones = fireworksZones,
 		GroupCurrentRankings = {},
-		AutoDraw = autoDraw or true
+		AutoDraw = autoDraw or true,
+		BreadCrumbs = {CurrentIndex = 1201},
+		BestRacingLine = {}
 	}
 	setmetatable(obj, { __index = Airrace })
 	return obj
@@ -579,6 +602,7 @@ function Airrace:CheckPylonHitForPlayer(player)
 			end
 			if player.HitPylon >= self.NumberPylonHitsDNF then
 				player.DNF = true
+				self:ShowBreadCrumbs(player)
 				player.StatusText = string.format("DNF! | Too many pylons hit")
 				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
 			end
@@ -595,6 +619,7 @@ function Airrace:CheckDNFZone(player)
 		if #playersInsideZone > 0 then
 			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 			player.DNF = true
+			self:ShowBreadCrumbs(player)
 			player.StatusText = string.format("DNF! | You entered a restricted area")
 			env.info(string.format("Player %s entered restricted zone DNF-%d. DNF!", player.Name, DNFIndex))
 			break
@@ -945,41 +970,143 @@ function formatAircraftType(aircraftType)
 end
 -----------------------------------------------------------------------------------------
 -- automatically draw the route on the map and add gate labels
-function autoDraw(gateNames)
-	local totalNumberOfGates = #gateNames	
-	local coalitionAll = -1
-	local coalitionNeutral = 0
-	local coalitionRed = 1
-	local coalitionBlue = 2
-	local red = {1,0,0,0} --r,g,b,alpha
-	local green = {0,1,0,0}
-	local blue = {0,0,1,0}
-	local white = {1,1,1,0}
-	local black = {0,0,0,0}
-	local magenta = {1,0,1,0}
-	local lineNone = 0
-	local lineSolid = 1
-	local lineDashed = 2
-	local lineDotted = 3
-	local lineDotDash = 4
-	local lineLongDash = 5
-	local lineTwoDash = 6
-	
-	if totalNumberOfGates > 1 then --no point in drawing a line if it only has one point!
-	--collect gate zone locations...
-		for gateNum, gateName in ipairs(gateNames) do
-			local startingPoint = trigger.misc.getZone(gateName).point --vec3			
-			if gateNum < totalNumberOfGates then
-				--draw a line between two trigger zones
-				local endPoint = trigger.misc.getZone(gateNames[gateNum+1]).point --vec3
-				trigger.action.lineToAll(coalitionAll, 100 + gateNum, startingPoint, endPoint, magenta, lineSolid) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
-			elseif gateNum == totalNumberOfGates and race.NumberLaps > 0 then
-				--close the polygon if there are more than zero laps
-				trigger.action.lineToAll(coalitionAll, 100+#gateNames, startingPoint, gateNames[1], magenta, lineSolid) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
-			end
-			--add the gate labels
-			trigger.action.textToAll(coalitionAll, 200 + gateNum, startingPoint, black, white, 12, 1, false, string.format("Gate %d", gateNum)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
+function drawPolyline(coordinateList, lineColor, lineType, closedPolyline, playerName, textID)
+	--Draw the line
+	local startingPoint = {}
+	local endPoint = {}
+	for pointNum, coords in ipairs(coordinateList) do
+		
+		if pointNum > 1 then
+			startingPoint = coordinateList[pointNum-1]
+			endPoint = coords
+			trigger.action.lineToAll(__CoalitionAll, coords.ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+			env.info("drew line segment for " .. playerName .. ", ID " .. coords.ID)	--debug	
+		end		
+	end	
+	if closedPolyline == true then
+		startingPoint = coordinateList[#coordinateList]
+		endPoint = coordinateList[1]
+		trigger.action.lineToAll(__CoalitionAll, coordinateList[1].ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+		env.info("drew line segment for " .. playerName .. ", ID " .. coords.ID)	--debug	
+	end
+
+	--Draw the text label with the player's name next to the line
+	if playerName ~= "AutoDraw" then
+		local randomLocationForLabel = math.random(1, #coordinateList)
+		trigger.action.textToAll(__CoalitionAll, textID, coordinateList[randomLocationForLabel], lineColor, {0,0,0,0}, 12, false, string.format("%s", playerName)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
+		env.info("drew text label for " .. playerName .. ", ID " .. textID)	--debug	
+	end	
+end
+-----------------------------------------------------------------------------------------
+-- store the trail history for later display on the map when the player finishes or DNF's
+function Airrace:StoreBreadCrumbs(player)
+	--get player position
+	local pos = Unit.getByName(player.UnitName):getPosition().p
+	local playerPosAndID = { 
+	   x = pos["x"], --N/S position in meters
+	   y = pos["y"], --altitude in meters
+	   z = pos["z"], --E/W position in meters
+	   ID = self.BreadCrumbs.CurrentIndex --ID assigned later to the line segment
+	} 
+	if not self.BreadCrumbs[player.Name] then self.BreadCrumbs[player.Name] = {} end
+	table.insert(self.BreadCrumbs[player.Name], playerPosAndID)
+	env.info("Stored breadcrumb for " .. player.Name .. ", ID at CurrentIndex=" .. self.BreadCrumbs.CurrentIndex) --debug
+	self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
+
+	--example BreadCrumbs table format: 
+	--{
+	--  AutoDraw = { {x=10, y=0, z=34, ID=1100}, {x=12, y=0, z=37, ID=1101}, {x=13, y=0, z=39, ID=1102} },
+	--	Racer1 = { {x=10, y=0, z=34, ID=1201}, {x=12, y=0, z=37, ID=1202}, {x=13, y=0, z=39, ID=1206}, textID=1239 },
+	--	Racer2 = { {x=10, y=0, z=67, ID=1203}, {x=11, y=0, z=38, ID=1204}, {x=13, y=0, z=40, ID=1205}, {x=16, y=0, z=40, ID=1207}, textID=1240 },
+	--  CurrentIndex = 1208,
+	--}
+	--Delete a player's entry with self.BreadCrumbs[player.Name]=nil
+end
+-----------------------------------------------------------------------------------------
+-- Save the best racing line and plot or replot it.
+function Airrace:SaveBestRacingLine(player)
+	env.info("Now preparing to save the best racing line...") --debug
+
+	--erase previous best line	
+	if #self.BestRacingLine ~= 0 then
+		env.info("Previous best line found. Now erasing it...") --debug
+		for _, data in ipairs(self.BestRacingLine) do
+			trigger.action.removeMark(data.ID)
+			env.info("erasing data.ID=" .. data.ID) --debug
 		end
+		trigger.action.removeMark(self.BestRacingLine.textID)
+	else --debug
+		env.info("Previous best line was not found. The course has not yet been completed.")
+	end	
+
+	--erase the AutoDraw line, if there is one
+	if self.AutoDraw == true and self.FastestTime ~= 0 then
+		env.info("Auto-drawn line found. Now erasing it...") --debug
+		for idx, data in ipairs(self.BreadCrumbs.AutoDraw) do
+			trigger.action.removeMark(data.ID)
+		end
+		trigger.action.removeMark(self.BreadCrumbs.AutoDraw.textID)
+	end
+
+	--store the new best data
+	self.BestRacingLine = {}
+	for idx, data in ipairs(self.BreadCrumbs[player.Name]) do
+		local newData = {x=data.x, y=data.y, z=data.z, ID=self.BreadCrumbs.CurrentIndex}
+		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
+		table.insert(self.BestRacingLine, newData)		
+		env.info("stored best data with new ID=" .. newData.ID) --debug
+	end	
+	self.BestRacingLine.textID = self.BreadCrumbs.CurrentIndex
+	self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
+	env.info("stored: #self.BestRacingLine=" .. #self.BestRacingLine) --debug
+
+	--erase the player's current dotted line from this race
+	for idx, data in ipairs(self.BreadCrumbs[player.Name]) do
+		trigger.action.removeMark(data.ID)
+	end
+	trigger.action.removeMark(self.BreadCrumbs[player.Name].textID)
+	self.BreadCrumbs[player.Name] = nil
+
+	--draw the new best line
+	drawPolyline(self.BestRacingLine, __Magenta, __LineSolid, false, "Best by\n" .. player.Name, self.BestRacingLine.textID)
+end
+-----------------------------------------------------------------------------------------
+-- automatically draw the history trail on the map when the player finishes or DNF's
+function Airrace:ShowBreadCrumbs(player)
+	if self.BreadCrumbs[player.Name] then
+		--choose a random color for this player's data
+		local lineColor = {	math.random(1,100)/100,
+							math.random(1,100)/100,
+							math.random(1,100)/100,
+							1}
+		--plot it
+		self.BreadCrumbs[player.Name].textID = self.BreadCrumbs.CurrentIndex
+		drawPolyline(self.BreadCrumbs[player.Name], lineColor, __LineDotted, false, player.Name, self.BreadCrumbs.CurrentIndex)
+		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1		
+	end
+end
+-----------------------------------------------------------------------------------------
+--erase the history trail on the map when a new group race starts
+function Airrace:EraseAllBreadCrumbs()
+	for name, data in pairs(self.BreadCrumbs) do
+		if name ~= "CurrentIndex" and name ~= "AutoDraw" then			
+			for _, coords in ipairs(data) do
+				trigger.action.removeMark(coords.ID)
+			end		
+			env.info("Erased breadcrumb display for .. " .. name) --debug	
+			self.BreadCrumbs[name] = nil
+		end
+	end 
+end
+-----------------------------------------------------------------------------------------
+--erase the history trail on the map when a new group race starts
+function Airrace:ErasePlayerBreadCrumbs(player)
+	if self.BreadCrumbs[player.Name] then
+		for _, coords in ipairs(self.BreadCrumbs[player.Name]) do
+			trigger.action.removeMark(coords.ID)
+		end	
+		env.info("Erased breadcrumb display for .. " .. player.Name) --debug
+		self.BreadCrumbs[player.Name] = nil
 	end
 end
 -----------------------------------------------------------------------------------------
@@ -1006,7 +1133,7 @@ function Airrace:CheckLineupWithPace(player)
 	local pos = Unit.getByName(player.UnitName):getPosition().p
 	local playerPos = { 
 	   x = pos["x"], --N/S position in meters
-	   y = pos["y"], --altitude in meters`
+	   y = pos["y"], --altitude in meters
 	   z = pos["z"]  --E/W position in meters
 	} 
 
@@ -1070,6 +1197,7 @@ function Airrace:CheckLineupWithPace(player)
 		player.StatusText = "Not eligible for race. Removed! | Bad pace position"
 		warnPlayer("STAY CLEAR of the course area immediately!", player)
 		player.DNF = true
+		self:ShowBreadCrumbs(player)
 		self:AddToGroupCurrentRankings(player.Name, 1, 1, 0, player.AircraftType) -- fixed entry with time=0 at first gate, for comparison to other racers
 	else
 		player.StatusText = "Cleared in. Go-Go-Go!"
@@ -1121,8 +1249,10 @@ function Airrace:UpdatePlayerStatus(player)
 			if gateSpeedOk == false then
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player:StopTimer()
-				player.StatusText = string.format("DNF! | Exceeded start speed limit | Speed: %d kts", speedKnots)
+				self:ShowBreadCrumbs(player)
+				player.StatusText = string.format("DNF! | Exceeded start speed limit | %d kts", speedKnots)
 				player.DNF = true
+				self:ShowBreadCrumbs(player)
 				return
 			else
 				--Display message "Started" along with the start speed, and a comparison to the fastest start speed if there is one saved from a previous race
@@ -1181,6 +1311,7 @@ function Airrace:UpdatePlayerStatus(player)
 						player.MissedGates = player.MissedGates + missedGates
 						if player.MissedGates >= self.NumberMissedGatesDNF then
 							player.DNF = true
+							self:ShowBreadCrumbs(player)
 							player.StatusText = string.format("DNF! | Too many missed gates")
 							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
 							return					
@@ -1200,6 +1331,7 @@ function Airrace:UpdatePlayerStatus(player)
 						player.MissedGates = player.MissedGates + missedGates
 						if player.MissedGates >= self.NumberMissedGatesDNF then
 							player.DNF = true
+							self:ShowBreadCrumbs(player)
 							player.StatusText = string.format("DNF! | Too many missed gates!")
 							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
 							return
@@ -1259,6 +1391,7 @@ function Airrace:UpdatePlayerStatus(player)
 				end
 				player.PylonFlag = false
 				player:StopTimer()
+				self:ShowBreadCrumbs(player)
 				if #self.BonusGates > 0 then
 					player.StatusText = string.format("Finished | Time: %s + Penalty:%ds - Bonus:%ds\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
@@ -1274,6 +1407,7 @@ function Airrace:UpdatePlayerStatus(player)
 					self.FastestAircraft = formatAircraftType(playerData.aircraftType)
 					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
 					self.FastestIntermediates = player.IntermediateTimes
+					self:SaveBestRacingLine(player)
 					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
 				else
 					player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
@@ -1458,14 +1592,31 @@ function Airrace:ListPlayers()
 			end	
 		end
 
-		-- Check if any players are currently flying through a gate, and if so check for pylon hits and update their status
-		local playersInGates = self:GetPlayersInGates()
-		if #playersInGates > 0 then	
-			for playerIndex, player in ipairs(playersInGates) do		
-				if self.GroupRace == false or (self.GroupRace == true and player.Finished == false) then
+		--If the race is still going on... (Group and individual races...)
+		if trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
+
+		--Check if any players are in the DNF zones
+			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 then
+				for playerIndex, player in ipairs(self.Players) do
 					if player.DNF == false then self:CheckDNFZone(player) end
-					if player.DNF == false then self:CheckPylonHitForPlayer(player) end
-					self:UpdatePlayerStatus(player) --we'll check for DNF in the next function. Necessary to restart an individual race.
+				end	
+			end
+
+		-- Check if any players are currently flying through a gate, and if so check for pylon hits and update their status
+			local playersInGates = self:GetPlayersInGates()
+			if #playersInGates > 0 then	
+				for playerIndex, player in ipairs(playersInGates) do
+					if self.GroupRace == false or (self.GroupRace == true and player.Finished == false) then
+						if player.DNF == false then self:CheckPylonHitForPlayer(player) end
+						self:UpdatePlayerStatus(player) --we'll check for DNF in the next function. Necessary to restart an individual race.						
+					end
+				end
+			end
+
+		-- Store the player's trail history
+			for playerIndex, player in ipairs(self.Players) do
+				if player.Started == true and player.Finished == false and player.DNF ~= true then
+					self:StoreBreadCrumbs(player)
 				end
 			end
 		end
@@ -1721,14 +1872,14 @@ function crashHandler:onEvent(event)
 
 	local reason = nil
 
-		local playerName = ""		
-
 	if event.id == world.event.S_EVENT_CRASH then
 			reason = "Crashed"
 	elseif event.id == world.event.S_EVENT_EJECTION then
 			reason = "Ejected"	
 	elseif event.id == world.event.S_EVENT_DEAD  or event.id == world.event.S_EVENT_PILOT_DEAD then
 			reason = "Died"	
+	elseif event.id == world.event.S_EVENT_DISCONNECT
+			reason = "Disconnected"	
 	end
 
 	if not reason then return end
@@ -1738,8 +1889,13 @@ function crashHandler:onEvent(event)
 	for _, player in ipairs(race.Players) do					
 		if player.Name == name then
 			player.DNF = true
+			self:ShowBreadCrumbs(player)
 			player.StatusText = "DNF! | " ..  reason
 			race:AddToGroupCurrentRankings(player.Name, 1, 1, 0, player.AircraftType) -- fixed entry with time=0 at first gate, for comparison to other racers, in case player dies before the first gate
+			if reason = "Disconnected" then 
+				race.ErasePlayerBreadCrumbs(player)
+				env.info("Breadcrumbs deleted for " .. player.Name .. "due to disconnection from server")
+			end
 		end
 	end
 end
@@ -1905,7 +2061,38 @@ function Init()
 			env.info("Start Airrace script")
 		end
 
+<<<<<<< HEAD
 		if autoDraw == true then autoDraw(race.Course.Gates) end
+=======
+		--Draw a line on the map from gate to gate
+		if autoDraw == true then 
+			local polyline = {}
+			for gateNum, gateName in ipairs(race.Course.Gates) do
+				local coordData = trigger.misc.getZone(gateName).point
+
+				--add the gate labels
+				trigger.action.textToAll(__CoalitionAll, 200 + gateNum, coordData, __Black, __White, 12, false, string.format("Gate %d", gateNum)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
+				
+				--add points for the path
+				coordData.ID = race.BreadCrumbs.CurrentIndex
+				table.insert(polyline, coordData) --format: {x=1234, y=782, z=4613, ID = 1201}
+				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
+			end
+			race.BreadCrumbs["AutoDraw"] = polyline --save in the list as a 'player' named AutoDraw so we can remove it later when needed.
+			local closedPolyline = false
+			if race.NumberLaps > 0 then 
+				closedPolyline = true
+			end
+
+			--draw the line if there isn't already a best line saved
+			if #race.BestRacingLine == 0 then
+				drawPolyline(polyline, __Magenta, __LineSolid, closedPolyline, "AutoDraw", race.BreadCrumbs.CurrentIndex) -- Args: Vec3 list, color, line type, closed back to start point?, player name
+				race.BreadCrumbs.AutoDraw.textID = race.BreadCrumbs.CurrentIndex
+				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1	
+			end		
+		end
+
+>>>>>>> a7b8e3d (Added trail history on the F10 map)
 	else
 		logMessage("Variables 'NumberRaceZones' or 'NumberGates' not set")
 	end

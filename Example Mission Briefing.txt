@@ -5,6 +5,8 @@ INSTRUCTIONS:
 
 Open the F10 map, make sure "Show Drawings" filter is enabled on the top toolbar, and get familiar with all of the information presented there. Zoom out to see everything, and read each of the white boxes.
 !NO EXCUSES!
+
+After completing a race, you can view your race lines on the F10 map. They will remain there until the next race begins, or until you disconnect.
 ---------------------------------------------------------------------
 SRS FREQUENCIES:
 

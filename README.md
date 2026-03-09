@@ -25,23 +25,24 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * [Credits](#credits)
 
 
-
 ## Features
 * Set up an air race track with little effort, and track timing and violations of participating pilots.
 * Supports individual racing (everyone has their own timer), or group racing (everyone shares a common timer) with or without a pace plane.  
-* Info display for keeping track of your progress. Group races have a dynamic leaderboard that changes as players overtake each other.  
+* Information display for keeping track of your progress as well as the competition's.  
+* Group races have a dynamic leaderboard display that changes as players overtake each other.  
+* Your trail history (race line) is plotted on the F10 map after the race, for post-race review. Different colors for each player, and includes a label next ot the line with player's name in same color.
 * Define the number of laps for your race.
-* Detects pylon hits, missed gates, etc.
+* Detects pylon hits, missed gates, entry into restriced zones, etc.  Define how many of each result in a DNF. Restricted zones yield an immediate DNF.
 * Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
-* Set up an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
+* Define an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
 * Define the ceiling of your race airspace.  
 * Gates can have wings-level, knife-edge, or inverted flight requirement.  
-* Immediately disqualify pilots who have entered any triggerzone with name "DNF".  
 * Night racing is possible with automatic lighting of the course at each gate, and also at any additional location marked by a trigger zone with name "illum".  
 * Fireworks (signal flares) when planes cross the start or finish lines. They originate from wherever you drop a trigger zone with name "fireworks".  
 * Easy to add colored smoke markers that automatically refresh, simply by dropping a trigger zone on the map where you want them. You specify the color of the smoke in the naming of the trigger zone.  
 * Many general-purpose flags, based on events in the race, are available for the mission creator to use for whatever creative purpose he/she can come up with.  
-* Option to automatically draw lines between the gates and place labels on the F10 map.  
+* Option to automatically draw lines between the gates and place labels on the F10 map. This jagged line will be replaced and kept updated by the best race line recorded.
+
   
 ## Download and Installation  
 Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/  
@@ -54,6 +55,16 @@ Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/
 3. If you don't already have MIST downloaded to your PC, get it from https://github.com/mrSkortch/MissionScriptingTools. You only need the single file, mist.lua.  There's no need to download the whole .zip from here. Click on mist.lua from the list of files you see; this will bring you to the page that shows all 9500+ lines of code.  Press ctrl+shift+S to save the file somewhere on your PC.
   
 ## Creating a Race in the Mission Editor
+
+### First Steps:
+   * Before loading scripts, triggers, creating zones, etc., I HIGHLY recommend figuring out where your race course will be. Do some scouting for cool locations, and then place static objects where the turns and gates will be (I recommend Static object -> category Structures -> Type Airshow cone).  
+
+   * You want to do that first, and then test fly the track with a test plane to make sure it flows well, turns aren't too crazy, etc.  You want it to be fun, creative, and replayable. Tips: Use nearby terrain, buildings, bridges, coastlines, etc. The possibilities are endless!
+
+   * Once you have it figured out, continue below. The reason is simple: It's much easier to make changes now, moving pylons around, rather than later where changes will require much more work (i.e. moving the pylons, triggerzones, labels, etc.)
+   
+   * Okay, go get started. I'll see you back here shortly. Good luck! 
+
 ### Set Up the Required Triggers:  
 1. Start with a blank template, name your .miz and save it. The tutorial below will be saved as GTFreeFlyersRaceTutorial.miz and is included in the .zip you downloaded earlier. It's on the Marianas WWII map.   
 
