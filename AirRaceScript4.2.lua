@@ -212,6 +212,7 @@ function Player:StartTimer()
 		    self.StartTime = timer.getTime()
 			race:ErasePlayerBreadCrumbs(self)
 			if #race.FireworksZones > 0 then shootFireworks(race.FireworksZones) end
+			if #race.FireworksStartZones > 0 then shootFireworks(race.FireworksStartZones) end
 			env.info(string.format("Individual timer started for player %s. Start time: %d", self.Name, self.StartTime))
 		else  --(if this is a group race where everyone shares the same clock start time, then...)
 			if GroupTimerStarted == false then --this player is the first one to pass through gate-1, so start the group timer and set the player's start time to the group start time
@@ -223,6 +224,7 @@ function Player:StartTimer()
                 trigger.action.setUserFlag("Lap1Gate1Reached", 1) --optional flag to be used in the .miz for whatever purpose    
 				trigger.action.setUserFlag("PaceDrop", 0) -- reset this flag				
 				if #race.FireworksZones > 0 then shootFireworks(race.FireworksZones) end
+				if #race.FireworksStartZones > 0 then shootFireworks(race.FireworksStartZones) end
 				race:EraseAllBreadCrumbs()
 				env.info(string.format("Group timer started by player %s. Group start time: %d", self.Name, GroupStartTime))
 			else --the group timer has already been started by a previous player, so set this player's start time to the group start time
@@ -378,6 +380,8 @@ Airrace = {
 	IlluminationBrightness = 10000,
 	IlluminationAGL = 2600* .3048, --convert to meters
 	FireworksZones = {},
+	FireworksStartZones = {},
+	FireworksEndZones = {},
 	GroupCurrentRankings = {},
 	AutoDraw = true,
 	BreadCrumbs = {CurrentIndex = 1201},
@@ -393,7 +397,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, autoDraw)
+						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw)
 	local obj = {
         DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
@@ -435,6 +439,8 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		IlluminationBrightness = illuminationBrightness,
 		IlluminationAGL = illuminationAGL,
 		FireworksZones = fireworksZones,
+		FireworksStartZones = fireworksStartZones,
+		FireworksEndZones = fireworksEndZones,
 		GroupCurrentRankings = {},
 		AutoDraw = autoDraw or true,
 		BreadCrumbs = {CurrentIndex = 1201},
@@ -1415,7 +1421,8 @@ function Airrace:UpdatePlayerStatus(player)
 				end		
 
 				--fireworks!
-				if #self.FireworksZones > 0 then shootFireworks(self.FireworksZones) end		
+				if #self.FireworksZones > 0 then shootFireworks(self.FireworksZones) end
+				if #self.FireworksEndZones > 0 then shootFireworks(self.FireworksEndZones) end
 				
 				--set the general purpose flags used for group races...
 				if self.GroupRace == true then
@@ -1626,7 +1633,6 @@ function Airrace:ListPlayers()
 		if self.GroupRace == true and GroupTimerStarted then
 		--for group races that have started...
 			local rankTable = self:SortRanks(self.GroupCurrentRankings)
-			local playerIndex = 0 --initialize
             local highestLapNum = 0 --initialize
 
 			--continue building the header text with the highest lap number reached so far
@@ -1682,7 +1688,7 @@ function Airrace:ListPlayers()
 			end
 			text = string.format("%s\n---------------------------------------", text)
 			--now print all the racer data...
-			for playerIndex, player in ipairs(self.Players) do                
+			for _, player in ipairs(self.Players) do                
 				text = string.format("%s\n%s", text, player.Name:sub(1,20))
 				if player.CurrentGateNumber > 0 and player.Finished == false then
 					if player.DNF == true then
@@ -1778,13 +1784,13 @@ end
 -- Format the given time in seconds to HH:mm:ss.mil (e.g. 01:42:38.382)
 -- Parameter seconds: a float containing the number of seconds (from timer.getTime())
 function formatTime(seconds)
-	return string.format("%02d:%02d:%06.3f", seconds / (60 * 60), seconds / 60 % 60, seconds % 60)
+	return string.format("%02d:%06.3f", seconds / 60 % 60, seconds % 60)
 end
 
 -----------------------------------------------------------------------------------------
 -- Shoot fireworks in the fireworks-x triggerzones whenever a player crosses the finish line
 function shootFireworks(zones)
-	for idx, triggerZoneName in ipairs(zones) do 
+	for _, triggerZoneName in ipairs(zones) do 
 		local triggerZoneInfo = trigger.misc.getZone(triggerZoneName) --returns a table with two keys: point and radius
 		local triggerZoneLocation = triggerZoneInfo.point --vec3 format
 		local terrainPos = land.getHeight({x = triggerZoneLocation.x, y = triggerZoneLocation.z})
@@ -1959,6 +1965,8 @@ function Init()
 	local illuminationAGL = IlluminationAGL or 2600
 	local illuminationRespawnTimer = IlluminationRespawnTimer or 240 --seconds
 	local fireworksZones = {}
+	local fireworksStartZones = {}
+	local fireworksEndZones = {}
 	local autoDraw = AutoDraw or true
 
 	--count the number of each type of zone
@@ -1968,6 +1976,8 @@ function Init()
 	local numberDNFZones = countZones("DNF")
 	IlluminationNumberZones = countZones("illum")
 	NumberFireworksZones = countZones("fireworks")
+	NumberFireworksStartZones = countZones("fireworks-start")
+	NumberFireworksEndZones = countZones("fireworks-end")
     NumberGreenSmokeZones = countZones("Green smoke")
     NumberRedSmokeZones = countZones("Red smoke")
     NumberWhiteSmokeZones = countZones("White smoke")
@@ -2035,6 +2045,12 @@ function Init()
 		for idx = 1, NumberFireworksZones do
 			table.insert(fireworksZones, string.format("fireworks-%d", idx))
 		end
+		for idx = 1, NumberFireworksStartZones do
+			table.insert(fireworksStartZones, string.format("fireworks-start-%d", idx))
+		end
+		for idx = 1, NumberFireworksEndZones do
+			table.insert(fireworksEndZones, string.format("fireworks-end-%d", idx))
+		end
 
         if numberLaps > 1 then
 			for lap = 2, numberLaps do
@@ -2051,7 +2067,7 @@ function Init()
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, autoDraw)
+							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw)
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
@@ -2061,9 +2077,6 @@ function Init()
 			env.info("Start Airrace script")
 		end
 
-<<<<<<< HEAD
-		if autoDraw == true then autoDraw(race.Course.Gates) end
-=======
 		--Draw a line on the map from gate to gate
 		if autoDraw == true then 
 			local polyline = {}
@@ -2092,7 +2105,6 @@ function Init()
 			end		
 		end
 
->>>>>>> a7b8e3d (Added trail history on the F10 map)
 	else
 		logMessage("Variables 'NumberRaceZones' or 'NumberGates' not set")
 	end

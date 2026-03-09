@@ -10,6 +10,8 @@ Changes by GTFreeFlyer, TBD
 * The plotting includes the best race line, always updated when the record is beat  
 * Added AutoDraw option which will draw lines on the map between the gates and put labels. 
 * The AutoDraw line is replaced with the best race line whenever the record is beat.
+* Added two more zone names (fireworks-start-x, and fireworks-end-x) to help control  
+   if you want the fireworks to shoot only at the start gate or end gate.
 
 -------------------------------------------------------------------------------------  
 AirRaceScript4.1  
