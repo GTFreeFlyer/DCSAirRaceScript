@@ -8,6 +8,7 @@ Changes by GTFreeFlyer, March 10, 2026
 * Added inverted gate options where pilot must be inverted with wings level +/- 10 deg  
 * Added some more protections against invalid user inputs  
 * Added DNF Zones
+* Added top 10 racers list to the F10 radio menu
 * Added plotting of trail history on F10 map after you finish the race  
 * The plotting includes the best race line, always updated when the record is beat  
 * Added AutoDraw option which will draw lines on the map between the gates and put labels. 

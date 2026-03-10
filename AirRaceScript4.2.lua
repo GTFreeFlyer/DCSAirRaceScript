@@ -393,6 +393,7 @@ Airrace = {
 	BreadCrumbs = {CurrentIndex = 1201},
 	BestRacingLine = {},
 	PlayerBestData = {},
+	TopTen = {},
 	SaveData = false,
 	SaveFilename = "MyRaceData.txt",
 }
@@ -455,6 +456,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		BreadCrumbs = {CurrentIndex = 1201},
 		BestRacingLine = {},
 		PlayerBestData = {},
+		TopTen = {},
 		SaveData = saveData,
 		SaveFilename = saveFilename,
 	}
@@ -466,10 +468,6 @@ end
 function Airrace:saveRaceData()
 	if self.SaveData == true then
 		env.info("Saving race data...")
-		if not io or not io.open then
-			env.info("Error: Cannot write to the save file. Please see the instructions and desanitize lfs and io in MissionScripting.lua")
-			return
-		end
 	
 		local wrapper = {
 						FastestTime=self.FastestTime, 
@@ -518,46 +516,75 @@ function Airrace:saveRaceData()
 		file:write("return {\n")
 		serialize(wrapper, "", true)
 		file:write("\n}\n")
-		file:close()
+		file:close()		
 	end	
+	self:displayTopTenRacers(self.PlayerBestData)
 end
 -----------------------------------------------------------------------------------------
 -- Load data from file
 function Airrace:loadRaceData()
-	if not io or not io.open then
-		env.info("Error: Cannot read to the save file. Please see the instructions and desanitize lfs and io in MissionScripting.lua")
-		return
+	if self.SaveData == true then
+		local file, err = io.open(self.SaveFilename, "r")
+		if not file then
+			env.info("Cannot load saved race data. File not found.")
+			self:displayTopTenRacers(self.PlayerBestData) -- we still need to do this to build an empty list before bailing out of this function
+			return
+		end
+
+		local content = file:read("*a")
+		file:close()
+
+		-- Protect against invalid file contents
+		local chunk, loadErr = loadstring(content)
+		if not chunk then
+			env.info("Warning: Save file is corrupted: " .. tostring(loadErr))
+			self:displayTopTenRacers(self.PlayerBestData) -- we still need to do this to build an empty list before bailing out of this function
+			return
+		end
+
+		local wrapper = chunk()
+
+		self.FastestTime = wrapper.FastestTime
+		self.FastestPlayer = wrapper.FastestPlayer
+		self.FastestAircraft = wrapper.FastestAircraft
+		self.FastestIntermediates = wrapper.FastestIntermediates
+		self.BestRacingLine = wrapper.BestRacingLine
+		self.PlayerBestData = wrapper.PlayerBestData
+
+		--reassign ID's to the best race line segments
+		for _, data in ipairs(self.BestRacingLine) do
+			data.ID = self.BreadCrumbs.CurrentIndex
+			self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
+		end
+	end
+	self:displayTopTenRacers(self.PlayerBestData)
+end
+-----------------------------------------------------------------------------------------
+-- Sort and display the top 10 racers in the F10 menu
+function Airrace:displayTopTenRacers(bestTimes)
+	self.TopTen = {}
+
+	--delete the existing F10 menu group, if there is one, and create a new one
+	missionCommands.removeItem(TopTenRacePilotsMenu)
+	TopTenRacePilotsMenu = missionCommands.addSubMenu("Top 10 Racers", nil)
+
+	--create a list of all the player times. it will be sorted and truncated later
+	for name, time in pairs(bestTimes) do
+		table.insert(self.TopTen, {name = name, time = time.FastestTime})
 	end
 
-	local file, err = io.open(self.SaveFilename, "r")
-	if not file then
-		env.info("Cannot load saved race data. File not found.")
-		return
+	local function compareTimes(a, b)
+		return a.time < b.time
 	end
+	table.sort(self.TopTen, compareTimes)
 
-    local content = file:read("*a")
-    file:close()
-
-	-- Protect against invalid file contents
-    local chunk, loadErr = loadstring(content)
-    if not chunk then
-        env.info("Warning: Save file is corrupted: " .. tostring(loadErr))
-        return
-    end
-
-    local wrapper = chunk()
-
-	self.FastestTime = wrapper.FastestTime
-	self.FastestPlayer = wrapper.FastestPlayer
-	self.FastestAircraft = wrapper.FastestAircraft
-	self.FastestIntermediates = wrapper.FastestIntermediates
-	self.BestRacingLine = wrapper.BestRacingLine
-	self.PlayerBestData = wrapper.PlayerBestData
-
-	--reassign ID's to the best race line segments
-	for _, data in ipairs(self.BestRacingLine) do
-		data.ID = self.BreadCrumbs.CurrentIndex
-		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
+	for rank = 1, 10 do
+		if self.TopTen[rank] then
+			--print (rank .. ". "  .. self.TopTen[rank].name .. "|" .. self.TopTen[rank].time)
+			missionCommands.addCommand(self.TopTen[rank].name .. " | " .. formatTime(self.TopTen[rank].time), TopTenRacePilotsMenu, function() end, nil)
+		else
+			missionCommands.addCommand("(Empty)", TopTenRacePilotsMenu, function() end, nil)
+		end
 	end
 end
 -----------------------------------------------------------------------------------------
@@ -857,7 +884,7 @@ function Airrace:CheckGateSpeedForPlayer(player)
 		result = true
 	else
 		result = false
-		warnPlayer(string.format("Starting speed limit is %d kts! Your speed: %s kts", self.StartSpeedLimit * .54, speed * 3.6 * .54), player)
+		warnPlayer(string.format("Starting speed limit is %d kts! You: %s kts", self.StartSpeedLimit * .54, speed * 3.6 * .54), player)
 	end
 	return result
 end
@@ -1369,15 +1396,15 @@ function Airrace:UpdatePlayerStatus(player)
 						sign = "-"
 					end
 					if self.GroupRace == true then
-						player.StatusText = string.format("Speed: %d kts (%s%d kts) | Time: %s", speedKnots, sign, math.abs(difference), formatTime(timeNow - GroupStartTime))
+						player.StatusText = string.format("%d kts (%s%d kts) | %s", speedKnots, sign, math.abs(difference), formatTime(timeNow - GroupStartTime))
 					else
-						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(0))
+						player.StatusText = string.format("%d kts | %s", speedKnots, formatTime(0))
 					end
 				else --the race has not yet been completed in the past...
 					if self.GroupRace == true then
-						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(timeNow - GroupStartTime))
+						player.StatusText = string.format("%d kts | %s", speedKnots, formatTime(timeNow - GroupStartTime))
 					else
-						player.StatusText = string.format("Speed: %d kts | Time: %s", speedKnots, formatTime(0))
+						player.StatusText = string.format("%d kts | %s", speedKnots, formatTime(0))
 					end
 				end			
 			end
@@ -1405,7 +1432,7 @@ function Airrace:UpdatePlayerStatus(player)
 				if player.CurrentGateNumber == 0 and not player.Finished and player.CurrentLapNumber == 1 then
 					-- Player passed unexpected gate at start of race
 					player.StatusText = "Wrong start gate! Go back to Gate 1 to start."
-					env.info(string.format("Player %s did not enter the course at Gate 1", player.Name))
+					env.info(string.format("%s did not enter the course at Gate 1", player.Name))
 					return
 				elseif not player.Finished then
 					-- Player has missed one or more gates
@@ -1417,15 +1444,15 @@ function Airrace:UpdatePlayerStatus(player)
 							player.DNF = true
 							self:ShowBreadCrumbs(player)
 							player.StatusText = string.format("DNF! | Too many missed gates")
-							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+							env.info(string.format("%s missed %d gate(s). DNF!", player.Name, player.MissedGates))
 							return					
 						else
 							if missedGates == 1 then
 								warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1, self.PenaltyTimeMissedGate), player)
-								env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1))
+								env.info(string.format("%s missed gate %d", player.Name, player.CurrentGateNumber + 1))
 							else
 								warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", player.CurrentGateNumber + 1, gateNumber - 1, self.PenaltyTimeMissedGate * missedGates), player)
-								env.info(string.format("Player %s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
+								env.info(string.format("%s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
 							end
 						end
 					elseif gateNumber < player.CurrentGateNumber then --Either going backwards or on a new lap with a lower gate number.  
@@ -1437,12 +1464,12 @@ function Airrace:UpdatePlayerStatus(player)
 							player.DNF = true
 							self:ShowBreadCrumbs(player)
 							player.StatusText = string.format("DNF! | Too many missed gates!")
-							env.info(string.format("Player %s missed %d gate(s). DNF!", player.Name, player.MissedGates))
+							env.info(string.format("%s missed %d gate(s). DNF!", player.Name, player.MissedGates))
 							return
 						else
 							if missedGates == 1 then
 								warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1 - #self.Course.Gates, self.PenaltyTimeMissedGate), player) --this should always be gate 1 if only 1 gate was missed, but we'll calculate it anyway.
-								env.info(string.format("Player %s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
+								env.info(string.format("%s missed gate %d", player.Name, player.CurrentGateNumber + 1 - #self.Course.Gates))
 							else
 								--we use some logic here to see if the gate numbers wrapped back around to 1
 								local firstMissedGate = player.CurrentGateNumber + 1
@@ -1456,7 +1483,7 @@ function Airrace:UpdatePlayerStatus(player)
 									lastMissedGate = gateNumber - 1
 								end
 								warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", firstMissedGate, lastMissedGate, self.PenaltyTimeMissedGate * missedGates), player)
-								env.info(string.format("Player %s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
+								env.info(string.format("%s missed gates %d to %d", player.Name, firstMissedGate, lastMissedGate))
 							end
 						end
 						-- Player has started a new lap, so increase lap number
@@ -1497,10 +1524,10 @@ function Airrace:UpdatePlayerStatus(player)
 				player:StopTimer()
 				self:ShowBreadCrumbs(player)
 				if #self.BonusGates > 0 then
-					player.StatusText = string.format("Finished | Time: %s + Penalty:%ds - Bonus:%ds\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s - Bonus:%d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
 				else
-					player.StatusText = string.format("Finished | Time: %s + Penalty:%ds\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
 				end        
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
@@ -1511,7 +1538,7 @@ function Airrace:UpdatePlayerStatus(player)
 					self:SaveBestRacingLine(player)
 					self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
 					self.FastestPlayer = player.Name
-					self.FastestAircraft = formatAircraftType(playerData.aircraftType)
+					self.FastestAircraft = formatAircraftType(player.AircraftType)
 					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
 					self.FastestIntermediates = player.IntermediateTimes					
 					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))					
@@ -1568,7 +1595,7 @@ function Airrace:UpdatePlayerStatus(player)
 				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player, gateNumber)
 				local intermediate = player:GetIntermediateTime(player.CurrentLapNumber, gateNumber)
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
-				player.StatusText = string.format("Speed: %d kts | Time: %s", player.GateSpeed, formatTime(intermediate))
+				player.StatusText = string.format("%d kts | %s", player.GateSpeed, formatTime(intermediate))
 				env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
 				self:evaluateRollAngle(gateNumber, player)
 				player.PylonFlag = false
@@ -1668,7 +1695,7 @@ function Airrace:ListPlayers()
 			--First, check to make sure there's at least one player still racing in the group race...
 			local allPlayersAreFinished = true
 			for playerIndex, player in ipairs(self.Players) do
-				if player.DNF == false or player.Finished == false then 
+				if player.DNF == false and player.Finished == false then
 					allPlayersAreFinished = false 
 				end
 			end
@@ -2113,19 +2140,19 @@ function Init()
     NumberBlueSmokeZones = countZones("Blue smoke")    
 
 	--protect values to valid ranges
-	if distanceUnits ~= "ft" or distanceUnits ~= "m" then 
+	if distanceUnits ~= "ft" and distanceUnits ~= "m" then 
 		distanceUnits = "ft" 
 		env.info("Invalid setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
 	end
-	if groupRace ~= true or groupRace ~= false then 
+	if groupRace ~= true and groupRace ~= false then 
 		groupRace = false
 		env.info("Invalid setting for GroupRace. Must be true or false. Resetting to default: false.")
 	end
-	if illuminationOn ~= true or illuminationOn ~= false then 
+	if illuminationOn ~= true and illuminationOn ~= false then 
 		illuminationOn = true
 		env.info("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true")
 	end
-	if autoDraw ~= true or autoDraw ~= false then 
+	if autoDraw ~= true and autoDraw ~= false then 
 		autoDraw = true
 		env.info("Invalid setting for AutoDraw. Must be true or false. Resetting to default: true")
 	end
@@ -2161,7 +2188,7 @@ function Init()
     end 
 	
 	--set the full file path for read/write
-	if not lfs or not lfs.currentdir then
+	if not lfs or not lfs.currentdir or not io or not io.open then
 		env.info("Error: Cannot read/write data for the race script. Please see the instructions and desanitize lfs and io in MissionScripting.lua")
 		saveData = false
 	else
@@ -2213,9 +2240,7 @@ function Init()
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, saveData, saveFilename)
 
-		if saveData == true then
-			race:loadRaceData()
-		end
+		race:loadRaceData() --read saved data from file
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
