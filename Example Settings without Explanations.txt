@@ -21,6 +21,7 @@ BonusGateHeight = 15 --[20]
 CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} } --[{}]
 BonusTime = 2 --[1]
 AutoDraw = false --[true]
+SaveFilename = "WarbirdRaceData.txt" --["MyRaceData.txt"]
 
 --PENALTY AND DNF SETTINGS:------------
 PenaltyTimeMissedGate = 4 --[5]

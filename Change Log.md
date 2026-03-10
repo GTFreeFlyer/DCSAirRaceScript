@@ -1,8 +1,10 @@
 (Most recent items on top)  
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
-Changes by GTFreeFlyer, TBD  
+Changes by GTFreeFlyer, March 10, 2026  
 
+* Added persistence. Your best times are now saved to a file in the same folder as the .miz  
+   as long as you desanitize your lua environment. Easily done! Just see the instructions.
 * Added inverted gate options where pilot must be inverted with wings level +/- 10 deg  
 * Added some more protections against invalid user inputs  
 * Added DNF Zones
@@ -12,6 +14,8 @@ Changes by GTFreeFlyer, TBD
 * The AutoDraw line is replaced with the best race line whenever the record is beat.
 * Added two more zone names (fireworks-start-x, and fireworks-end-x) to help control  
    if you want the fireworks to shoot only at the start gate or end gate.
+* Approx. 400 more lines of code added since last version 4.1. Since forking this  
+   project, it has grown from ~700 lines of code to ~2200. It's packed with features.
 
 -------------------------------------------------------------------------------------  
 AirRaceScript4.1  

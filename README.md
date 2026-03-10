@@ -27,6 +27,7 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 
 ## Features
 * Set up an air race track with little effort, and track timing and violations of participating pilots.
+* Persistent data saving makes sure your best times and race lines are saved, then recalled next time you open the mission.  
 * Supports individual racing (everyone has their own timer), or group racing (everyone shares a common timer) with or without a pace plane.  
 * Information display for keeping track of your progress as well as the competition's.  
 * Group races have a dynamic leaderboard display that changes as players overtake each other.  
@@ -62,6 +63,15 @@ Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/
    * You want to do that first, and then test fly the track with a test plane to make sure it flows well, turns aren't too crazy, etc.  You want it to be fun, creative, and replayable. Tips: Use nearby terrain, buildings, bridges, coastlines, etc. The possibilities are endless!
 
    * Once you have it figured out, continue below. The reason is simple: It's much easier to make changes now, moving pylons around, rather than later where changes will require much more work (i.e. moving the pylons, triggerzones, labels, etc.)
+
+   * Optional, but recommended: To be able to read/write your data so that the best times and race lines are recalled whenever the mission loads, so must desanitize your lua environment, done easily: 
+      * Go to your DCS install folder\Scripts\MissionScripting.lua, and add a double dash (--) in front of these two lines to comment them out:
+      * --sanitizeModule('io')
+      * --sanitizeModule('lfs')
+      * --If running a dedicated server, you must do the same in its install folder.  
+      * DCS may required a restart after this to make sure it takes effect.
+      * Disclaimer: This allows lua scripts to read and write to your PC! Just be careful and make sure you trust any other script you use. There's no need to worry with the race script as the source code is right here for you to see. Everything is kosher here.
+      ![Desanitize](screenshots/desanitize.jpg)  
    
    * Okay, go get started. I'll see you back here shortly. Good luck! 
 
@@ -288,6 +298,7 @@ PenaltyTimeMissedGate = 4
 PenaltyTimePylonHit = 2  
    * [optional, 3] time in seconds added to your race time for each pylon hit
    * Valid range: 0 to any positive integer  
+   * Note: Flying directly over a pylon is considered a hit
 
 PenaltyTimeAboveGateHeight = 2  
    * [optional, 2] time in seconds added to your race time each time you hit a race zone above the height limit defined by setting named GateHeight.  

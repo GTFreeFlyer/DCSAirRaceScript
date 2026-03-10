@@ -1,16 +1,17 @@
 ----------------------------------------------------------------------------------------------------------------------
 -- Script       : CrossCountryRace.lua - Multiplayer Cross-Country Airrace Script                                   --
--- Version      : 1.2                                                                                               --
+-- Version      : 4.2                                                                                               --
 -- Requirements : - DCS World 2.5.6 or later                                                                        --
 --                - Mist 4.5.126                                                                                    --
--- Author       : Bas 'Joe Kurr' Weijers                                                                            --
---                Dutch Flanker Display Team                                                                        --
--- Contributors : GTFreeFlyer • Added functionality for multiple laps in version 1.2                                --       
---                            • Due to adding laps, behavior changed if you go backwards through the gates          --
+-- Original Author: Bas 'Joe Kurr' Weijers                                                                          --
+--                  Dutch Flanker Display Team                                                                      --
+-- Contributors : GTFreeFlyer • Added functionality for multiple laps                                               --       
+--                            • Added persistence (read/write of data to save your best times)                      --
 --                            • Added functionality for a group race where everyone shares the same start time      -- 
 --                            • Added dynamic ranking display for group races                                       -- 
 --                            • Added functionality for knife-edge gates                                            --
 --                            • Added illumination for night racing, smoke zones, and fireworks zones               --
+--                            • Added plotting of racing lines on the F10 map
 --                            • Added more user settings                                                            --
 --                More contributors are listed at the bottom of the README at the GitHub link below.                --
 ----------------------------------------------------------------------------------------------------------------------
@@ -71,6 +72,7 @@
 --                                    IlluminationAGL = <Elevation AGL in feet where they spawn>          [optional]-- default: 2600
 --                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
 --                                    AutoDraw = <true or false to draw the route on the map>             [optional]-- default: true
+--                                    SaveFilename = <filename, ex. "MyRaceData.txt">                     [optional]-- default: "MyRaceData.txt". Make this unique for different missions, otherwise data will be overwritten!  Must desanitize the mission in order for the script to work properly. "F:\DCS World\Scripts\MissionScripting.lua".. must also do the same for the dedicated server install.
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
 --                                    mist_4_5_126.lua (or later)                                                   --
@@ -117,6 +119,7 @@ Player = {
 	HitPylon = 0,
     MissedGates = 0,
 	TotalTime = 0,
+	FastestTime = 0, 
 	IntermediateTimes = {{}},
 	DNF = false,
 	PylonFlag = false,
@@ -161,6 +164,7 @@ function Player:New(playerUnit)
 		HitPylon = 0,
         MissedGates = 0,
 		TotalTime = 0,
+		FastestTime = 0,
 		IntermediateTimes = {{}},
 		DNF = false,
 		PylonFlag = false,
@@ -185,6 +189,7 @@ GroupStartTime = 0 --initialize this variable to 0, it will be set to the time o
 PaceDropTime = 0 --initialize this variable to 0, it will be set to the time when the pace drops in, if there is a pace
 GroupTimerStarted = false --flag to indicate whether the group timer has been started
 GroupWinnerCrossedFinishLine = false --flag to indicate if the winner has crossed the finish line (group races only)
+BreadCrumbMeter = 0 --Used to limit the data collection to twice per second
 __CoalitionAll = -1
 __CoalitionNeutral = 0
 __CoalitionRed = 1
@@ -348,6 +353,7 @@ Airrace = {
 	FastestTime = 0,
 	FastestPlayer = '',
 	FastestAircraft = '',
+	FastestIntermediates = {},
 	LastMessage = '',
 	LastMessageId = 0,
 	GateHeight = 300 * .3048, --convert to m
@@ -385,7 +391,10 @@ Airrace = {
 	GroupCurrentRankings = {},
 	AutoDraw = true,
 	BreadCrumbs = {CurrentIndex = 1201},
-	BestRacingLine = {}
+	BestRacingLine = {},
+	PlayerBestData = {},
+	SaveData = false,
+	SaveFilename = "MyRaceData.txt",
 }
 -----------------------------------------------------------------------------------------
 -- Airrace Constructor
@@ -397,7 +406,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw)
+						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, saveData, saveFilename)
 	local obj = {
         DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
@@ -408,7 +417,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		FastestTime = 0,
 		FastestPlayer = '',
 		FastestAircraft = '',
-		FastestIntermediates = fastestIntermediates,
+		FastestIntermediates = fastestIntermediates or {},
 		GateHeight = gateHeight,
         CustomGateHeights = customGateHeights or {},
 		HorizontalGates = horizontalGates or {1},
@@ -444,12 +453,113 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		GroupCurrentRankings = {},
 		AutoDraw = autoDraw or true,
 		BreadCrumbs = {CurrentIndex = 1201},
-		BestRacingLine = {}
+		BestRacingLine = {},
+		PlayerBestData = {},
+		SaveData = saveData,
+		SaveFilename = saveFilename,
 	}
 	setmetatable(obj, { __index = Airrace })
 	return obj
 end
+-----------------------------------------------------------------------------------------
+-- Write data to file
+function Airrace:saveRaceData()
+	if self.SaveData == true then
+		env.info("Saving race data...")
+		if not io or not io.open then
+			env.info("Error: Cannot write to the save file. Please see the instructions and desanitize lfs and io in MissionScripting.lua")
+			return
+		end
+	
+		local wrapper = {
+						FastestTime=self.FastestTime, 
+						FastestPlayer=self.FastestPlayer, 
+						FastestAircraft=self.FastestAircraft, 
+						FastestIntermediates=self.FastestIntermediates, 
+						BestRacingLine=self.BestRacingLine, 
+						PlayerBestData=self.PlayerBestData
+						}
+		--where PlayerBestData table format = {name1 = {FastestTime = time}, name2 = {FastestTime = time}, ...}
+		
+		local file = assert(io.open(self.SaveFilename, "w"))
 
+		local function serialize(value, indent, isTop)
+			indent = indent or ""
+			local t = type(value)
+
+			if t == "number" then
+				file:write(value)
+			elseif t == "string" then
+				file:write(string.format("%q", value))
+			elseif t == "boolean" then
+				file:write(tostring(value))
+			elseif t == "nil" then
+				file:write("nil")
+			elseif t == "table" then
+				if not isTop then					
+					file:write("{\n")
+				end
+				local nextIndent = indent .. "  "
+				for k, v in pairs(value) do
+					file:write(nextIndent .. "[")
+					serialize(k, nextIndent)
+					file:write("] = ")
+					serialize(v, nextIndent)
+					file:write(",\n")
+				end
+				if not isTop then
+					file:write(indent .. "}")
+				end
+			else
+				env.info("Error: Cannot serialize type: " .. t)
+			end
+		end
+
+		file:write("return {\n")
+		serialize(wrapper, "", true)
+		file:write("\n}\n")
+		file:close()
+	end	
+end
+-----------------------------------------------------------------------------------------
+-- Load data from file
+function Airrace:loadRaceData()
+	if not io or not io.open then
+		env.info("Error: Cannot read to the save file. Please see the instructions and desanitize lfs and io in MissionScripting.lua")
+		return
+	end
+
+	local file, err = io.open(self.SaveFilename, "r")
+	if not file then
+		env.info("Cannot load saved race data. File not found.")
+		return
+	end
+
+    local content = file:read("*a")
+    file:close()
+
+	-- Protect against invalid file contents
+    local chunk, loadErr = loadstring(content)
+    if not chunk then
+        env.info("Warning: Save file is corrupted: " .. tostring(loadErr))
+        return
+    end
+
+    local wrapper = chunk()
+
+	self.FastestTime = wrapper.FastestTime
+	self.FastestPlayer = wrapper.FastestPlayer
+	self.FastestAircraft = wrapper.FastestAircraft
+	self.FastestIntermediates = wrapper.FastestIntermediates
+	self.BestRacingLine = wrapper.BestRacingLine
+	self.PlayerBestData = wrapper.PlayerBestData
+
+	--reassign ID's to the best race line segments
+	for _, data in ipairs(self.BestRacingLine) do
+		data.ID = self.BreadCrumbs.CurrentIndex
+		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
+	end
+end
 -----------------------------------------------------------------------------------------
 -- Check if any new players have entered one of the RaceZone trigger zones
 -- and add them to the list of active players
@@ -986,21 +1096,18 @@ function drawPolyline(coordinateList, lineColor, lineType, closedPolyline, playe
 			startingPoint = coordinateList[pointNum-1]
 			endPoint = coords
 			trigger.action.lineToAll(__CoalitionAll, coords.ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
-			env.info("drew line segment for " .. playerName .. ", ID " .. coords.ID)	--debug	
 		end		
 	end	
 	if closedPolyline == true then
 		startingPoint = coordinateList[#coordinateList]
 		endPoint = coordinateList[1]
 		trigger.action.lineToAll(__CoalitionAll, coordinateList[1].ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
-		env.info("drew line segment for " .. playerName .. ", ID " .. coords.ID)	--debug	
 	end
 
 	--Draw the text label with the player's name next to the line
 	if playerName ~= "AutoDraw" then
 		local randomLocationForLabel = math.random(1, #coordinateList)
 		trigger.action.textToAll(__CoalitionAll, textID, coordinateList[randomLocationForLabel], lineColor, {0,0,0,0}, 12, false, string.format("%s", playerName)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
-		env.info("drew text label for " .. playerName .. ", ID " .. textID)	--debug	
 	end	
 end
 -----------------------------------------------------------------------------------------
@@ -1016,7 +1123,6 @@ function Airrace:StoreBreadCrumbs(player)
 	} 
 	if not self.BreadCrumbs[player.Name] then self.BreadCrumbs[player.Name] = {} end
 	table.insert(self.BreadCrumbs[player.Name], playerPosAndID)
-	env.info("Stored breadcrumb for " .. player.Name .. ", ID at CurrentIndex=" .. self.BreadCrumbs.CurrentIndex) --debug
 	self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
 
 	--example BreadCrumbs table format: 
@@ -1031,23 +1137,19 @@ end
 -----------------------------------------------------------------------------------------
 -- Save the best racing line and plot or replot it.
 function Airrace:SaveBestRacingLine(player)
-	env.info("Now preparing to save the best racing line...") --debug
 
 	--erase previous best line	
 	if #self.BestRacingLine ~= 0 then
-		env.info("Previous best line found. Now erasing it...") --debug
 		for _, data in ipairs(self.BestRacingLine) do
 			trigger.action.removeMark(data.ID)
-			env.info("erasing data.ID=" .. data.ID) --debug
 		end
 		trigger.action.removeMark(self.BestRacingLine.textID)
-	else --debug
+	else
 		env.info("Previous best line was not found. The course has not yet been completed.")
 	end	
 
 	--erase the AutoDraw line, if there is one
-	if self.AutoDraw == true and self.FastestTime ~= 0 then
-		env.info("Auto-drawn line found. Now erasing it...") --debug
+	if self.AutoDraw == true and self.FastestTime == 0 then
 		for idx, data in ipairs(self.BreadCrumbs.AutoDraw) do
 			trigger.action.removeMark(data.ID)
 		end
@@ -1060,11 +1162,9 @@ function Airrace:SaveBestRacingLine(player)
 		local newData = {x=data.x, y=data.y, z=data.z, ID=self.BreadCrumbs.CurrentIndex}
 		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
 		table.insert(self.BestRacingLine, newData)		
-		env.info("stored best data with new ID=" .. newData.ID) --debug
 	end	
 	self.BestRacingLine.textID = self.BreadCrumbs.CurrentIndex
 	self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
-	env.info("stored: #self.BestRacingLine=" .. #self.BestRacingLine) --debug
 
 	--erase the player's current dotted line from this race
 	for idx, data in ipairs(self.BreadCrumbs[player.Name]) do
@@ -1074,7 +1174,7 @@ function Airrace:SaveBestRacingLine(player)
 	self.BreadCrumbs[player.Name] = nil
 
 	--draw the new best line
-	drawPolyline(self.BestRacingLine, __Magenta, __LineSolid, false, "Best by\n" .. player.Name, self.BestRacingLine.textID)
+	drawPolyline(self.BestRacingLine, __Green, __LineSolid, false, "Best by\n" .. player.Name, self.BestRacingLine.textID)
 end
 -----------------------------------------------------------------------------------------
 -- automatically draw the history trail on the map when the player finishes or DNF's
@@ -1099,7 +1199,6 @@ function Airrace:EraseAllBreadCrumbs()
 			for _, coords in ipairs(data) do
 				trigger.action.removeMark(coords.ID)
 			end		
-			env.info("Erased breadcrumb display for .. " .. name) --debug	
 			self.BreadCrumbs[name] = nil
 		end
 	end 
@@ -1111,7 +1210,6 @@ function Airrace:ErasePlayerBreadCrumbs(player)
 		for _, coords in ipairs(self.BreadCrumbs[player.Name]) do
 			trigger.action.removeMark(coords.ID)
 		end	
-		env.info("Erased breadcrumb display for .. " .. player.Name) --debug
 		self.BreadCrumbs[player.Name] = nil
 	end
 end
@@ -1264,7 +1362,7 @@ function Airrace:UpdatePlayerStatus(player)
 				--Display message "Started" along with the start speed, and a comparison to the fastest start speed if there is one saved from a previous race
 				player.IntermediateTimes[1][1] = speedKnots
 				if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past
-					local fastestStartSpeed = self.FastestIntermediates[1][1]
+					local fastestStartSpeed = self.FastestIntermediates[1][1] --we actually store speed at the first gate, instead of time=0
 					local difference = speedKnots - fastestStartSpeed
 					local sign = "+"
 					if difference < 0 then
@@ -1407,18 +1505,39 @@ function Airrace:UpdatePlayerStatus(player)
 				end        
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
 				player.CurrentGateNumber = gateNumber
-				if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then
+
+				--save best time for course
+				if self.FastestTime == 0 or self.FastestTime > player.TotalTime + player.Penalty - player.Bonus then					
+					self:SaveBestRacingLine(player)
 					self.FastestTime = player.TotalTime + player.Penalty - player.Bonus
 					self.FastestPlayer = player.Name
 					self.FastestAircraft = formatAircraftType(playerData.aircraftType)
 					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
-					self.FastestIntermediates = player.IntermediateTimes
-					self:SaveBestRacingLine(player)
-					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))
+					self.FastestIntermediates = player.IntermediateTimes					
+					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))					
 				else
 					player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
 					env.info(string.format("%s +%s seconds behind best time", player.Name, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime)))
-				end		
+				end	
+
+				--save best time for player
+				if not self.PlayerBestData[player.Name] then
+					--player history not found. create a new entry for him
+					self.PlayerBestData[player.Name] = {FastestTime = player.TotalTime + player.Penalty - player.Bonus}
+					env.info("self.PlayerBestData[" .. player.Name .. "].FastestTime = " .. player.TotalTime + player.Penalty - player.Bonus) --debug
+					self:saveRaceData()
+				else
+					--player has history in the course...
+					if self.PlayerBestData[player.Name].FastestTime > player.TotalTime + player.Penalty - player.Bonus then
+						--new personal best time for the player
+						self.PlayerBestData[player.Name].FastestTime = player.TotalTime + player.Penalty - player.Bonus
+						if self.FastestPlayer ~= player.Name then
+							player.StatusText = string.format("%s - Personal best!", player.StatusText)		
+						end
+						env.info(string.format("%s achieved a new personal best: %s", player.Name, formatTime(self.FastestTime)))
+						self:saveRaceData()
+					end
+				end				
 
 				--fireworks!
 				if #self.FireworksZones > 0 then shootFireworks(self.FireworksZones) end
@@ -1621,9 +1740,12 @@ function Airrace:ListPlayers()
 			end
 
 		-- Store the player's trail history
-			for playerIndex, player in ipairs(self.Players) do
-				if player.Started == true and player.Finished == false and player.DNF ~= true then
-					self:StoreBreadCrumbs(player)
+			if timer.getTime() > BreadCrumbMeter + .5 then
+				BreadCrumbMeter = timer.getTime()
+				for playerIndex, player in ipairs(self.Players) do
+					if player.Started == true and player.Finished == false and player.DNF ~= true then
+						self:StoreBreadCrumbs(player)
+					end
 				end
 			end
 		end
@@ -1642,7 +1764,11 @@ function Airrace:ListPlayers()
                 end
 			end
 			if trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
-				text = string.format("%s | Lap %d of %d | Timer: %s ", text, highestLapNum, self.NumberLaps, formatTime(timeNow-GroupStartTime))
+				if self.NumberLaps > 1 then
+					text = string.format("%s | Lap %d of %d | Timer: %s ", text, highestLapNum, self.NumberLaps, formatTime(timeNow-GroupStartTime))
+				else
+					text = string.format("%s | Timer: %s ", text, formatTime(timeNow-GroupStartTime))
+				end
 			end 
 
 			--check to see if there is already a best time recorded for the course, and display it if so
@@ -1884,7 +2010,7 @@ function crashHandler:onEvent(event)
 			reason = "Ejected"	
 	elseif event.id == world.event.S_EVENT_DEAD  or event.id == world.event.S_EVENT_PILOT_DEAD then
 			reason = "Died"	
-	elseif event.id == world.event.S_EVENT_DISCONNECT
+	elseif event.id == world.event.S_EVENT_DISCONNECT then
 			reason = "Disconnected"	
 	end
 
@@ -1893,12 +2019,12 @@ function crashHandler:onEvent(event)
 	env.info("Player " .. name .. " "  .. reason)
 
 	for _, player in ipairs(race.Players) do					
-		if player.Name == name then
+		if player.Name == name and player.DNF == false then
 			player.DNF = true
-			self:ShowBreadCrumbs(player)
+			race:ShowBreadCrumbs(player)
 			player.StatusText = "DNF! | " ..  reason
 			race:AddToGroupCurrentRankings(player.Name, 1, 1, 0, player.AircraftType) -- fixed entry with time=0 at first gate, for comparison to other racers, in case player dies before the first gate
-			if reason = "Disconnected" then 
+			if reason == "Disconnected" then 
 				race.ErasePlayerBreadCrumbs(player)
 				env.info("Breadcrumbs deleted for " .. player.Name .. "due to disconnection from server")
 			end
@@ -1968,6 +2094,8 @@ function Init()
 	local fireworksStartZones = {}
 	local fireworksEndZones = {}
 	local autoDraw = AutoDraw or true
+	local saveData = false --default value until desanitization is checked
+	local saveFilename = SaveFilename or "MyRaceData.txt"
 
 	--count the number of each type of zone
 	local numberRaceZones = countZones("racezone")
@@ -2001,6 +2129,10 @@ function Init()
 		autoDraw = true
 		env.info("Invalid setting for AutoDraw. Must be true or false. Resetting to default: true")
 	end
+	if saveData ~= true and saveData ~= false then 
+		saveData = false
+		env.info("Invalid setting for SaveData. Must be true or false. Resetting to default: false")
+	end
 	numberLaps = math.floor(numberLaps)
 	if illuminationBrightness > 1000000 then
 		illuminationBrightness = 1000000
@@ -2026,7 +2158,19 @@ function Init()
         bonusGateHeight = bonusGateHeight * .3048
         participantFilter = participantFilter * .3048
         illuminationAGL = illuminationAGL * .3048
-    end    
+    end 
+	
+	--set the full file path for read/write
+	if not lfs or not lfs.currentdir then
+		env.info("Error: Cannot read/write data for the race script. Please see the instructions and desanitize lfs and io in MissionScripting.lua")
+		saveData = false
+	else
+		saveData = true
+		local RaceMissionDir = lfs.writedir() --get the .miz folder path
+		saveFilename = RaceMissionDir .. "Missions\\" .. saveFilename --add the filename to the end of the path
+		saveFilename = saveFilename:gsub("\\", "/") --replace the backslashes with forward slashes
+		env.info("Race mission data save location is: " .. saveFilename)
+	end
 	
     --add the trigger zones to tables
 	if numberRaceZones > 0 and numberGates > 0 then
@@ -2067,7 +2211,11 @@ function Init()
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw)
+							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, saveData, saveFilename)
+
+		if saveData == true then
+			race:loadRaceData()
+		end
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
 			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
@@ -2086,10 +2234,12 @@ function Init()
 				--add the gate labels
 				trigger.action.textToAll(__CoalitionAll, 200 + gateNum, coordData, __Black, __White, 12, false, string.format("Gate %d", gateNum)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
 				
-				--add points for the path
-				coordData.ID = race.BreadCrumbs.CurrentIndex
-				table.insert(polyline, coordData) --format: {x=1234, y=782, z=4613, ID = 1201}
-				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
+				--add points for the path if there isn't a best line available
+				if #race.BestRacingLine == 0 then
+					coordData.ID = race.BreadCrumbs.CurrentIndex
+					table.insert(polyline, coordData) --format: {x=1234, y=782, z=4613, ID = 1201}
+					race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
+				end
 			end
 			race.BreadCrumbs["AutoDraw"] = polyline --save in the list as a 'player' named AutoDraw so we can remove it later when needed.
 			local closedPolyline = false
@@ -2097,11 +2247,16 @@ function Init()
 				closedPolyline = true
 			end
 
-			--draw the line if there isn't already a best line saved
 			if #race.BestRacingLine == 0 then
-				drawPolyline(polyline, __Magenta, __LineSolid, closedPolyline, "AutoDraw", race.BreadCrumbs.CurrentIndex) -- Args: Vec3 list, color, line type, closed back to start point?, player name
+				--draw the jagged AutoDraw line if there isn't already a best line saved
+				drawPolyline(polyline, __Green, __LineSolid, closedPolyline, "AutoDraw", race.BreadCrumbs.CurrentIndex) -- Args: Vec3 list, color, line type, closed back to start point?, player name
 				race.BreadCrumbs.AutoDraw.textID = race.BreadCrumbs.CurrentIndex
-				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1	
+				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
+			else
+				--draw the saved best line
+				drawPolyline(race.BestRacingLine, __Green, __LineSolid, closedPolyline, "Best by\n" .. race.FastestPlayer, race.BreadCrumbs.CurrentIndex)	
+				race.BestRacingLine.textID = race.BreadCrumbs.CurrentIndex
+				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
 			end		
 		end
 
@@ -2117,7 +2272,8 @@ function Init()
 end
 
 env.info("-----------------------------------------------------------------------------------------")
-env.info("Load Airrace script")
+env.info("Load AirRaceScript4.2")
+env.info("To grab the script for yourself and view the full documentation, please visit github.com/GTFreeFlyer/DCSAirRaceScript")
 
 world.addEventHandler(crashHandler)
 
