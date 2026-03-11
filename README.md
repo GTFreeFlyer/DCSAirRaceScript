@@ -288,9 +288,13 @@ BonusTime = 2
 AutoDraw = false
    * [optional, true] draws lines on the F10 map between the gates and places gate labels.   
    * Set it to false if you intend to make your own map drawings.
-   * This jagged line with sharp corners (first screenshot below) will be replaced by the best race line once someone finishes the course (second screenshot below). Currently, the best race line will be shown no matter what, even if you have added your own polylines to the map in the Mission Editor. In the second screenshot, you can also see that your race line is plotted if you did not beat the best time.
+   * This jagged line with sharp corners (first screenshot below) will be replaced by the best race line once someone finishes the course (second screenshot below). In the second screenshot, you can also see that your race line is plotted if you did not beat the best time.
    ![autodraw](screenshots/autodraw1.jpg)  
-   ![bestLine](screenshots/bestraceline.jpg) 
+   ![bestLine](screenshots/bestraceline.jpg)  
+    
+PlotRaceLines = false
+   * [optional, true] Choose whether to draw the race lines on the F10 map or not.
+   * Recommend leaving true, unless you need to hide racers' lines for competition reasons.
 
 SaveFilename = "WarbirdRaceData.txt" 
    * [optional, "MyRaceData.txt"] Must place the filename in quotes and end with .txt

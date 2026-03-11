@@ -75,6 +75,10 @@ BonusTime = 2
 AutoDraw = false 
 --[optional, true] draws lines on the F10 map between the gates and places gate labels
 
+PlotRaceLines = false
+--[optional, true] Choose whether to draw the race lines on the F10 map or not.
+--Recommend leaving true, unless you need to hide racers' lines for competition reasons.
+
 SaveFilename = "WarbirdRaceData.txt" 
 --[optional, "MyRaceData.txt"]
 --Must place the filename in quotes and end with .txt

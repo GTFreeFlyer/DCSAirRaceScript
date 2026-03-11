@@ -3,7 +3,8 @@
 AirRaceScript4.3  
 Changes by GTFreeFlyer, date TBD
 
-* TBD
+* Prevent script error pop-up if player does not add gates or racezones properly.
+* Add user option to plot, or not plot race lines on the F10 map, for competition reasons.
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
 Changes by GTFreeFlyer, March 10, 2026  

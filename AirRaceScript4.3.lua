@@ -72,7 +72,9 @@
 --                                    IlluminationAGL = <Elevation AGL in feet where they spawn>          [optional]-- default: 2600
 --                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
 --                                    AutoDraw = <true or false to draw the route on the map>             [optional]-- default: true
+--                                    PlotRaceLines = <true or false to draw the race lines on the map>   [optional]-- default: true.  You may want to turn it off for competitions where racers don't want others stealing their race line
 --                                    SaveFilename = <filename, ex. "MyRaceData.txt">                     [optional]-- default: "MyRaceData.txt". Make this unique for different missions, otherwise data will be overwritten!  Must desanitize the mission in order for the script to work properly. "F:\DCS World\Scripts\MissionScripting.lua".. must also do the same for the dedicated server install.
+--                                    RaceScriptRefreshTime = <time in seconds to refresh the script>     [optional]-- default 0.2.  Warning, lowering this time has not been tested and may cause errors if the processor cannot compute everything very quickly before the next refresh cycle.
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
 --                                    mist_4_5_126.lua (or later)                                                   --
@@ -390,6 +392,7 @@ Airrace = {
 	FireworksEndZones = {},
 	GroupCurrentRankings = {},
 	AutoDraw = true,
+	PlotRaceLines = true,
 	BreadCrumbs = {CurrentIndex = 1201},
 	BestRacingLine = {},
 	PlayerBestData = {},
@@ -407,7 +410,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, saveData, saveFilename)
+						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
 	local obj = {
         DistanceUnits = distanceUnits,
 		RaceZones = triggerZoneNames,
@@ -453,6 +456,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		FireworksEndZones = fireworksEndZones,
 		GroupCurrentRankings = {},
 		AutoDraw = autoDraw or true,
+		PlotRaceLines = plotRaceLines or true,
 		BreadCrumbs = {CurrentIndex = 1201},
 		BestRacingLine = {},
 		PlayerBestData = {},
@@ -1114,28 +1118,30 @@ end
 -----------------------------------------------------------------------------------------
 -- automatically draw the route on the map and add gate labels
 function drawPolyline(coordinateList, lineColor, lineType, closedPolyline, playerName, textID)
-	--Draw the line
-	local startingPoint = {}
-	local endPoint = {}
-	for pointNum, coords in ipairs(coordinateList) do
-		
-		if pointNum > 1 then
-			startingPoint = coordinateList[pointNum-1]
-			endPoint = coords
-			trigger.action.lineToAll(__CoalitionAll, coords.ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
-		end		
-	end	
-	if closedPolyline == true then
-		startingPoint = coordinateList[#coordinateList]
-		endPoint = coordinateList[1]
-		trigger.action.lineToAll(__CoalitionAll, coordinateList[1].ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
-	end
+	if playerName == "AutoDraw" or race.PlotRaceLines == true then
+		--Draw the line
+		local startingPoint = {}
+		local endPoint = {}
+		for pointNum, coords in ipairs(coordinateList) do
+			
+			if pointNum > 1 then
+				startingPoint = coordinateList[pointNum-1]
+				endPoint = coords
+				trigger.action.lineToAll(__CoalitionAll, coords.ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+			end		
+		end	
+		if closedPolyline == true then
+			startingPoint = coordinateList[#coordinateList]
+			endPoint = coordinateList[1]
+			trigger.action.lineToAll(__CoalitionAll, coordinateList[1].ID, startingPoint, endPoint, lineColor, lineType) --(coaltion, ID num, start vec3, end vec3, color {r,g,b,a}, linetype)
+		end
 
-	--Draw the text label with the player's name next to the line
-	if playerName ~= "AutoDraw" then
-		local randomLocationForLabel = math.random(1, #coordinateList)
-		trigger.action.textToAll(__CoalitionAll, textID, coordinateList[randomLocationForLabel], lineColor, {0,0,0,0}, 12, false, string.format("%s", playerName)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
-	end	
+		--Draw the text label with the player's name next to the line
+		if playerName ~= "AutoDraw" then
+			local randomLocationForLabel = math.random(1, #coordinateList)
+			trigger.action.textToAll(__CoalitionAll, textID, coordinateList[randomLocationForLabel], lineColor, {0,0,0,0}, 12, false, string.format("%s", playerName)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
+		end	
+	end
 end
 -----------------------------------------------------------------------------------------
 -- store the trail history for later display on the map when the player finishes or DNF's
@@ -1176,7 +1182,7 @@ function Airrace:SaveBestRacingLine(player)
 	end	
 
 	--erase the AutoDraw line, if there is one
-	if self.AutoDraw == true and self.FastestTime == 0 then
+	if self.AutoDraw == true and self.FastestTime == 0 and self.PlotRaceLines == true then
 		for idx, data in ipairs(self.BreadCrumbs.AutoDraw) do
 			trigger.action.removeMark(data.ID)
 		end
@@ -1206,16 +1212,18 @@ end
 -----------------------------------------------------------------------------------------
 -- automatically draw the history trail on the map when the player finishes or DNF's
 function Airrace:ShowBreadCrumbs(player)
-	if self.BreadCrumbs[player.Name] then
-		--choose a random color for this player's data
-		local lineColor = {	math.random(1,100)/100,
-							math.random(1,100)/100,
-							math.random(1,100)/100,
-							1}
-		--plot it
-		self.BreadCrumbs[player.Name].textID = self.BreadCrumbs.CurrentIndex
-		drawPolyline(self.BreadCrumbs[player.Name], lineColor, __LineDotted, false, player.Name, self.BreadCrumbs.CurrentIndex)
-		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1		
+	if self.PlotRaceLines == true then
+		if self.BreadCrumbs[player.Name] then
+			--choose a random color for this player's data
+			local lineColor = {	math.random(1,100)/100,
+								math.random(1,100)/100,
+								math.random(1,100)/100,
+								1}
+			--plot it
+			self.BreadCrumbs[player.Name].textID = self.BreadCrumbs.CurrentIndex
+			drawPolyline(self.BreadCrumbs[player.Name], lineColor, __LineDotted, false, player.Name, self.BreadCrumbs.CurrentIndex)
+			self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1		
+		end
 	end
 end
 -----------------------------------------------------------------------------------------
@@ -1996,7 +2004,7 @@ function startRaceScript()
 	--      }
 
 		--run scheduled timers...
-		ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
+		ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), RaceScriptRefreshRate)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
 		ScheduledFunctionNewPlayerTimer = mist.scheduleFunction(NewPlayerTimer, { race }, timer.getTime(), newPlayerCheckInterval)
 		ScheduledFunctionRemovePlayerTimer = mist.scheduleFunction(RemovePlayerTimer, { race }, timer.getTime(), removePlayerCheckInterval)
 	else
@@ -2125,8 +2133,10 @@ function Init()
 	local fireworksStartZones = {}
 	local fireworksEndZones = {}
 	local autoDraw = AutoDraw or true
+	local plotRaceLines = PlotRaceLines or true
 	local saveData = false --default value until desanitization is checked
 	local saveFilename = SaveFilename or "MyRaceData.txt"
+	RaceScriptRefreshRate = RaceScriptRefreshTime or 0.2
 
 	--count the number of each type of zone
 	local numberRaceZones = countZones("racezone")
@@ -2146,23 +2156,27 @@ function Init()
 	--protect values to valid ranges
 	if distanceUnits ~= "ft" and distanceUnits ~= "m" then 
 		distanceUnits = "ft" 
-		env.info("Invalid setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
+		logMessage("Invalid setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
 	end
 	if groupRace ~= true and groupRace ~= false then 
 		groupRace = false
-		env.info("Invalid setting for GroupRace. Must be true or false. Resetting to default: false.")
+		logMessage("Invalid setting for GroupRace. Must be true or false. Resetting to default: false.")
 	end
 	if illuminationOn ~= true and illuminationOn ~= false then 
 		illuminationOn = true
-		env.info("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true")
+		logMessage("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true")
 	end
 	if autoDraw ~= true and autoDraw ~= false then 
 		autoDraw = true
-		env.info("Invalid setting for AutoDraw. Must be true or false. Resetting to default: true")
+		logMessage("Invalid setting for AutoDraw. Must be true or false. Resetting to default: true")
+	end
+	if plotRaceLines ~= true and plotRaceLines ~= false then 
+		plotRaceLines = true
+		logMessage("Invalid setting for PlotRaceLines. Must be true or false. Resetting to default: true")
 	end
 	if saveData ~= true and saveData ~= false then 
 		saveData = false
-		env.info("Invalid setting for SaveData. Must be true or false. Resetting to default: false")
+		logMessage("Invalid setting for SaveData. Must be true or false. Resetting to default: false")
 	end
 	numberLaps = math.floor(numberLaps)
 	if illuminationBrightness > 1000000 then
@@ -2242,12 +2256,12 @@ function Init()
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, 
-							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, saveData, saveFilename)
+							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
 
 		race:loadRaceData() --read saved data from file
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz
-			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
+			ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), RaceScriptRefreshRate)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
 			                                                                                               --Note: 300 knots is about 500 ft/sec. 0.2sec repeating function is once per 100ft of aircraft travel. Trigger zones smaller than this may be missed!
 			ScheduledFunctionNewPlayerTimer = mist.scheduleFunction(NewPlayerTimer, { race }, timer.getTime(), newPlayerCheckInterval)
 			ScheduledFunctionRemovePlayerTimer = mist.scheduleFunction(RemovePlayerTimer, { race }, timer.getTime(), removePlayerCheckInterval)
