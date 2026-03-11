@@ -1,36 +1,49 @@
---OPTIONAL SETTINGS:------------------
-DistanceUnits = "m" --[optional, "ft"] 
-NumberLaps = 3 --[optional, 0]
-NewPlayerCheckInterval = 3 --[optional, 1]
-RemovePlayerCheckInterval = 20 --[optional, 30]
-HorizontalGates = {3,6,9,12} --[optional, {1}]
-VerticalGates = {4,7,11} --[optional, {}]
-RaceZoneCeiling = 2000 --[optional, 99999]
-GateHeight = 150 --[optional, 300]
-CustomGateHeights = { gate1={0,500}, gate12={100,400} } --[optional, {}]
-BonusGates = {2, 4} --[optional, {}]
-BonusGateHeight = 15 --[optional, 20]
-CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} } --[optional, {}]
-BonusTime = 2 --[optional, 1]
+--SETTINGS: (All are optional)---------------------------
+--Default values shown in brackets
+--Changing the defaults won't do anything
+--Change values as needed or delete the line if happy with the default
+--Refer to GTFreeFlyer's GitHub documentation for detailed explanations
+--Delete the double-dash and default at end of line if you prefer a clean look
 
---PENALTY AND DNF SETTINGS:-------------
-PenaltyTimeMissedGate = 4 --[optional, 5]
-PenaltyTimePylonHit = 2 --[optional, 3]
-PenaltyTimeAboveGateHeight = 2 --[optional, 2]
-PenaltyTimeHorizontalGate = 1 --[optional, 2]
-PenaltyTimeVerticalGate = 1 --[optional, 2]
-NumberMissedGatesDNF = 3 --[optional, 999]
-NumberPylonHitsDNF = 3 --[optional, 999]
-StartSpeedLimit = 300 --[optional, 999]
+--COURSE SETTINGS:------------
+DistanceUnits = "m" --["ft"]
+NumberLaps = 3 --[0]
+NewPlayerCheckInterval = 3 --[1]
+RemovePlayerCheckInterval = 20 --[30]
+HorizontalGates = {3,6,9,12} --[{1}]
+VerticalGates = {4,7,11} --[{}]
+InvertedGates = {2,5} --[{}]
+RaceZoneCeiling = 2000 --[99999]
+GateHeight = 150 --[300]
+CustomGateHeights = { gate1={0,500}, gate12={100,400} } --[{}]
+BonusGates = {2, 4} --[{}]
+BonusGateHeight = 15 --[20]
+CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} } --[{}]
+BonusTime = 2 --[1]
+AutoDraw = false --[true]
+SaveFilename = "WarbirdRaceData.txt" --["MyRaceData.txt"]
+
+--PENALTY AND DNF SETTINGS:------------
+PenaltyTimeMissedGate = 4 --[5]
+PenaltyTimePylonHit = 2 --[3]
+PenaltyTimeAboveGateHeight = 2 --[2]
+PenaltyTimeHorizontalGate = 1 --[2]
+PenaltyTimeVerticalGate = 1 --[2]
+PenaltyTimeInvertedGate = 1 --[2]
+NumberMissedGatesDNF = 3 --[999]
+NumberPylonHitsDNF = 3 --[999]
+StartSpeedLimit = 300 --[999]
+
 --GROUP RACE SETTINGS------------------
-GroupRace = true --[optional, false]
-GroupRaceTimeout = 30 --[optional, 120]
-PaceUnitName = "PacePlane" --[optional, nil]
-GroupRaceParticipantFilter = 6000 --[optional, 999999]
+GroupRace = true --[false]
+GroupRaceTimeout = 30 --[120]
+PaceUnitName = "PacePlane" --[nil]
+GroupRaceParticipantFilter = 6000 --[999999]
+
 --NIGHT RACE ILLUMINATION SETTINGS------
-IlluminationOn = false --[optional, true]
-IlluminationStartTime = 65000 --[optional, 64800]
-IlluminationStopTime = 22000 --[optional, 21600]
-IlluminationBrightness = 20000 --[optional, 10000]
-IlluminationAGL = 3000 --[optional, 2600]
-IlluminationRespawnTimer = 120 --[optional, 240]
+IlluminationOn = false --[true]
+IlluminationStartTime = 65000 --[64800]
+IlluminationStopTime = 22000 --[21600]
+IlluminationBrightness = 20000 --[10000]
+IlluminationAGL = 3000 --[2600]
+IlluminationRespawnTimer = 120 --[240]
