@@ -1958,46 +1958,50 @@ end
 -----------------------------------------------------------------------------------------
 -- Start the script - This function is only used to start group races. Not needed for individual races
 function startRaceScript()
-	env.info("Start Airrace script")
-	--reinitialize parameters for repeat races
-	race.Players = {} 
-	race.LastMessage = ''
-	race.LastMessageId = 0
-	GroupWinnerCrossedFinishLine = false
-	trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
-	trigger.action.setUserFlag("GroupRaceFinished", 0) --optional flag to be used in the .miz for whatever purpose 
-	trigger.action.setUserFlag("FinishLineCrossed", 0) --optional flag to be used in the .miz for whatever purpose 
+	if race then
+		env.info("Start Airrace script")
+		--reinitialize parameters for repeat races
+		race.Players = {} 
+		race.LastMessage = ''
+		race.LastMessageId = 0
+		GroupWinnerCrossedFinishLine = false
+		trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
+		trigger.action.setUserFlag("GroupRaceFinished", 0) --optional flag to be used in the .miz for whatever purpose 
+		trigger.action.setUserFlag("FinishLineCrossed", 0) --optional flag to be used in the .miz for whatever purpose 
 
-	--Build an empty table to hold ranking data (names and gate times)
-	race.GroupCurrentRankings = {}
-	local numLaps = race.NumberLaps
-	if numLaps == 0 then numLaps = 1 end
-		for lap = 1, numLaps do
-		table.insert(race.GroupCurrentRankings, {})
-		for gate = 1, #race.Course.Gates do
-			table.insert(race.GroupCurrentRankings[lap], {})
+		--Build an empty table to hold ranking data (names and gate times)
+		race.GroupCurrentRankings = {}
+		local numLaps = race.NumberLaps
+		if numLaps == 0 then numLaps = 1 end
+			for lap = 1, numLaps do
+			table.insert(race.GroupCurrentRankings, {})
+			for gate = 1, #race.Course.Gates do
+				table.insert(race.GroupCurrentRankings[lap], {})
+			end
 		end
-	end
-	--example format of GroupCurrentRankings table: This just collects the data to be sorted later into the Ranks table
---    GroupCurrentRankings={  
---       {--lap 1
---         {name1={time=time1, aircraftType=aircraftType}, name2={time=time2, aircraftType=aircraftType}}, --gate1
---         {name1={time=time3, aircraftType=aircraftType}}, --gate2
---         {}, --gate3
---         {}, --gate4
---       },
---       {--lap 2
---         {}, --gate1
---         {}, --gate2
---         {}, --gate3
---         {}, --gate4
---       },
---      }
+		--example format of GroupCurrentRankings table: This just collects the data to be sorted later into the Ranks table
+	--    GroupCurrentRankings={  
+	--       {--lap 1
+	--         {name1={time=time1, aircraftType=aircraftType}, name2={time=time2, aircraftType=aircraftType}}, --gate1
+	--         {name1={time=time3, aircraftType=aircraftType}}, --gate2
+	--         {}, --gate3
+	--         {}, --gate4
+	--       },
+	--       {--lap 2
+	--         {}, --gate1
+	--         {}, --gate2
+	--         {}, --gate3
+	--         {}, --gate4
+	--       },
+	--      }
 
-	--run scheduled timers...
-	ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
-	ScheduledFunctionNewPlayerTimer = mist.scheduleFunction(NewPlayerTimer, { race }, timer.getTime(), newPlayerCheckInterval)
-	ScheduledFunctionRemovePlayerTimer = mist.scheduleFunction(RemovePlayerTimer, { race }, timer.getTime(), removePlayerCheckInterval)
+		--run scheduled timers...
+		ScheduledFunctionRaceTimer = mist.scheduleFunction(RaceTimer, { race }, timer.getTime(), 0.2)  -- GT: I made each one of these a global var so they could be stopped via scripting if desired, using mist.removeFunction
+		ScheduledFunctionNewPlayerTimer = mist.scheduleFunction(NewPlayerTimer, { race }, timer.getTime(), newPlayerCheckInterval)
+		ScheduledFunctionRemovePlayerTimer = mist.scheduleFunction(RemovePlayerTimer, { race }, timer.getTime(), removePlayerCheckInterval)
+	else
+		logMessage("racezone or gate triggerzones not found. You must have BOTH! Script will not start.")
+	end
 end
 
 -----------------------------------------------------------------------------------------
@@ -2285,21 +2289,20 @@ function Init()
 			end		
 		end
 
+		if illuminationOn == true then
+			mist.scheduleFunction(RefreshIllumination, { race }, timer.getTime(), illuminationRespawnTimer)
+		end
+
+		PopSmokeMarkers()
+		world.addEventHandler(crashHandler)
+		env.info("AirRaceScript loaded successfully")
 	else
-		logMessage("Variables 'NumberRaceZones' or 'NumberGates' not set")
-	end
-
-	if illuminationOn == true then
-		mist.scheduleFunction(RefreshIllumination, { race }, timer.getTime(), illuminationRespawnTimer)
-	end
-
-    PopSmokeMarkers()
+		logMessage("racezone or gate triggerzones not found. You must have BOTH! Script will not start.")		
+	end	    
 end
 
 env.info("-----------------------------------------------------------------------------------------")
 env.info("Load AirRaceScript4.3")
 env.info("To grab the script for yourself and view the full documentation, please visit github.com/GTFreeFlyer/DCSAirRaceScript")
-
-world.addEventHandler(crashHandler)
 
 Init()
