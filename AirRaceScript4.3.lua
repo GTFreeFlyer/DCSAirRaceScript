@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------------------------------------------
 -- Script       : CrossCountryRace.lua - Multiplayer Cross-Country Airrace Script                                   --
--- Version      : 4.2                                                                                               --
+-- Version      : 4.3                                                                                               --
 -- Requirements : - DCS World 2.5.6 or later                                                                        --
 --                - Mist 4.5.126                                                                                    --
 -- Original Author: Bas 'Joe Kurr' Weijers                                                                          --
@@ -2297,7 +2297,7 @@ function Init()
 end
 
 env.info("-----------------------------------------------------------------------------------------")
-env.info("Load AirRaceScript4.2")
+env.info("Load AirRaceScript4.3")
 env.info("To grab the script for yourself and view the full documentation, please visit github.com/GTFreeFlyer/DCSAirRaceScript")
 
 world.addEventHandler(crashHandler)
