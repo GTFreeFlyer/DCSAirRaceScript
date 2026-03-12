@@ -112,6 +112,7 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
 7. Create the first gate by placing a trigger zone named "gate-1".  
       * Note: All trigger zone names mentioned in this tutorial are case-sensitive, so type them exactly as shown.  
       * All trigger zones must start with number 1 and increment by 1 at a time. No leading zeroes. Do not skip numbers.  
+      * Caution: Placing anything (zones, static objects, etc.) in areas with lots of terrain fluctuations (mountains, rolling hills, etc.) may produce strange results when evaluating your altitude at the gate. This is a DCS limitation with how terrain elevations are returned to us via their scripting function. When trying to pull the terrain elevation under the exact spot of your plane, DCS might give something that seems off. Possibly a terrain mesh vs. visualization thing. I really don't know. This is evident as sometimes when you place a static object there, they won't show up. They're probably underground. If you move them slightly, even just a few feet, they will likely show up. Yeah, strange stuff and we can't do much about it.  
 
 8. You want your racers to know where these trigger zones are, so place any object you like on either side of the zone, or just one one side of the zone if you prefer it that way.  
       * Make sure these object are INSIDE of the gate zone, so that you'll be able to detect pylon hits.  
@@ -154,7 +155,7 @@ or...
 Okay, that covers all the required stuff, but wait!... There are more (optional) goodies below, and we still need to go back to the Race Settings. More on that in a later section below.
 
 15. Let's get fancy and add some fireworks effects! Fireworks (signal flares) will pop up from trigger zones names "fireworks-1" and so on.  
-      * The size of the zone is irrelevant.  
+      * The size of the zone is irrelevant. Only the center point is used.  
       * They fire off whenever any racer crosses the starting line (solo racing), the first racer crosses the starting line (group racing), or when any aircraft crosses the finish line.
       * If you want them to only appear after the starting line is crossed, use trigger zone names "fireworks-start-1" and so on.  
       * If you want them to only appear after the finish line is crossed, use trigger zone names "fireworks-end-1" and so on.  
@@ -166,6 +167,7 @@ Okay, that covers all the required stuff, but wait!... There are more (optional)
 16. Interested in night racing? It's wild!  
       * The script will automatically light up the course with illumination flares above every gate trigger zone.  
       * Want additional lighting? Easy! Place trigger zones named "illum-1", "illum-2", and so on.  
+      * The size of the zone is irrelevant. Only the center point is used.    
 ![Adding additional night lighting](screenshots/illum.png)  
 ![Race4](screenshots/race4.jpg)  
 ![Race5](screenshots/race5.jpg)
@@ -175,6 +177,7 @@ Okay, that covers all the required stuff, but wait!... There are more (optional)
       * The numbering is per color. For example: "Green smoke-1", "Green smoke-2", "Blue smoke-1", "Green smoke-3", "Red smoke-1", etc.  Simply start with -1 for each color you want, then copy and paste the trigger zones and they should automatically be named appropriately.  
       * As always, no leading zeroes, and don't skip numbers!  
       * The script will automatically create the smoke at these trigger zones AND keep them refreshed every 5 minutes.  
+      * The size of the zone is irrelevant. Only the center point is used.  
       * In the example below, I placed the different colors along either side of the runway.  
 ![SmokeTZ](screenshots/smokeTZ.jpg)
 ![Smoke](screenshots/smoke.jpg)  

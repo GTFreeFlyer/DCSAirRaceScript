@@ -9,6 +9,7 @@ Changes by GTFreeFlyer, date TBD
 * Fix bug with feet to meter conversion in custom gate height function.
 * Fix issue with group leaderboard not ranking in correct order
 * Fixed AutoDraw line showing up even when user set it to false
+* Added aircraft type to the label next to the best race line
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
 Changes by GTFreeFlyer, March 10, 2026  

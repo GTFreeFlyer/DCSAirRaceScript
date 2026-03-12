@@ -1217,7 +1217,7 @@ function Airrace:SaveBestRacingLine(player)
 	self.BreadCrumbs[player.Name] = nil
 
 	--draw the new best line
-	drawPolyline(self.BestRacingLine, __Green, __LineSolid, false, "Best by\n" .. player.Name, self.BestRacingLine.textID)
+	drawPolyline(self.BestRacingLine, __Green, __LineSolid, false, string.format("Best by\n%s\n%s",player.Name, player.aircraftType), self.BestRacingLine.textID)
 end
 -----------------------------------------------------------------------------------------
 -- automatically draw the history trail on the map when the player finishes or DNF's
@@ -2307,7 +2307,7 @@ function Init()
 				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
 			else
 				--draw the saved best line
-				drawPolyline(race.BestRacingLine, __Green, __LineSolid, closedPolyline, "Best by\n" .. race.FastestPlayer, race.BreadCrumbs.CurrentIndex)	
+				drawPolyline(race.BestRacingLine, __Green, __LineSolid, closedPolyline, string.format("Best by\n%s\n%s", race.FastestPlayer, race.FastestAircraft), race.BreadCrumbs.CurrentIndex)	
 				race.BestRacingLine.textID = race.BreadCrumbs.CurrentIndex
 				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
 			end		
