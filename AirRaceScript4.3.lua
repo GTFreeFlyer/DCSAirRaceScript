@@ -1035,18 +1035,10 @@ end
 function Airrace:SortRanks(currentRaceData)
 	local added = {}    -- track which players already ranked
 	local bucket = {}   -- a temporary holding table that will be sorted
-	local numLaps = 0   -- initialize the variable as a local
-	
-	--the script always assumes you are on lap 1 when you start, even on point A to point B (zero lap) races
-	if self.NumberLaps == 0 then
-		numLaps = 1
-	else
-		numLaps = self.NumberLaps
-	end
+	local numLaps = (self.NumberLaps == 0) and 1 or self.NumberLaps --the script always assumes you are on lap 1 when you start, even on point A to point B (zero lap) races
 
 	-- search backwards through the table for efficiency
 	for lap = numLaps, 1, -1 do
-		--local lapData = currentRaceData[lap]
 		for gate = #self.Course.Gates, 1, -1 do
 			
 			-- collect all players who have a time at this lap/gate
@@ -1054,11 +1046,24 @@ function Airrace:SortRanks(currentRaceData)
 				if not added[name] then
 					added[name] = true
 					table.insert(bucket, {name=name, lap=lap, gate=gate, time=data.time, aircraftType=data.aircraftType})
-					table.sort(bucket, function(a,b) return a.time < b.time end) -- sort this bucket by lowest time
 				end
 			end
 		end
-	end	
+	end
+	
+	-- Sort by:
+    -- 1. highest lap
+    -- 2. highest gate
+    -- 3. lowest time
+    table.sort(bucket, function(a, b)
+			if a.lap ~= b.lap then
+				return a.lap > b.lap
+			elseif a.gate ~= b.gate then
+				return a.gate > b.gate
+			else
+				return a.time < b.time
+			end
+		end)
 	
 	return bucket
 end

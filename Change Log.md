@@ -7,6 +7,7 @@ Changes by GTFreeFlyer, date TBD
 * Add user option to plot, or not plot race lines on the F10 map, for competition reasons.
 * Added user setting (experimental!) to adjust the refresh rate of the script.
 * Fix bug with feet to meter conversion in custom gate height function.
+* Fix issue with group leaderboard not ranking in correct order
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
 Changes by GTFreeFlyer, March 10, 2026  
