@@ -33,6 +33,7 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Information display for keeping track of your progress as well as the competition's.  
 * Group races have a dynamic leaderboard display that changes as players overtake each other.  
 * Your trail history (race line) is plotted on the F10 map after the race, for post-race review. Different colors for each player, and includes a label next ot the line with player's name in same color.
+* Two F10 radio menu categories: Top 10 Racers (no repeated names), and Top 10 Times (names may be repeated)
 * Define the number of laps for your race.
 * Detects pylon hits, missed gates, entry into restriced zones, etc.  Define how many of each result in a DNF. Restricted zones yield an immediate DNF.
 * Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.

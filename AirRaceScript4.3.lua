@@ -266,7 +266,6 @@ function Player:StartTimer()
 				self.IntermediateTimes[lap][gate]=0
 			end
 		end
-
 	end
 end
 
@@ -396,7 +395,8 @@ Airrace = {
 	BreadCrumbs = {CurrentIndex = 1201},
 	BestRacingLine = {},
 	PlayerBestData = {},
-	TopTen = {},
+	TopTenRacers = {},
+	TopTenTimes = {},
 	SaveData = false,
 	SaveFilename = "MyRaceData.txt",
 }
@@ -460,7 +460,8 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		BreadCrumbs = {CurrentIndex = 1201},
 		BestRacingLine = {},
 		PlayerBestData = {},
-		TopTen = {},
+		TopTenRacers = {},
+		TopTenTimes = {},
 		SaveData = saveData,
 		SaveFilename = saveFilename,
 	}
@@ -481,7 +482,7 @@ function Airrace:saveRaceData()
 						BestRacingLine=self.BestRacingLine, 
 						PlayerBestData=self.PlayerBestData
 						}
-		--where PlayerBestData table format = {name1 = {FastestTime = time}, name2 = {FastestTime = time}, ...}
+		--where PlayerBestData table format = {name1 = {time1, time2, time3 ...}, name2 = {name1 = {time1, time2, time3 ...}, ...}
 		
 		local file = assert(io.open(self.SaveFilename, "w"))
 
@@ -566,28 +567,58 @@ end
 -----------------------------------------------------------------------------------------
 -- Sort and display the top 10 racers in the F10 menu
 function Airrace:displayTopTenRacers(bestTimes)
-	self.TopTen = {}
+--example bestTimes format: 
+-- = {GT = {93,49,38,70,30,81,15,58,93,16}, 
+  --  FD = {90},
+  --  AB = {76,68,83,96,48,29,29,89},
+  --  BC = {28,85,51,72,10,75,76},
+  --  CD = {15,85,87,50,4,99,14,27,34,98},
+  --  EF = {50,95,7,30,4,1,80,22,78,25}    }
+
+	self.TopTenRacers = {}
+	self.TopTenTimes = {}
 
 	--delete the existing F10 menu group, if there is one, and create a new one
 	missionCommands.removeItem(TopTenRacePilotsMenu)
+	missionCommands.removeItem(TopTenRaceTimesMenu)
 	TopTenRacePilotsMenu = missionCommands.addSubMenu("Top 10 Racers", nil)
+	TopTenRaceTimessMenu = missionCommands.addSubMenu("Top 10 Times", nil)
 
-	--create a list of all the player times. it will be sorted and truncated later
-	for name, time in pairs(bestTimes) do
-		table.insert(self.TopTen, {name = name, time = time.FastestTime})
+	--create a list of all the best players. it will be sorted and truncated later
+	for name, times in pairs(bestTimes) do
+		local fastest = math.huge
+		for _, time in ipairs(times) do
+			if time < fastest then
+				fastest = time
+			end
+		end
+		table.insert(self.TopTenRacers, {name = name, time = fastest})
 	end
 
-	local function compareTimes(a, b)
-		return a.time < b.time
+	--create a list of all the best times. it will be sorted and truncated later
+	for name, times in pairs(bestTimes) do
+		for _, time in ipairs(times) do
+			table.insert(self.TopTenTimes, {name = name, time = time})
+		end
 	end
-	table.sort(self.TopTen, compareTimes)
 
+	--sort each of the two tables...
+	table.sort(self.TopTenRacers, function(a,b) return a.time < b.time end)
+	table.sort(self.TopTenTimes, function(a,b) return a.time < b.time end)
+
+	--print the data into the F10 menu categories
 	for rank = 1, 10 do
-		if self.TopTen[rank] then
-			--print (rank .. ". "  .. self.TopTen[rank].name .. "|" .. self.TopTen[rank].time)
-			missionCommands.addCommand(self.TopTen[rank].name .. " | " .. formatTime(self.TopTen[rank].time), TopTenRacePilotsMenu, function() end, nil)
+		if self.TopTenRacers[rank] then
+			missionCommands.addCommand(self.TopTenRacers[rank].name .. " | " .. formatTime(self.TopTenRacers[rank].time), TopTenRacePilotsMenu, function() end, nil)
 		else
 			missionCommands.addCommand("(Empty)", TopTenRacePilotsMenu, function() end, nil)
+		end
+	end
+	for rank = 1, 10 do
+		if self.TopTenTimes[rank] then
+			missionCommands.addCommand(self.TopTenTimes[rank].name .. " | " .. formatTime(self.TopTenTimes[rank].time), TopTenRaceTimesMenu, function() end, nil)
+		else
+			missionCommands.addCommand("(Empty)", TopTenRaceTimesMenu, function() end, nil)
 		end
 	end
 end
@@ -1569,20 +1600,31 @@ function Airrace:UpdatePlayerStatus(player)
 				--save best time for player
 				if not self.PlayerBestData[player.Name] then
 					--player history not found. create a new entry for him
-					self.PlayerBestData[player.Name] = {FastestTime = player.TotalTime + player.Penalty - player.Bonus}
-					env.info("self.PlayerBestData[" .. player.Name .. "].FastestTime = " .. player.TotalTime + player.Penalty - player.Bonus) --debug
+					self.PlayerBestData[player.Name] = {player.TotalTime + player.Penalty - player.Bonus}
 					self:saveRaceData()
 				else
 					--player has history in the course...
-					if self.PlayerBestData[player.Name].FastestTime > player.TotalTime + player.Penalty - player.Bonus then
+					--find best time...
+					local fastest = math.huge
+					for _, time in ipairs(self.PlayerBestData[player.Name]) do
+						fastest = (time < fastest) and time or fastest 
+					end
+					--check if it is a personal best
+					if fastest > player.TotalTime + player.Penalty - player.Bonus then
 						--new personal best time for the player
-						self.PlayerBestData[player.Name].FastestTime = player.TotalTime + player.Penalty - player.Bonus
-						if self.FastestPlayer ~= player.Name then
+						if self.FastestPlayer ~= player.Name then --this prevents showing Fastest time (for the course) and personal best (which is inferred)
 							player.StatusText = string.format("%s - Personal best!", player.StatusText)		
 						end
-						env.info(string.format("%s achieved a new personal best: %s", player.Name, formatTime(self.FastestTime)))
-						self:saveRaceData()
+						env.info(string.format("%s achieved a new personal best: %s", player.Name, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
+					else
+						--not a personal best. do nothing and just continue below to save the time into the history
 					end
+					table.insert(self.PlayerBestData[player.Name], player.TotalTime + player.Penalty - player.Bonus)
+
+					--let's save only the player's 10 best times...
+					table.sort(self.PlayerBestData[player.Name], function(a,b) return a < b end)
+					self.PlayerBestData[player.Name][11] = nil --automatically cuts off ranks 11 and higher
+					self:saveRaceData()
 				end				
 
 				--fireworks!
