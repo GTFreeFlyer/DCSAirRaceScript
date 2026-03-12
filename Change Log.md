@@ -1,8 +1,16 @@
 (Most recent items on top)  
 -------------------------------------------------------------------------------------  
 AirRaceScript4.3  
-Changes by GTFreeFlyer, date TBD
+Changes by GTFreeFlyer, March 12, 2026
 
+* !!!BACKWARDS COMPATIBILITY NOTICE!!! There is a change to the SaveFilename setting.  
+     You must now simply type the mission name (suggest same as .miz name). "MyRace"  
+     Previously it was "MyRaceData.txt".  This new version automatically will append Data.txt.  
+     The reason is that this setting is now used elsewhere in the script for other purposes. 
+* !!!BACKWARDS COMPATIBILITY NOTICE!!! There is a change to the saved race data format. Sorry,  
+     but you will need to delete your previous save data file BEFORE you launch your mission  
+     with this new v4.3 script.  This is for the greater good, as now your 10-best times will  
+     be stored (per player), instead of only the best time.  
 * Prevent script error pop-up if player does not add gates or racezones properly.
 * Add user option to plot, or not plot race lines on the F10 map, for competition reasons.
 * Added user setting (experimental!) to adjust the refresh rate of the script.
@@ -12,6 +20,7 @@ Changes by GTFreeFlyer, date TBD
 * Added aircraft type to the label next to the best race line
 * Duplicate best time by racer shown in the info header - FIXED
 * Added new F10 menu category, Top 10 Times. This is in addition to the existing Top 10 Racers.
+* Added log output for undisclosed 3rd party tool to use in its parser
 * Added more general-purpose flags for mission design options:
    * RacerCrashed, RacerEjected, RacerDied, RacerDisconnected, and NewBestTime
 -------------------------------------------------------------------------------------  

@@ -73,7 +73,7 @@
 --                                    IlluminationRespawnTimer = <seconds until respawn>                  [optional]-- default: 240 Illum. flares last for 4 minutes before the burn out.
 --                                    AutoDraw = <true or false to draw the route on the map>             [optional]-- default: true
 --                                    PlotRaceLines = <true or false to draw the race lines on the map>   [optional]-- default: true.  You may want to turn it off for competitions where racers don't want others stealing their race line
---                                    SaveFilename = <filename, ex. "MyRaceData.txt">                     [optional]-- default: "MyRaceData.txt". Make this unique for different missions, otherwise data will be overwritten!  Must desanitize the mission in order for the script to work properly. "F:\DCS World\Scripts\MissionScripting.lua".. must also do the same for the dedicated server install.
+--                                    SaveFilename = <filename, ex. "MyRace">                             [optional]-- default: "MyRace". Make this unique for different missions, otherwise data will be overwritten!  Must desanitize the mission in order for the script to work properly. "F:\DCS World\Scripts\MissionScripting.lua".. must also do the same for the dedicated server install.
 --                                    RaceScriptRefreshTime = <time in seconds to refresh the script>     [optional]-- default 0.2.  Warning, lowering this time has not been tested and may cause errors if the processor cannot compute everything very quickly before the next refresh cycle.
 --                                                                                                                  --
 --   2. Once     --> Time more(1) --> Do Script File                                                                --
@@ -111,6 +111,7 @@ Player = {
 	Name = '',
 	Unit = nil,
 	UnitName = '',
+	GroupName = '',
 	PlayerObject = nil,
 	UnitID = 0,
     AircraftType = '', --string. "A-10C, "KA-50", etc.
@@ -144,6 +145,7 @@ Player = {
 --
 function Player:New(playerUnit)
 	local unitName = playerUnit:getName() --string. unit name from the mission editor
+	local groupName = playerUnit:getGroup():getName() --string. group name from the mission editor
 	local playerName = ''
 
 	if playerUnit:getPlayerName() then
@@ -156,6 +158,7 @@ function Player:New(playerUnit)
 		Name = playerName,
 		Unit = Unit.getByName(unitName),
 		UnitName = unitName,
+		GroupName = groupName,
 		PlayerObject = playerUnit,
 		UnitID = Unit.getID(Unit.getByName(unitName)),
         AircraftType = playerUnit:getTypeName(), --string. "A-10C, "KA-50", etc.
@@ -278,6 +281,7 @@ function Player:StopTimer()
 		self.Started = false
 		self.Finished = true
 		self.PacePositionEvaluated = false --reset this flag for the next race (it is only used in group races led by a pace plane)
+		env.info(string.format("RACE FINISH|'%s'|''|'%s'|'%s'|'%s'|%.4f", SaveFilename, self.Name, self.AircraftType, self.GroupName, (self.TotalTime + self.Penalty - self.Bonus)))
 	end
 end
 
@@ -398,7 +402,7 @@ Airrace = {
 	TopTenRacers = {},
 	TopTenTimes = {},
 	SaveData = false,
-	SaveFilename = "MyRaceData.txt",
+	SaveFilename = "MyRace",
 }
 -----------------------------------------------------------------------------------------
 -- Airrace Constructor
@@ -455,8 +459,8 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		FireworksStartZones = fireworksStartZones,
 		FireworksEndZones = fireworksEndZones,
 		GroupCurrentRankings = {},
-		AutoDraw = autoDraw or true,
-		PlotRaceLines = plotRaceLines or true,
+		AutoDraw = autoDraw,
+		PlotRaceLines = plotRaceLines,
 		BreadCrumbs = {CurrentIndex = 1201},
 		BestRacingLine = {},
 		PlayerBestData = {},
@@ -582,7 +586,7 @@ function Airrace:displayTopTenRacers(bestTimes)
 	missionCommands.removeItem(TopTenRacePilotsMenu)
 	missionCommands.removeItem(TopTenRaceTimesMenu)
 	TopTenRacePilotsMenu = missionCommands.addSubMenu("Top 10 Racers", nil)
-	TopTenRaceTimessMenu = missionCommands.addSubMenu("Top 10 Times", nil)
+	TopTenRaceTimesMenu = missionCommands.addSubMenu("Top 10 Times", nil)
 
 	--create a list of all the best players. it will be sorted and truncated later
 	for name, times in pairs(bestTimes) do
@@ -1241,14 +1245,16 @@ function Airrace:SaveBestRacingLine(player)
 	self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
 
 	--erase the player's current dotted line from this race
-	for idx, data in ipairs(self.BreadCrumbs[player.Name]) do
-		trigger.action.removeMark(data.ID)
+	if self.PlotRaceLines == true then
+		for idx, data in ipairs(self.BreadCrumbs[player.Name]) do
+			trigger.action.removeMark(data.ID)
+		end
+		trigger.action.removeMark(self.BreadCrumbs[player.Name].textID)
+		self.BreadCrumbs[player.Name] = nil
 	end
-	trigger.action.removeMark(self.BreadCrumbs[player.Name].textID)
-	self.BreadCrumbs[player.Name] = nil
 
 	--draw the new best line
-	drawPolyline(self.BestRacingLine, __Green, __LineSolid, false, string.format("Best by\n%s\n%s",player.Name, player.aircraftType), self.BestRacingLine.textID)
+	drawPolyline(self.BestRacingLine, __Green, __LineSolid, false, string.format("Best by\n%s\n%s",player.Name, player.AircraftType), self.BestRacingLine.textID)
 end
 -----------------------------------------------------------------------------------------
 -- automatically draw the history trail on the map when the player finishes or DNF's
@@ -1571,6 +1577,7 @@ function Airrace:UpdatePlayerStatus(player)
 				end
 				player.PylonFlag = false
 				player:StopTimer()
+				self:StoreBreadCrumbs(player)
 				self:ShowBreadCrumbs(player)
 				if #self.BonusGates > 0 then
 					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s - Bonus:%d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
@@ -2170,12 +2177,12 @@ function Init()
 	local penaltyTimeInvertedGate = penaltyTimeInvertedGate or 2
 	local numberMissedGatesDNF = NumberMissedGatesDNF or 999
 	local numberPylonHitsDNF = NumberPylonHitsDNF or 999
-	local groupRace = GroupRace or false
+	local groupRace = GroupRace
 	local paceUnitName = PaceUnitName or nil
 	local fastestIntermediates = {{}}
 	local participantFilter = GroupRaceParticipantFilter or 99999
     local groupRaceTimeout = GroupRaceTimeout or 120
-	local illuminationOn = IlluminationOn or true
+	local illuminationOn = IlluminationOn
 	local illuminationStartTime = IlluminationStartTime or 64800
 	local illuminationStopTime = IlluminationStopTime or 21600
 	local illuminationBrightness = IlluminationBrightness or 10000
@@ -2184,10 +2191,10 @@ function Init()
 	local fireworksZones = {}
 	local fireworksStartZones = {}
 	local fireworksEndZones = {}
-	local autoDraw = AutoDraw or true
-	local plotRaceLines = PlotRaceLines or true
+	local autoDraw = AutoDraw
+	local plotRaceLines = PlotRaceLines
 	local saveData = false --default value until desanitization is checked
-	local saveFilename = SaveFilename or "MyRaceData.txt"
+	local saveFilename = SaveFilename or "MyRace"
 	RaceScriptRefreshRate = RaceScriptRefreshTime or 0.2
 
 	--count the number of each type of zone
@@ -2208,27 +2215,27 @@ function Init()
 	--protect values to valid ranges
 	if distanceUnits ~= "ft" and distanceUnits ~= "m" then 
 		distanceUnits = "ft" 
-		logMessage("Invalid setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
+		env.info("Invalid or missing setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
 	end
-	if groupRace ~= true and groupRace ~= false then 
+	if type(groupRace) ~= "boolean" then
 		groupRace = false
-		logMessage("Invalid setting for GroupRace. Must be true or false. Resetting to default: false.")
+		env.info("Invalid or missing setting for GroupRace. Must be true or false. Resetting to default: false.")
 	end
-	if illuminationOn ~= true and illuminationOn ~= false then 
+	if type(illuminationOn) ~= "boolean" then
 		illuminationOn = true
-		logMessage("Invalid setting for IlluminationOn. Must be true or false. Resetting to default: true")
+		env.info("Invalid or missing setting for IlluminationOn. Must be true or false. Resetting to default: true")
 	end
-	if autoDraw ~= true and autoDraw ~= false then 
+	if type(autoDraw) ~= "boolean" then
 		autoDraw = true
-		logMessage("Invalid setting for AutoDraw. Must be true or false. Resetting to default: true")
+		env.info("Invalid or missing setting for AutoDraw. Must be true or false. Resetting to default: true")
 	end
-	if plotRaceLines ~= true and plotRaceLines ~= false then 
+	if type(plotRaceLines) ~= "boolean" then
 		plotRaceLines = true
-		logMessage("Invalid setting for PlotRaceLines. Must be true or false. Resetting to default: true")
+		env.info("Invalid or missing setting for PlotRaceLines. Must be true or false. Resetting to default: true")
 	end
-	if saveData ~= true and saveData ~= false then 
+	if type(saveData) ~= "boolean" then
 		saveData = false
-		logMessage("Invalid setting for SaveData. Must be true or false. Resetting to default: false")
+		env.info("Invalid or missing setting for SaveData. Must be true or false. Resetting to default: false")
 	end
 	numberLaps = math.floor(numberLaps)
 	if illuminationBrightness > 1000000 then
@@ -2264,7 +2271,7 @@ function Init()
 	else
 		saveData = true
 		local RaceMissionDir = lfs.writedir() --get the .miz folder path
-		saveFilename = RaceMissionDir .. "Missions\\" .. saveFilename --add the filename to the end of the path
+		saveFilename = RaceMissionDir .. "Missions\\" .. saveFilename .. "Data.txt" --add the filename to the end of the path and append Data.txt
 		saveFilename = saveFilename:gsub("\\", "/") --replace the backslashes with forward slashes
 		env.info("Race mission data save location is: " .. saveFilename)
 	end
@@ -2352,7 +2359,7 @@ function Init()
 				drawPolyline(race.BestRacingLine, __Green, __LineSolid, closedPolyline, string.format("Best by\n%s\n%s", race.FastestPlayer, race.FastestAircraft), race.BreadCrumbs.CurrentIndex)	
 				race.BestRacingLine.textID = race.BreadCrumbs.CurrentIndex
 				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
-			end		
+			end	
 		end
 
 		if illuminationOn == true then

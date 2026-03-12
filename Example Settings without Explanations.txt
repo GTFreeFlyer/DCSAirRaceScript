@@ -22,7 +22,7 @@ CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} } --[{}]
 BonusTime = 2 --[1]
 AutoDraw = false --[true]
 PlotRaceLines = false --[true]
-SaveFilename = "WarbirdRaceData.txt" --["MyRaceData.txt"]
+SaveFilename = "WarbirdRace" --["MyRace"]
 RaceScriptRefreshTime = 0.1 --[0.2]
 
 --PENALTY AND DNF SETTINGS:------------
