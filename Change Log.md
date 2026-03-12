@@ -11,6 +11,8 @@ Changes by GTFreeFlyer, date TBD
 * Fixed AutoDraw line showing up even when user set it to false
 * Added aircraft type to the label next to the best race line
 * Duplicate best time by racer shown in the info header - FIXED
+* Added more general-purpose flags for mission design options:
+   * RacerCrashed, RacerEjected, RacerDied, RacerDisconnected, and NewBestTime
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
 Changes by GTFreeFlyer, March 10, 2026  

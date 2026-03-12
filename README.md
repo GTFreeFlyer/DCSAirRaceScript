@@ -402,21 +402,36 @@ IlluminationRespawnTimer = 120
 
 ## General Purpose Flags for Mission Creators:
 The script provides general-purpose flags that you may use to trigger your own stuff in the miz:  
-   * GroupRaceStarted (Toggles true when the first racer enters the first gate.)  
+   * GroupRaceStarted
+      * Toggles true when the first racer enters the first gate.
+      * This will automatically reset back to false at the beginning of a race when the timer starts.
    
-   * GroupRaceFinished (Toggles true about 15 seconds after the last racer has finished the race, or if there are no more racers remaining due to crashes, disconnects, etc)  
+   * GroupRaceFinished
+      * Toggles true about 15 seconds after the last racer has finished the race, or if there are no more racers remaining due to crashes, disconnects, etc.
+      * This will automatically reset back to false at the beginning of a race when the timer starts.
 
-   * FinishLineCrossed (Toggles true when the first racer crosses the finish line in a group race.)  
+   * FinishLineCrossed
+      * Toggles true when the first racer crosses the finish line in a group race.
+      * This will automatically reset back to false at the beginning of a race when the timer starts.  
 
-   * Lap1Gate1Reached, Lap1Gate2Reached ... Lap3Gate15Reached, etc. (Toggles true at the first occurrence of each gate hit. All will reset back to false at the beginning of a race when the timer starts)  
+   * NewBestTime
+      * Toggles true whenever a new best time has been set for the course.
+      * This will NOT automatically reset back to false. In your trigger action, you must reset it with FLAG OFF if you want to use it again for the next occurrence.
+
+   * Lap1Gate1Reached, Lap1Gate2Reached ... Lap3Gate15Reached, etc.
+      * Toggles true at the first occurrence of each gate hit. 
+      * These will reset back to false at the beginning of a race when the timer starts.  
+
+   * RacerCrashed, RacerEjected, RacerDied, and RacerDisconnected
+      * Toggles true when any of these events occur for ANY player. 
+      * In your trigger action, you must reset these with FLAG OFF if you want to use them again on the next occurrence.
 
 Example:  
 If you want to play a voiceover .ogg sound after the first aircraft reaches gate-3 on the first lap then...  
 Create a trigger as usual to play the .ogg file.  For that trigger's condition, you will select FLAG IS TRUE, and type "Lap1Gate3Reached", as shown without the quotemarks.  
 
 Note:  
-Use the flags above as read-only (don't change their values on your own).  
-All of them will be value 0 or 1 in the lua script, which is the same thing as false or true, and off or on, in DCS.  
+All flags will be value 0 or 1 in the lua script, which is the same thing as false or true, and off or on, in DCS.  
 (i.e. "Flag On" is the same thing as "Flag is true", and also the same thing as "Flag value = 1")  
     
 ## Contact Info:

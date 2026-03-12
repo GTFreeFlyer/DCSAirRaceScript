@@ -1558,7 +1558,8 @@ function Airrace:UpdatePlayerStatus(player)
 					self.FastestPlayer = player.Name
 					self.FastestAircraft = formatAircraftType(player.AircraftType)
 					player.StatusText = string.format("%s - Fastest time!", player.StatusText)
-					self.FastestIntermediates = player.IntermediateTimes					
+					self.FastestIntermediates = player.IntermediateTimes
+					trigger.action.setUserFlag("NewBestTime", 1) --optional flag to be used in the .miz for whatever purpose
 					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))					
 				else
 					player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
@@ -2050,12 +2051,16 @@ function crashHandler:onEvent(event)
 
 	if event.id == world.event.S_EVENT_CRASH then
 			reason = "Crashed"
+			trigger.action.setUserFlag("RacerCrashed", 1) --optional flag to be used in the .miz for whatever purpose
 	elseif event.id == world.event.S_EVENT_EJECTION then
-			reason = "Ejected"	
+			reason = "Ejected"
+			trigger.action.setUserFlag("RacerEjected", 1) --optional flag to be used in the .miz for whatever purpose
 	elseif event.id == world.event.S_EVENT_DEAD  or event.id == world.event.S_EVENT_PILOT_DEAD then
-			reason = "Died"	
+			reason = "Died"
+			trigger.action.setUserFlag("RacerDied", 1) --optional flag to be used in the .miz for whatever purpose
 	elseif event.id == world.event.S_EVENT_DISCONNECT then
 			reason = "Disconnected"	
+			trigger.action.setUserFlag("RacerDisconnected", 1) --optional flag to be used in the .miz for whatever purpose
 	end
 
 	if not reason then return end
