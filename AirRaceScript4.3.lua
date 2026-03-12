@@ -845,24 +845,28 @@ function Airrace:CheckGateAltitudeForPlayer(player, gateNumber)
     local unitConversion = 1
     if self.DistanceUnits == "ft" then unitConversion = .3048 end
 
-	if self.CustomGateHeights[gateToCheck] then --if a custom gate height definition exists...        
+	if self.CustomGateHeights[gateToCheck] then --if a custom gate height definition exists...
+		
 		if playerAgl <= self.CustomGateHeights[gateToCheck][2] * unitConversion then
 			if playerAgl >= self.CustomGateHeights[gateToCheck][1] * unitConversion then
 				result = true
 			else
 				result = false
-				warnPlayer(string.format("Flew under the gate! Altitude = %d %s | Penalty: %d sec.", playerAgl * unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)	
+				warnPlayer(string.format("Flew under %s! Altitude = %d %s | Penalty: %d sec.", gateToCheck, playerAgl / unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)	
+				env.info(string.format("%s flew under %s! Altitude = %d %s | Penalty: %d sec.", player.Name, gateToCheck, playerAgl / unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
 			end
 		else
 			result = false
-			warnPlayer(string.format("Flew above the gate! Altitude = %d %s | Penalty: %d sec.", playerAgl * unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
+			warnPlayer(string.format("Flew above %s! Altitude = %d %s | Penalty: %d sec.", gateToCheck, playerAgl / unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
+			env.info(string.format("%s flew above %s! Altitude = %d %s | Penalty: %d sec.", player.Name, gateToCheck, playerAgl / unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
 		end	
 	else --use global gate height for checks
-		if playerAgl <= self.GateHeight then
+		if playerAgl <= self.GateHeight then --GateHeight is already converted to meters from the Init()
 			result = true
 		else
 			result = false
-			warnPlayer(string.format("Flew above the gate! Altitude = %d %s | Penalty: %d sec.", playerAgl * unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
+			warnPlayer(string.format("Flew above %s! Altitude = %d %s | Penalty: %d sec.", gateToCheck, playerAgl / unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
+			env.info(string.format("%s flew above %s! Altitude = %d %s | Penalty: %d sec.", player.Name, gateToCheck, playerAgl / unitConversion, self.DistanceUnits, self.PenaltyTimeAboveGateHeight), player)
 		end
 	end
 
@@ -1094,6 +1098,7 @@ function formatAircraftType(aircraftType)
     if aircraftType == "I-16"                then aircraftName = "I-16"        return aircraftName end
     if aircraftType == "Ka-27"               then aircraftName = "Helix"       return aircraftName end
     if aircraftType == "L-39ZA"              then aircraftName = "L-39"        return aircraftName end
+	if aircraftType == "La-7"                then aircraftName = "La-7"        return aircraftName end
     if aircraftType == "M-2000C"             then aircraftName = "Mirage"      return aircraftName end
     if aircraftType == "MB-339A"             then aircraftName = "MB-339"      return aircraftName end
     if aircraftType == "MB-339APAN"          then aircraftName = "MB-339"      return aircraftName end

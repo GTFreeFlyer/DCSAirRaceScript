@@ -5,6 +5,8 @@ Changes by GTFreeFlyer, date TBD
 
 * Prevent script error pop-up if player does not add gates or racezones properly.
 * Add user option to plot, or not plot race lines on the F10 map, for competition reasons.
+* Added user setting (experimental!) to adjust the refresh rate of the script.
+* Fix bug with feet to meter conversion in custom gate height function.
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
 Changes by GTFreeFlyer, March 10, 2026  

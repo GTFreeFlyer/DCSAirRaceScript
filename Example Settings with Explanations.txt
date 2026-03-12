@@ -91,6 +91,11 @@ SaveFilename = "WarbirdRaceData.txt"
 --sanitizeModule('lfs')
 --If running a dedicated server, you must do the same in its install folder.  
 
+RaceScriptRefreshTime = 0.1
+--[optional, 0.2] time in seconds between script refresh. 
+--Experimental! For developer use to see how fast the script can be pushed. 
+--If you need futher sub-second timing, lower this value at your own risk.
+
 --PENALTY AND DNF SETTINGS:-------------
 
 PenaltyTimeMissedGate = 4
