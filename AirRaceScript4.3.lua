@@ -1128,7 +1128,7 @@ end
 -----------------------------------------------------------------------------------------
 -- automatically draw the route on the map and add gate labels
 function drawPolyline(coordinateList, lineColor, lineType, closedPolyline, playerName, textID)
-	if playerName == "AutoDraw" or race.PlotRaceLines == true then
+	if (playerName == "AutoDraw" and race.AutoDraw == true) or (playerName ~= "AutoDraw" and race.PlotRaceLines == true) then
 		--Draw the line
 		local startingPoint = {}
 		local endPoint = {}

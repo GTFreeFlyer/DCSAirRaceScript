@@ -8,6 +8,7 @@ Changes by GTFreeFlyer, date TBD
 * Added user setting (experimental!) to adjust the refresh rate of the script.
 * Fix bug with feet to meter conversion in custom gate height function.
 * Fix issue with group leaderboard not ranking in correct order
+* Fixed AutoDraw line showing up even when user set it to false
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
 Changes by GTFreeFlyer, March 10, 2026  
