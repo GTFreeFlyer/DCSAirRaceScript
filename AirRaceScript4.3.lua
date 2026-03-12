@@ -1700,11 +1700,6 @@ function Airrace:ListPlayers()
 	else 
 		text = string.format("%d racers in course", #self.Players)
 	end
-	
-    --check to see if there is already a best time recorded for the course, and display it if so
-	if self.FastestTime > 0 then
-		text = string.format("%s | Best time: %s by %s (%s)", text, formatTime(self.FastestTime), self.FastestPlayer, self.FastestAircraft)
-	end
 
     --begin loop to check for players in the racezone, their statuses, and create the text display for them
 	if #self.Players > 0 then		

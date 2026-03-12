@@ -10,6 +10,7 @@ Changes by GTFreeFlyer, date TBD
 * Fix issue with group leaderboard not ranking in correct order
 * Fixed AutoDraw line showing up even when user set it to false
 * Added aircraft type to the label next to the best race line
+* Duplicate best time by racer shown in the info header - FIXED
 -------------------------------------------------------------------------------------  
 AirRaceScript4.2  
 Changes by GTFreeFlyer, March 10, 2026  
