@@ -1,5 +1,11 @@
 (Most recent items on top)  
 -------------------------------------------------------------------------------------  
+AirRaceScript4.4  
+Changes by GTFreeFlyer, date TBD
+
+* Added new general-purpose flags: GroupRaceFinalLap, BonusAchieved
+* Added airspace (racezone) enforcement option for group races. Non-participants will explode.
+-------------------------------------------------------------------------------------  
 AirRaceScript4.3  
 Changes by GTFreeFlyer, March 12, 2026
 

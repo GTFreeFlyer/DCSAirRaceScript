@@ -1,9 +1,9 @@
 --SETTINGS: (All are optional)---------------------------
---Default values shown in brackets
---Changing the defaults won't do anything
+--Default values shown in [brackets]. Changing the defaults won't do anything
 --Change values as needed or delete the line if happy with the default
---Refer to GTFreeFlyer's GitHub documentation for detailed explanations
 --Delete the double-dash and default at end of line if you prefer a clean look
+--Refer to GTFreeFlyer's GitHub doc for detailed explanations of each setting
+--GitHub.com/GTFreeFlyer/DCSAirRaceScript
 
 --COURSE SETTINGS:------------
 DistanceUnits = "m" --["ft"]
@@ -41,6 +41,7 @@ GroupRace = true --[false]
 GroupRaceTimeout = 30 --[120]
 PaceUnitName = "PacePlane" --[nil]
 GroupRaceParticipantFilter = 6000 --[999999]
+GroupRaceEnforceAirspace = true --[false]
 
 --NIGHT RACE ILLUMINATION SETTINGS------
 IlluminationOn = false --[true]

@@ -1,8 +1,14 @@
 # DCS Air Race Script
 This script is for DCS World mission creators who want to create epic race courses easily.  
- 
+   
 ![Race1](screenshots/race1.jpg)
 ![Race3](screenshots/race3.jpg)
+
+Why choose this fork by GTFreeFlyer?  
+If you noticed, this repository is a fork from the original "Joe Kurr" script posted by basman. This project has evolved MUCH further from the original, from nearly 700 lines of code to now 2400. The original stuff is in here, but this project has grown tremendously in size and scope, including full documentation as you'll see below.  It is feature-rich with almost everything you could ever want for an air race. Have more ideas? Send them over!  
+ Cheers!  
+ -GT-
+ 
 This README was created by GTFreeFlyer. You may find me on Discord or the ED Forums with the same username if you have questions or comments.   
 ## Table of Contents
 * [Features](#features)
@@ -32,13 +38,14 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Supports individual racing (everyone has their own timer), or group racing (everyone shares a common timer) with or without a pace plane.  
 * Information display for keeping track of your progress as well as the competition's.  
 * Group races have a dynamic leaderboard display that changes as players overtake each other.  
-* Your trail history (race line) is plotted on the F10 map after the race, for post-race review. Different colors for each player, and includes a label next ot the line with player's name in same color.
+* Your trail history (race line) is plotted on the F10 map after the race, for post-race review. Different colors for each player, and includes a label next to the line with player's name in same color.
 * Two F10 radio menu categories: Top 10 Racers (no repeated names), and Top 10 Times (names may be repeated)
 * Define the number of laps for your race.
 * Detects pylon hits, missed gates, entry into restriced zones, etc.  Define how many of each result in a DNF. Restricted zones yield an immediate DNF.
 * Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
 * Define an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
-* Define the ceiling of your race airspace.  
+* Define the ceiling of your race airspace. 
+* Enforce the airspace around the race course during group races. Non-participants will explode if they enter. 
 * Gates can have wings-level, knife-edge, or inverted flight requirement.  
 * Night racing is possible with automatic lighting of the course at each gate, and also at any additional location marked by a trigger zone with name "illum".  
 * Fireworks (signal flares) when planes cross the start or finish lines. They originate from wherever you drop a trigger zone with name "fireworks".  
@@ -370,6 +377,10 @@ GroupRaceParticipantFilter = 6000
    * [optional, 999999] max distance between pilot and pace plane in order for the pilot to be added to the race list before drop-in.  
    * Used only when GroupRace=true, and when a pace plane is added  
 
+GroupRaceEnforceAirspace = true
+   * [optional, false] airspace enforcement 
+   * If true, non-participants during an active group race will explode if they enter the race zone
+
 ### Night Race Illumination Settings  
 
 IlluminationOn = false  
@@ -404,21 +415,20 @@ IlluminationRespawnTimer = 120
 
 ## General Purpose Flags for Mission Creators:
 The script provides general-purpose flags that you may use to trigger your own stuff in the miz:  
-   * GroupRaceStarted
-      * Toggles true when the first racer enters the first gate.
-      * This will automatically reset back to false at the beginning of a race when the timer starts.
-   
-   * GroupRaceFinished
-      * Toggles true about 15 seconds after the last racer has finished the race, or if there are no more racers remaining due to crashes, disconnects, etc.
-      * This will automatically reset back to false at the beginning of a race when the timer starts.
+   * GroupRaceStarted, GroupRaceFinished, GroupRaceFinalLap
+      * First one toggles true when the first racer enters the first gate 
+      * Second one toggles true about 15 seconds after the last racer has finished the race, or if there are no more racers remaining due to crashes, disconnects, etc.
+      * Third one toggles true in a group race with multiple laps as soon as a racer kicks off the final lap.
+      * Each of these will automatically reset back to false at the beginning of a race when the timer starts.
 
    * FinishLineCrossed
       * Toggles true when the first racer crosses the finish line in a group race.
       * This will automatically reset back to false at the beginning of a race when the timer starts.  
 
-   * NewBestTime
-      * Toggles true whenever a new best time has been set for the course.
-      * This will NOT automatically reset back to false. In your trigger action, you must reset it with FLAG OFF if you want to use it again for the next occurrence.
+   * NewBestTime, BonusAchieved
+      * First one toggles true whenever a new best time has been set for the course.
+      * Second one toggles true whenever a racer passes through a bonus gate successfully.
+      * These two will NOT automatically reset back to false. In your trigger action, you must reset them with FLAG OFF if you want to use them again for the next occurrence.
 
    * Lap1Gate1Reached, Lap1Gate2Reached ... Lap3Gate15Reached, etc.
       * Toggles true at the first occurrence of each gate hit. 
@@ -460,6 +470,7 @@ Source: https://forums.eagle.ru/showthread.php?t=120234
    * DNF zones, knife-edge and inverted gates, racezone ceiling
    * Easily change the number of laps
    * General-purpose flags
+   * Airspace enforcement
    * Bug fixes and and many more user-settings
    * This README file with images, example settings and briefing
    * Added example .miz files, sounds effects. 

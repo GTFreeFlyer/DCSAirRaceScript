@@ -1,15 +1,13 @@
-•Copy and paste the first three required settings (at a minimum) from below the line
-   into the first trigger of the mission which should be:
+• Copy and paste from below the line into the first trigger of the mission which should be:
       Type: Mission start | Conditions: (none) | Actions: DO SCRIPT
       (Hint: click the small quad-arrow icon next to the text box to open up an editor)
-•Change values as needed.
-•All the optional settings can be omitted if you like the default values.
-•Values next to optional, i.e. [optional, 30], are the default values the script will use
+• Change values as needed.
+• Values next to optional, i.e. [optional, 30], are the default values the script will use
    if you choose to omit the setting. Changing the default value here has no effect and
    is for informational purposes only. 
-•If you like a clean look, you may remove any comment line that begins with a double-hyphen, --
-(These instructions written by GTFreeFlyer)
-•Note: These settings only work with AirRaceScript4.lua or later!
+• Any or all of the settings can be omitted if you like the default values.
+• If you like a clean look, you may remove any comment line that begins with a double-hyphen, --
+• Note: These settings only work with AirRaceScript4.lua or later!
 ----------------------------------------------------------------------------------------------
 --OPTIONAL SETTINGS:------------------
 
@@ -157,6 +155,10 @@ GroupRaceParticipantFilter = 6000
 --[optional, 999999] max distance between pilot and pace plane in order for
 --the pilot to be added to the race list before drop-in.
 --Used only when GroupRace=true, and when a pace plane is added
+
+GroupRaceEnforceAirspace = true
+--[optional, false] airspace enforcement 
+--If true, non-participants during an active group race will explode if they enter the race zone
 
 --NIGHT RACE ILLUMINATION SETTINGS------
 
