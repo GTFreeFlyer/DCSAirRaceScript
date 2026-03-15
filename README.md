@@ -1,7 +1,9 @@
 # DCS Air Race Script
 This script is for DCS World mission creators who want to create epic race courses easily.  
-   
+
 ![Race1](screenshots/race1.jpg)
+![coast](screenshots/coastline.jpg)   
+![Text](screenshots/text.jpg)
 ![Race3](screenshots/race3.jpg)
 
 Why choose this fork by GTFreeFlyer?  
@@ -434,7 +436,7 @@ The script provides general-purpose flags that you may use to trigger your own s
       * Toggles true at the first occurrence of each gate hit. 
       * These will reset back to false at the beginning of a race when the timer starts.  
 
-   * RacerCrashed, RacerEjected, RacerDied, and RacerDisconnected
+   * RacerCrashed, RacerEjected, RacerDied, RacerDisconnected, RacerEngineShutdown
       * Toggles true when any of these events occur for ANY player. 
       * In your trigger action, you must reset these with FLAG OFF if you want to use them again on the next occurrence.
 
@@ -458,7 +460,7 @@ Source: https://forums.eagle.ru/showthread.php?t=120234
 * 04_celebrate.miz (Requires Persian Gulf map)  
 * GTFreeFlyersRaceTutorial.miz (The mission we built together above. Required Marianas WWII map.)
 
-* GTFreeFlyers Marianas WWII Races.miz (Group race with pace plane. Warbirds. WWII assets req'd)  
+* GTFreeFlyers Marianas WWII Races.miz (Group race with pace plane. Warbirds.)  
 
 ## Credits:
 * Original cross country race script by Bas 'Joe Kurr' Weijers, February 2014

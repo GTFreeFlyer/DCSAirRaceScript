@@ -1,13 +1,17 @@
 (Most recent items on top)  
 -------------------------------------------------------------------------------------  
 AirRaceScript4.4  
-Changes by GTFreeFlyer, date TBD
+Changes by GTFreeFlyer, March 16, 2026
 
-* Added new general-purpose flags: GroupRaceFinalLap, BonusAchieved
-* Added airspace (racezone) enforcement option for group races. Non-participants will explode.
+* Added airspace (racezone) enforcement option for group races. Non-participants will explode. See doc.
 * Fixed bug in multi-lap races where missing the last gate (before gate 1) causes a premature finish.
 * Fixed player status disappearing in group race if they crash. We want to see their status until end of race.
 * Fixed long usernames causing text overrun in F10 menu leaderboard. Names truncated to first 22 characters only.
+* Player name label next to raceline on F10 map not deleted with raceline - Fixed
+* Race does not end when player misses the final gate, then hits the gate after - Fixed
+* Added event handler and warning to player if engine quits, for all to see.
+* Added more general-purpose flags for creators: GroupRaceFinalLap, BonusAchieved, RacerEngineShutdown. See doc.
+* Removed WWII Assets from the example WWII Race
 -------------------------------------------------------------------------------------  
 AirRaceScript4.3  
 Changes by GTFreeFlyer, March 12, 2026

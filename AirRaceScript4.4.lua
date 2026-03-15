@@ -644,9 +644,8 @@ function Airrace:CheckForNewPlayers()
 			if unit:getLife() > 1 and unit:getPosition().p.y <= self.RaceZoneCeiling then	-- Only check for alive units below the racezone ceiling
 				playerExists = false
 				if #self.Players > 0 then  --Now we will check to see if the player was already added to the race list
-					for playerIndex, player in ipairs(self.Players) do				
-						local unitName = unit:getPlayerName()		
-						if player.Name == unitName then -- Player was found in the racezone, but is already in the player race list, so we do nothing here.
+					for idx, player in ipairs(self.Players) do					
+						if player.Name == unit:getPlayerName() then -- Player was found in the racezone, but is already in the player race list, so we do nothing here.
 							playerExists = true
 							break
 						end
@@ -665,7 +664,7 @@ function Airrace:CheckForNewPlayers()
 						if (self.GroupRace == true and (trigger.misc.getUserFlag("PaceDrop") == 1 or trigger.misc.getUserFlag("GroupRaceStarted") == 1)) then
 							groupRaceHasStarted = true
 						end		
-						if self.GroupRace == false and groupRaceHasStarted == true then
+						if self.GroupRace == true and groupRaceHasStarted == true then
 							if self.GroupRaceEnforceAirspace == true then
 								trigger.action.explosion(unit:getPoint(), 50) --buh bye!
 								env.info(string.format("%s violated the airspace during an active group race and has been removed", unit:getPlayerName()))
@@ -674,7 +673,7 @@ function Airrace:CheckForNewPlayers()
 						end
 
 						--Continue here if player does belong... we need to check the distance to the pace plane in group races
-						if self.GroupRace == true and self.PaceUnitName ~= nil then
+						if self.GroupRace == true and self.PaceUnitName ~= nil then					
 							--get pace plane position
 							local pos = Unit.getByName(self.PaceUnitName):getPosition().p
 							local pacePos = { 
@@ -696,7 +695,7 @@ function Airrace:CheckForNewPlayers()
 								env.info(string.format("%s in a %s added to player list", unit:getPlayerName() or unit:getName(), unit:getTypeName()))
 							end
 
-						else --if an individual race, then just go ahead and add the player to the race								
+						else --if an individual race or group without pace, then just go ahead and add the player to the race	
 							table.insert(self.Players, Player:New(unit))
 							env.info(string.format("%s in a %s added to player list", unit:getPlayerName() or unit:getName(), unit:getTypeName()))
 						end							
@@ -796,18 +795,18 @@ function Airrace:CheckPylonHitForPlayer(player)
 		if #playersInsideZone > 0 and player.PylonFlag == false then
 			local gateAltitudeOk = self:CheckPylonAltitudeForPlayer(player)
 			if  gateAltitudeOk == true then
-				warnPlayer(string.format("Pylon %d hit! Penalty: %d sec.", pylonIndex, self.PenaltyTimePylonHit), player)
+				warnPlayer(string.format("Pylon hit! Penalty: %d sec.", self.PenaltyTimePylonHit), player)
 				trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 				player.Penalty = player.Penalty + self.PenaltyTimePylonHit
 				player.HitPylon = player.HitPylon + 1
 				player.PylonFlag = true
-				env.info(string.format("Player %s hit a pylon! This is hit number %d for this racer", player.Name, player.HitPylon))
+				env.info(string.format("%s hit a pylon! This is hit number %d for this racer", player.Name, player.HitPylon))
 			end
 			if player.HitPylon >= self.NumberPylonHitsDNF then
 				player.DNF = true
 				self:ShowBreadCrumbs(player)
 				player.StatusText = string.format("DNF! | Too many pylons hit")
-				env.info(string.format("Player %s hit too many pylons. DNF!", player.Name))
+				env.info(string.format("%s hit too many pylons. DNF!", player.Name))
 			end
 			break
 		end
@@ -824,7 +823,7 @@ function Airrace:CheckDNFZone(player)
 			player.DNF = true
 			self:ShowBreadCrumbs(player)
 			player.StatusText = string.format("DNF! | You entered a restricted area")
-			env.info(string.format("Player %s entered restricted zone DNF-%d. DNF!", player.Name, DNFIndex))
+			env.info(string.format("%s entered restricted zone DNF-%d. DNF!", player.Name, DNFIndex))
 			break
 		end
 	end
@@ -1250,7 +1249,7 @@ function Airrace:SaveBestRacingLine(player)
 		end
 		trigger.action.removeMark(self.BestRacingLine.textID)
 	else
-		env.info("Previous best line was not found. The course has not yet been completed.")
+		env.info("Previous best line was not found. The course has not yet been completed. Saving new one...")
 	end	
 
 	--erase the AutoDraw line, if there is one
@@ -1307,18 +1306,20 @@ function Airrace:EraseAllBreadCrumbs()
 		if name ~= "CurrentIndex" and name ~= "AutoDraw" then			
 			for _, coords in ipairs(data) do
 				trigger.action.removeMark(coords.ID)
-			end		
+			end	
+			trigger.action.removeMark(data.textID)
 			self.BreadCrumbs[name] = nil
 		end
 	end 
 end
 -----------------------------------------------------------------------------------------
---erase the history trail on the map when a new group race starts
+--erase the history trail on the map for a specific player
 function Airrace:ErasePlayerBreadCrumbs(player)
 	if self.BreadCrumbs[player.Name] then
 		for _, coords in ipairs(self.BreadCrumbs[player.Name]) do
 			trigger.action.removeMark(coords.ID)
 		end	
+		trigger.action.removeMark(self.BreadCrumbs[player.Name].textID)
 		self.BreadCrumbs[player.Name] = nil
 	end
 end
@@ -1510,8 +1511,7 @@ function Airrace:UpdatePlayerStatus(player)
 
 -- define what to do if player didn't go through the expected gate...
 		if player.DNF == false then
-			if gateNumber ~= player.CurrentGateNumber + 1 and not (player.CurrentGateNumber == #self.Course.Gates and gateNumber == 1) then
-				env.info("debug1: CurrentLapNumber=" .. player.CurrentLapNumber) 	--debug				
+			if gateNumber ~= player.CurrentGateNumber + 1 and not (player.CurrentGateNumber == #self.Course.Gates and gateNumber == 1) then		
 				if player.CurrentGateNumber == 0 and not player.Finished and player.CurrentLapNumber == 1 then
 					-- Player passed unexpected gate at start of race
 					player.StatusText = "Wrong start gate! Go back to Gate 1 to start."
@@ -1532,11 +1532,11 @@ function Airrace:UpdatePlayerStatus(player)
 						else
 							if missedGates == 1 then
 								warnPlayer(string.format("Missed gate %d | Penalty: %d sec.", player.CurrentGateNumber + 1, self.PenaltyTimeMissedGate), player)
-								env.info(string.format("%s missed gate %d", player.Name, player.CurrentGateNumber + 1))
+								env.info(string.format("%s missed gate %d", player.Name, player.CurrentGateNumber + 1))								
 							elseif missedGates > 1 then
 								warnPlayer(string.format("Missed gates %d to %d | Penalty: %d sec.", player.CurrentGateNumber + 1, gateNumber - 1, self.PenaltyTimeMissedGate * missedGates), player)
 								env.info(string.format("%s missed gates %d to %d", player.Name, player.CurrentGateNumber + 1, gateNumber - 1))
-							end
+							end							
 						end
 					elseif gateNumber < player.CurrentGateNumber then --Either going backwards or on a new lap with a lower gate number.  
 																	--We can't do much about going backwards, this is a sacrifice we make 
@@ -1564,11 +1564,9 @@ function Airrace:UpdatePlayerStatus(player)
 							end
 						end
 						-- Player has started a new lap, so increase lap number
-						env.info("debug2: CurrentLapNumber=" .. player.CurrentLapNumber) 	--debug	
 						if gateNumber > 1 then
 							player.CurrentLapNumber = player.CurrentLapNumber + 1 --if at gate1, then the lap number was already incremented before this.
 						end
-						env.info("debug3: CurrentLapNumber=" .. player.CurrentLapNumber) 	--debug	
 					end
 
 					if missedGates > 0 then
@@ -1576,37 +1574,35 @@ function Airrace:UpdatePlayerStatus(player)
 						if self.GroupRace == true then
 							self:AddToGroupCurrentRankings(player.Name, player.CurrentLapNumber, player.CurrentGateNumber, timeNow - GroupStartTime, player.AircraftType)
 						end
-						player.CurrentGateNumber = gateNumber
-						return
-					end					
-			
-					if gateNumber == 1 then
+						--player.CurrentGateNumber = gateNumber
+						env.info(string.format("%s reached Lap %d Gate %d", player.Name, player.CurrentLapNumber, gateNumber))
+					elseif gateNumber == 1 then
 						player.CurrentGateNumber = #self.Course.Gates -- roll currentGateNumber back to the last gate in the course
 					else
 						player.CurrentGateNumber = gateNumber - 1 -- roll currentGateNumber back one gate			
-					end
-					
-				end
-				return	
+					end					
+				end				
 			end
 
 -- Player is passing the final gate, stop timer
-			if (gateNumber == #self.Course.Gates and self.NumberLaps == 0) or (gateNumber == 1 and player.CurrentLapNumber > self.NumberLaps) then
-				local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player, gateNumber)
-				self:evaluateRollAngle(gateNumber, player)
-				player.PylonFlag = false
-				local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player, gateNumber)
-				for i = 1, #self.BonusGates do
-					if self.BonusGates[i] == gateNumber then
-						if bonusGateAltitudeOk == true then
-							player.Bonus = player.Bonus + self.BonusTime
-							warnPlayer(string.format("Bonus! -%d sec", self.BonusTime), player)
+			if (gateNumber == #self.Course.Gates and self.NumberLaps == 0) or player.CurrentLapNumber > self.NumberLaps then
+				if self.NumberLaps == 0 or (self.NumberLaps > 0 and gateNumber >= 1) then
+					local gateAltitudeOk = self:CheckGateAltitudeForPlayer(player, gateNumber)
+					self:evaluateRollAngle(gateNumber, player)
+					player.PylonFlag = false
+					local bonusGateAltitudeOk = self:CheckBonusAltitudeForPlayer(player, gateNumber)
+					for i = 1, #self.BonusGates do
+						if self.BonusGates[i] == gateNumber then
+							if bonusGateAltitudeOk == true then
+								player.Bonus = player.Bonus + self.BonusTime
+								warnPlayer(string.format("Bonus! -%d sec", self.BonusTime), player)
+							end
 						end
 					end
-				end
-				if gateAltitudeOk == false then
-					trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
-					player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
+					if gateAltitudeOk == false then
+						trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+						player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
+					end
 				end
 				player.PylonFlag = false
 				player:StopTimer()
@@ -1714,6 +1710,9 @@ function Airrace:UpdatePlayerStatus(player)
 					player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
 				end
 				if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past, so we'll show a time comparison to the best record time
+					if not self.FastestIntermediates[player.CurrentLapNumber][gateNumber] then --check here to see if the entry exists
+						self.FastestIntermediates[player.CurrentLapNumber][gateNumber] = 0
+					end
 					local fastestIntermediate = self.FastestIntermediates[player.CurrentLapNumber][gateNumber]
 					--there's a chance the best set of intermediates contains a zero time for a gate if that gate was skipped for some reason by the fastest player, so we protect against this and don't show the comparison
 					if fastestIntermediate ~= 0 then
@@ -2146,14 +2145,19 @@ function crashHandler:onEvent(event)
 	elseif event.id == world.event.S_EVENT_DISCONNECT then
 			reason = "Disconnected"	
 			trigger.action.setUserFlag("RacerDisconnected", 1) --optional flag to be used in the .miz for whatever purpose
+	elseif event.id == world.event.S_EVENT_ENGINE_SHUTDOWN then
+			reason = "Engine shutdown"	
+			trigger.action.setUserFlag("RacerEngineShutdown", 1) --optional flag to be used in the .miz for whatever purpose
 	end
 
 	if not reason then return end
 
 	env.info("Player " .. name .. " "  .. reason)
 
-	for _, player in ipairs(race.Players) do					
-		if player.Name == name and player.DNF == false then
+	for _, player in ipairs(race.Players) do
+		if player.Name == name and reason == "Engine shutdown" then
+			warnPlayer("Engine quit!", player)
+		elseif player.Name == name and player.DNF == false then
 			player.DNF = true
 			race:ShowBreadCrumbs(player)
 			player.StatusText = "DNF! | " ..  reason
