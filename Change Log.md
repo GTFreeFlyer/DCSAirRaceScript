@@ -7,6 +7,7 @@ Changes by GTFreeFlyer, date TBD
 * Added airspace (racezone) enforcement option for group races. Non-participants will explode.
 * Fixed bug in multi-lap races where missing the last gate (before gate 1) causes a premature finish.
 * Fixed player status disappearing in group race if they crash. We want to see their status until end of race.
+* Fixed long usernames causing text overrun in F10 menu leaderboard. Names truncated to first 22 characters only.
 -------------------------------------------------------------------------------------  
 AirRaceScript4.3  
 Changes by GTFreeFlyer, March 12, 2026

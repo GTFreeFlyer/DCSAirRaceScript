@@ -616,14 +616,14 @@ function Airrace:displayTopTenRacers(bestTimes)
 	--print the data into the F10 menu categories
 	for rank = 1, 10 do
 		if self.TopTenRacers[rank] then
-			missionCommands.addCommand(self.TopTenRacers[rank].name .. " | " .. formatTime(self.TopTenRacers[rank].time), TopTenRacePilotsMenu, function() end, nil)
+			missionCommands.addCommand(self.TopTenRacers[rank].name:sub(1,22) .. "|" .. formatTime(self.TopTenRacers[rank].time), TopTenRacePilotsMenu, function() end, nil)	
 		else
 			missionCommands.addCommand("(Empty)", TopTenRacePilotsMenu, function() end, nil)
 		end
 	end
 	for rank = 1, 10 do
 		if self.TopTenTimes[rank] then
-			missionCommands.addCommand(self.TopTenTimes[rank].name .. " | " .. formatTime(self.TopTenTimes[rank].time), TopTenRaceTimesMenu, function() end, nil)
+			missionCommands.addCommand(self.TopTenTimes[rank].name:sub(1,22) .. "|" .. formatTime(self.TopTenTimes[rank].time), TopTenRaceTimesMenu, function() end, nil)
 		else
 			missionCommands.addCommand("(Empty)", TopTenRaceTimesMenu, function() end, nil)
 		end
