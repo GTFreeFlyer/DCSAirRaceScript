@@ -5,6 +5,7 @@ Changes by GTFreeFlyer, date TBD
 
 * Added new general-purpose flags: GroupRaceFinalLap, BonusAchieved
 * Added airspace (racezone) enforcement option for group races. Non-participants will explode.
+* Fixed bug in multi-lap races where missing the last gate (before gate 1) causes a premature finish.
 -------------------------------------------------------------------------------------  
 AirRaceScript4.3  
 Changes by GTFreeFlyer, March 12, 2026

@@ -9,7 +9,7 @@ If you noticed, this repository is a fork from the original "Joe Kurr" script po
  Cheers!  
  -GT-
  
-This README was created by GTFreeFlyer. You may find me on Discord or the ED Forums with the same username if you have questions or comments.   
+This README was created by GTFreeFlyer. You may find me on Discord or the ED Forums with the same username if you have questions or comments. My Discord profile has a link to GT's Runway where you can engage in discussion, and receive update notices, regarding any of my content produced.
 ## Table of Contents
 * [Features](#features)
 * [Download and Installation](#download-and-installation) 
@@ -447,7 +447,9 @@ All flags will be value 0 or 1 in the lua script, which is the same thing as fal
 (i.e. "Flag On" is the same thing as "Flag is true", and also the same thing as "Flag value = 1")  
     
 ## Contact Info:
-Contact GTFreeFlyer (Discord or ED Forums) with any questions regarding group races. The best thing is to check out the included example, "GTFreeFlyers Marianas WWII Races.miz", to see how things are set up.  
+Contact GTFreeFlyer (Discord or ED Forums) with any questions.  My Discord profile has a link to GT's Runway where you can engage in discussion, and receive update notices, regarding any of my content produced.
+
+The best way for self-help with racing mission stuff is to check out the included example, "GTFreeFlyers Marianas WWII Races.miz", to see how things are set up.  It is a fully-produced mission with voiceovers and all!  
 
 ## Forum Thread:  
 Source: https://forums.eagle.ru/showthread.php?t=120234  
