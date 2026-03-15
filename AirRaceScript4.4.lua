@@ -712,37 +712,39 @@ end
 -- the list of active players
 --
 function Airrace:RemoveExitedPlayers()
-	if #self.Players > 0 then
-		local allUnits = mist.makeUnitTable( { '[blue][plane]' } )
-		local unitsInZone = mist.getUnitsInZones(allUnits, self.RaceZones)
-		local playerExists = false
+	if self.GroupRace == false or (self.GroupRace == true and GroupTimerStarted == false) then --this line prevents removing players are their status during a group race if they crash. We want to wait until the end.
+		if #self.Players > 0 then
+			local allUnits = mist.makeUnitTable( { '[blue][plane]' } )
+			local unitsInZone = mist.getUnitsInZones(allUnits, self.RaceZones)
+			local playerExists = false
 
-		for playerIndex, player in ipairs(self.Players) do
-			playerExists = false
+			for playerIndex, player in ipairs(self.Players) do
+				playerExists = false
 
-			if player.PlayerObject:isExist() and player.PlayerObject:getLife() > 1 and player.PlayerObject:inAir() then -- check if the player from the race list is still alive and airborne
-				for unitIndex, unit in ipairs(unitsInZone) do					
-					
-					if unit:getLife() > 1 and unit:inAir() then -- Only check for match with alive and airborne units detected in the racezone
-						local unitName = ''
-						if unit:getPlayerName() then
-							unitName = unit:getPlayerName()
-						else
-							unitName = unit:getName()
-						end
-						if player.Name == unitName and unit:getPosition().p.y <= self.RaceZoneCeiling then
-							playerExists = true
-							break
+				if player.PlayerObject:isExist() and player.PlayerObject:getLife() > 1 and player.PlayerObject:inAir() then -- check if the player from the race list is still alive and airborne
+					for unitIndex, unit in ipairs(unitsInZone) do					
+						
+						if unit:getLife() > 1 and unit:inAir() then -- Only check for match with alive and airborne units detected in the racezone
+							local unitName = ''
+							if unit:getPlayerName() then
+								unitName = unit:getPlayerName()
+							else
+								unitName = unit:getName()
+							end
+							if player.Name == unitName and unit:getPosition().p.y <= self.RaceZoneCeiling then
+								playerExists = true
+								break
+							end
 						end
 					end
+				else
+					env.info(string.format("%s is being removed from the player list because not alive or airborne", player.Name))
 				end
-			else
-				env.info(string.format("%s is being removed from the player list because not alive or airborne", player.Name))
-			end
 
-			if not playerExists then
-				table.remove(self.Players, playerIndex)
-				env.info(string.format("%s removed from player list. Player not found in a racezone", player.Name))
+				if not playerExists then
+					table.remove(self.Players, playerIndex)
+					env.info(string.format("%s removed from player list. Player not found in a racezone", player.Name))
+				end
 			end
 		end
 	end
