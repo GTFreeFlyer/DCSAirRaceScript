@@ -125,6 +125,7 @@ Player = {
 	TotalTime = 0,
 	FastestTime = 0, 
 	IntermediateTimes = {{}},
+	LapTimes = {},
 	DNF = false,
 	PylonFlag = false,
 	Started = false,
@@ -172,6 +173,7 @@ function Player:New(playerUnit)
 		TotalTime = 0,
 		FastestTime = 0,
 		IntermediateTimes = {{}},
+		LapTimes = {},
 		DNF = false,
 		PylonFlag = false,
 		Started = false,
@@ -251,6 +253,7 @@ function Player:StartTimer()
         self.MissedGates = 0
 		self.TotalTime = 0
 		self.IntermediateTimes = {{}}
+		self.LapTimes = {}
 		self.DNF = false
 		self.PylonFlag = false
 		self.Started = true
@@ -1486,6 +1489,16 @@ function Airrace:CheckLineupWithPace(player)
 	player.PacePositionEvaluated = true --set this flag to true so that the player won't be evaluated again until next race	
 end
 -----------------------------------------------------------------------------------------
+-- Add lap time for player
+local function addLapTime(player)
+	table.insert(player.LapTimes, timer.getTime() - GroupStartTime + player.Penalty - player.Bonus)
+	if player.CurrentLapNumber > 1 then
+		for lapNum = 1, player.CurrentLapNumber-1 do
+			player.LapTimes[player.CurrentLapNumber] =  player.LapTimes[player.CurrentLapNumber] - player.LapTimes[lapNum]
+		end
+	end
+end
+-----------------------------------------------------------------------------------------
 -- Update the status and timer for the given player
 -- Parameter player: Reference to a player in the active player List
 --
@@ -1555,6 +1568,7 @@ function Airrace:UpdatePlayerStatus(player)
 			return
 		elseif gateNumber == 1 then
 			-- Player is starting a new lap, so increase lap number
+			addLapTime(player)
 			player.CurrentLapNumber = player.CurrentLapNumber + 1		
 		end
 
@@ -1614,6 +1628,7 @@ function Airrace:UpdatePlayerStatus(player)
 						end
 						-- Player has started a new lap, so increase lap number
 						if gateNumber > 1 then
+							addLapTime(player)
 							player.CurrentLapNumber = player.CurrentLapNumber + 1 --if at gate1, then the lap number was already incremented before this.
 						end
 					end
@@ -1658,12 +1673,13 @@ function Airrace:UpdatePlayerStatus(player)
 				self:StoreBreadCrumbs(player)
 				self:ShowBreadCrumbs(player)
 				if #self.BonusGates > 0 then
-					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s - Bonus:%d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s - Bonus:%d s\n    TOTAL TIME: %s ", formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Bonus: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, player.Bonus, formatTime(player.TotalTime + player.Penalty - player.Bonus)))
 				else
-					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s\n          Total time: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
+					player.StatusText = string.format("Finished | Time: %s + Penalty:%d s\n     TOTAL TIME: %s ", formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty))
 					env.info(string.format("%s finished the course. Race time: %s. Penalty: %d. Total time: %s", player.Name, formatTime(player.TotalTime), player.Penalty, formatTime(player.TotalTime + player.Penalty)))
-				end        
+				end							
+   
 				trigger.action.outSoundForUnit(player.UnitID, 'pik.ogg')
 				player.CurrentGateNumber = gateNumber
 
@@ -1678,9 +1694,22 @@ function Airrace:UpdatePlayerStatus(player)
 					trigger.action.setUserFlag("NewBestTime", 1) --optional flag to be used in the .miz for whatever purpose
 					env.info(string.format("%s achieved new time record: %s", player.Name, formatTime(self.FastestTime)))					
 				else
-					player.StatusText = string.format("%s (+%s)", player.StatusText, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
+					player.StatusText = string.format("%s (+%s sec from best)", player.StatusText, string.format("%.2f", player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime))
 					env.info(string.format("%s +%s seconds behind best time", player.Name, formatTime(player.TotalTime + player.Penalty  - player.Bonus - self.FastestTime)))
 				end	
+
+				if self.NumberLaps > 1 then
+					player.StatusText = player.StatusText .. "\n       "
+					for lapNum = 1, #player.LapTimes do
+						player.StatusText = string.format("%sLap%d: %s s", player.StatusText, lapNum, string.format("%.2f", player.LapTimes[lapNum]))
+						if lapNum%5 ~= 0 then --keep it to 5 lap times per line
+							player.StatusText = player.StatusText .. " | " --stay on same line
+						elseif lapNum%5 == 0 and lapNum ~= #player.LapTimes then
+							player.StatusText = player.StatusText .. "\n       " --new line
+						end
+						env.info(string.format("%s Lap %d: %.4f incl. penalties and bonuses", player.Name, lapNum, player.LapTimes[lapNum]))
+					end			
+				end		
 
 				--save best time for player
 				if not self.PlayerBestData[player.Name] then
@@ -1759,6 +1788,9 @@ function Airrace:UpdatePlayerStatus(player)
 					player.Penalty = player.Penalty + self.PenaltyTimeAboveGateHeight
 				end
 				if self.FastestTime ~= 0 then --indicates that the race has already been completed once in the past, so we'll show a time comparison to the best record time
+					if not self.FastestIntermediates[player.CurrentLapNumber] then --check here to see if the entry exists
+						self.FastestIntermediates[player.CurrentLapNumber] = {}
+					end
 					if not self.FastestIntermediates[player.CurrentLapNumber][gateNumber] then --check here to see if the entry exists
 						self.FastestIntermediates[player.CurrentLapNumber][gateNumber] = 0
 					end
