@@ -76,7 +76,7 @@ Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/
    * Once you have it figured out, continue below. The reason is simple: It's much easier to make changes now, moving pylons around, rather than later where changes will require much more work (i.e. moving the pylons, triggerzones, labels, etc.)
 
    * Optional, but recommended: To be able to read/write your data so that the best times and race lines are recalled whenever the mission loads, so must desanitize your lua environment, done easily: 
-      * Go to your DCS install folder\Scripts\MissionScripting.lua, and add a double dash (--) in front of these two lines to comment them out:
+      * Go to your DCS root install folder (NOT YOUR SAVED GAMES FOLDER!)\Scripts\MissionScripting.lua, and add a double dash (--) in front of these two lines to comment them out:
       * --sanitizeModule('io')
       * --sanitizeModule('lfs')
       * --If running a dedicated server, you must do the same in its install folder.  

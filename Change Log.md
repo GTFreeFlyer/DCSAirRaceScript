@@ -1,4 +1,10 @@
-(Most recent items on top)  
+(Most recent items on top)
+-------------------------------------------------------------------------------------  
+AirRaceScript4.5  
+Changes by GTFreeFlyer, date TBD
+
+* Adjust airspace violation explosion to occur slightly after takeoff, not immediately when wheels up.
+* Clarify the README regarding where to find the file for desanitization.  
 -------------------------------------------------------------------------------------  
 AirRaceScript4.4  
 Changes by GTFreeFlyer, March 16, 2026

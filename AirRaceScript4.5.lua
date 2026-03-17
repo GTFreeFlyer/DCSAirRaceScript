@@ -1,6 +1,6 @@
 ----------------------------------------------------------------------------------------------------------------------
 -- Script       : CrossCountryRace.lua - Multiplayer Cross-Country Airrace Script                                   --
--- Version      : 4.4                                                                                               --
+-- Version      : 4.5                                                                                               --
 -- Requirements : - DCS World 2.5.6 or later                                                                        --
 --                - Mist 4.5.126                                                                                    --
 -- Original Author: Bas 'Joe Kurr' Weijers                                                                          --
@@ -642,7 +642,7 @@ function Airrace:CheckForNewPlayers()
 		if unit:getPlayerName() then --if this is nil, it means it's an AI unit and we aren't interested in that.
 			--env.info(string.format("Unit %s is in the race zone", unit:getPlayerName()))
 			if unit:getLife() > 1 and unit:getPosition().p.y <= self.RaceZoneCeiling then	-- Only check for alive units below the racezone ceiling
-				playerExists = false
+				playerExists = false --initialize this boolean
 				if #self.Players > 0 then  --Now we will check to see if the player was already added to the race list
 					for idx, player in ipairs(self.Players) do					
 						if player.Name == unit:getPlayerName() then -- Player was found in the racezone, but is already in the player race list, so we do nothing here.
@@ -659,17 +659,17 @@ function Airrace:CheckForNewPlayers()
 					local airborne = unit:inAir()
 					if airborne == true then
 						
-						--check if the group race has started, then the player doesn't belong in it!
-						local groupRaceHasStarted = false --initialize
-						if (self.GroupRace == true and (trigger.misc.getUserFlag("PaceDrop") == 1 or trigger.misc.getUserFlag("GroupRaceStarted") == 1)) then
-							groupRaceHasStarted = true
-						end		
-						if self.GroupRace == true and groupRaceHasStarted == true then
-							if self.GroupRaceEnforceAirspace == true then
-								trigger.action.explosion(unit:getPoint(), 50) --buh bye!
-								env.info(string.format("%s violated the airspace during an active group race and has been removed", unit:getPlayerName()))
+						--check if we are enforcing the airspace, per user setting, for group races...
+						if self.GroupRace == true and self.GroupRaceEnforceAirspace == true then
+							--now check if the group race has already started...
+							if trigger.misc.getUserFlag("PaceDrop") == 1 or trigger.misc.getUserFlag("GroupRaceStarted") == 1 then --if group race has started
+								--check if the non-participating violator has climbed a litte, so he doesn't explode immediately after wheels up
+								if getUnitObjAltitudeAGL(unit) > 40 then --(40m is approx 131ft)
+									trigger.action.explosion(unit:getPoint(), 50) --buh bye!
+									env.info(string.format("%s violated the airspace during an active group race and has been removed", unit:getPlayerName()))
+								end
+								return
 							end
-							return
 						end
 
 						--Continue here if player does belong... we need to check the distance to the pace plane in group races
@@ -831,6 +831,18 @@ end
 -----------------------------------------------------------------------------------------
 function getPlayerAltitudeAGL(player)
 	local pos = Unit.getByName(player.UnitName):getPosition().p
+	local playerPos = { 
+	   x = pos["x"], 
+	   y = pos["y"], 
+	   z = pos["z"] 
+	} 
+	local TerrainPos = land.getHeight({x = playerPos.x, y = playerPos.z})
+	local playerAgl = playerPos.y - TerrainPos
+	return playerAgl
+end
+-----------------------------------------------------------------------------------------
+function getUnitObjAltitudeAGL(unitObj)
+	local pos = unitObj:getPosition().p
 	local playerPos = { 
 	   x = pos["x"], 
 	   y = pos["y"], 
@@ -2420,7 +2432,7 @@ function Init()
 end
 
 env.info("-----------------------------------------------------------------------------------------")
-env.info("Load AirRaceScript4.4")
+env.info("Load AirRaceScript4.5")
 env.info("To grab the script for yourself and view the full documentation, please visit github.com/GTFreeFlyer/DCSAirRaceScript")
 
 Init()
