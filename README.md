@@ -302,12 +302,22 @@ AutoDraw = false
    * [optional, true] draws lines on the F10 map between the gates and places gate labels.   
    * Set it to false if you intend to make your own map drawings.
    * This jagged line with sharp corners (first screenshot below) will be replaced by the best race line once someone finishes the course (second screenshot below). In the second screenshot, you can also see that your race line is plotted if you did not beat the best time.
+
    ![autodraw](screenshots/autodraw1.jpg)  
    ![bestLine](screenshots/bestraceline.jpg)  
     
 PlotRaceLines = false
    * [optional, true] Choose whether to draw the race lines on the F10 map or not.
    * Recommend leaving true, unless you need to hide racers' lines for competition reasons.
+   * The best race line will be plotted as a solid green line representing all laps.
+   * All non-best racelines...
+      * will be plotted as a random color for each player, along with your name and aircraft type label next to the race line, in the same color and at a random spot along the raceline of the first lap.
+      * will have a different line style for each lap as follows:
+         * Lap 1: Dashed - - - - - - - - - - - -
+         * Lap 2: Dotted • • • • • • • • • • • 
+         * Lap 3: Dot Dash • - • - • - • - • -
+         * Lap 4: Long Dash --- --- --- --- ---
+         * Lap 5: Two Dash -- --   -- --   -- --   
 
 SaveFilename = "WarbirdRace" 
    * [optional, "MyRace"] Must place the filename in quotes

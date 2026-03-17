@@ -489,7 +489,7 @@ function Airrace:saveRaceData()
 						BestRacingLine=self.BestRacingLine, 
 						PlayerBestData=self.PlayerBestData
 						}
-		--where PlayerBestData table format = {name1 = {time1, time2, time3 ...}, name2 = {name1 = {time1, time2, time3 ...}, ...}
+		--where PlayerBestData table format = {name1 = {time1, time2, time3 ...}, name2 = {time1, time2, time3 ...}, ...}
 		
 		local file = assert(io.open(self.SaveFilename, "w"))
 
@@ -1198,7 +1198,7 @@ function formatAircraftType(aircraftType)
 end
 -----------------------------------------------------------------------------------------
 -- automatically draw the route on the map and add gate labels
-function drawPolyline(coordinateList, lineColor, lineType, closedPolyline, playerName, textID)
+function drawPolyline(coordinateList, lineColor, lineType, closedPolyline, playerName, textID, plotTextLabel)
 	if (playerName == "AutoDraw" and race.AutoDraw == true) or (playerName ~= "AutoDraw" and race.PlotRaceLines == true) then
 		--Draw the line
 		local startingPoint = {}
@@ -1218,7 +1218,7 @@ function drawPolyline(coordinateList, lineColor, lineType, closedPolyline, playe
 		end
 
 		--Draw the text label with the player's name next to the line
-		if playerName ~= "AutoDraw" then
+		if playerName ~= "AutoDraw" and plotTextLabel == true then
 			local randomLocationForLabel = math.random(1, #coordinateList)
 			trigger.action.textToAll(__CoalitionAll, textID, coordinateList[randomLocationForLabel], lineColor, {0,0,0,0}, 12, false, string.format("%s", playerName)) --(coaltion, ID num, vec3, color {r,g,b,a}, fill color, font size, readonly, text)
 		end	
@@ -1236,16 +1236,37 @@ function Airrace:StoreBreadCrumbs(player)
 		z = pos["z"], --E/W position in meters
 		ID = self.BreadCrumbs.CurrentIndex --ID assigned later to the line segment
 		} 
+
+		--create new entry for new player
 		if not self.BreadCrumbs[player.Name] then self.BreadCrumbs[player.Name] = {} end
-		table.insert(self.BreadCrumbs[player.Name], playerPosAndID)
+
+		--create new lap number entry for player
+		if not self.BreadCrumbs[player.Name][player.CurrentLapNumber] then 
+			self.BreadCrumbs[player.Name][player.CurrentLapNumber] = {}
+			if player.CurrentLapNumber > 1 then
+				--enter the last lap's last data point also as the first of the new lap
+				table.insert(self.BreadCrumbs[player.Name][player.CurrentLapNumber], self.BreadCrumbs[player.Name][player.CurrentLapNumber-1][#self.BreadCrumbs[player.Name][player.CurrentLapNumber-1]])
+			end
+		end
+		
+		table.insert(self.BreadCrumbs[player.Name][player.CurrentLapNumber], playerPosAndID)
 		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
 	end
 
 	--example BreadCrumbs table format: 
 	--{
-	--  AutoDraw = { {x=10, y=0, z=34, ID=1100}, {x=12, y=0, z=37, ID=1101}, {x=13, y=0, z=39, ID=1102} },
-	--	Racer1 = { {x=10, y=0, z=34, ID=1201}, {x=12, y=0, z=37, ID=1202}, {x=13, y=0, z=39, ID=1206}, textID=1239 },
-	--	Racer2 = { {x=10, y=0, z=67, ID=1203}, {x=11, y=0, z=38, ID=1204}, {x=13, y=0, z=40, ID=1205}, {x=16, y=0, z=40, ID=1207}, textID=1240 },
+	--  AutoDraw = { {x=10, y=0, z=34, ID=1100}, {x=12, y=0, z=37, ID=1101}, {x=13, y=0, z=39, ID=1102}. textID=1225 },
+	--	Racer1 = { 
+	--             {  {x=10, y=0, z=34, ID=1201}, {x=12, y=0, z=37, ID=1202}, {x=13, y=0, z=39, ID=1206}  }, --lap1
+	--             {  {x=10, y=0, z=34, ID=1201}, {x=12, y=0, z=37, ID=1202}, {x=13, y=0, z=39, ID=1206}  }, --lap2
+	--             {  {x=10, y=0, z=34, ID=1201}, {x=12, y=0, z=37, ID=1202}, {x=13, y=0, z=39, ID=1206}  }, --lap3
+	--             textID=1239
+	--            },
+	--	Racer2 = { 
+	--             {  {x=10, y=0, z=67, ID=1203}, {x=11, y=0, z=38, ID=1204}, {x=13, y=0, z=40, ID=1205}  }, 
+	--             {  {x=16, y=0, z=40, ID=1207}  }, 
+	--             textID=1240 
+	--            },
 	--  CurrentIndex = 1208,
 	--}
 	--Delete a player's entry with self.BreadCrumbs[player.Name]=nil
@@ -1261,7 +1282,7 @@ function Airrace:SaveBestRacingLine(player)
 		end
 		trigger.action.removeMark(self.BestRacingLine.textID)
 	else
-		env.info("Previous best line was not found. The course has not yet been completed. Saving new one...")
+		env.info("Previous best line was not found. The course has not yet been completed. Saving new  one...")
 	end	
 
 	--erase the AutoDraw line, if there is one
@@ -1274,25 +1295,33 @@ function Airrace:SaveBestRacingLine(player)
 
 	--store the new best data
 	self.BestRacingLine = {}
-	for idx, data in ipairs(self.BreadCrumbs[player.Name]) do
-		local newData = {x=data.x, y=data.y, z=data.z, ID=self.BreadCrumbs.CurrentIndex}
-		self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
-		table.insert(self.BestRacingLine, newData)		
+	for lapNum, lapData in ipairs(self.BreadCrumbs[player.Name]) do
+		for idx, data in ipairs(lapData) do
+			if lapNum > 1 and idx == 1 then
+				--do not write the duplicate point
+			else
+				local newData = {x=data.x, y=data.y, z=data.z, ID=self.BreadCrumbs.CurrentIndex}
+				self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
+				table.insert(self.BestRacingLine, newData)
+			end
+		end
 	end	
 	self.BestRacingLine.textID = self.BreadCrumbs.CurrentIndex
 	self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
 
 	--erase the player's current dotted line from this race
 	if self.PlotRaceLines == true then
-		for idx, data in ipairs(self.BreadCrumbs[player.Name]) do
-			trigger.action.removeMark(data.ID)
+		for lapNum, lapData in ipairs(self.BreadCrumbs[player.Name]) do
+			for idx, data in ipairs(lapData) do
+				trigger.action.removeMark(data.ID)
+			end
 		end
 		trigger.action.removeMark(self.BreadCrumbs[player.Name].textID)
 		self.BreadCrumbs[player.Name] = nil
 	end
 
 	--draw the new best line
-	drawPolyline(self.BestRacingLine, __Green, __LineSolid, false, string.format("Best by\n%s\n%s",player.Name, player.AircraftType), self.BestRacingLine.textID)
+	drawPolyline(self.BestRacingLine, __Green, __LineSolid, false, string.format("Best by\n%s\n%s",player.Name, player.AircraftType), self.BestRacingLine.textID, true)
 end
 -----------------------------------------------------------------------------------------
 -- automatically draw the history trail on the map when the player finishes or DNF's
@@ -1306,8 +1335,12 @@ function Airrace:ShowBreadCrumbs(player)
 								1}
 			--plot it
 			self.BreadCrumbs[player.Name].textID = self.BreadCrumbs.CurrentIndex
-			drawPolyline(self.BreadCrumbs[player.Name], lineColor, __LineDotted, false, player.Name, self.BreadCrumbs.CurrentIndex)
-			self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1		
+			for lapNum, lapData in ipairs(self.BreadCrumbs[player.Name]) do --this loop is used to plot each race line with a different line type
+				local plotTextLabel = (lapNum == 1) and true or false --we only need to plot the player name label one time, and we'll do it next to the race line for the first lap
+				local lineType = ((lapNum-1)%5)+2 --this equation ensures the lineType value cycles through numbers 2 through 6
+				drawPolyline(lapData, lineColor, lineType, false, player.Name, self.BreadCrumbs.CurrentIndex, plotTextLabel)
+				self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1		
+			end
 		end
 	end
 end
@@ -1315,9 +1348,11 @@ end
 --erase the history trail on the map when a new group race starts
 function Airrace:EraseAllBreadCrumbs()
 	for name, data in pairs(self.BreadCrumbs) do
-		if name ~= "CurrentIndex" and name ~= "AutoDraw" then			
-			for _, coords in ipairs(data) do
-				trigger.action.removeMark(coords.ID)
+		if name ~= "CurrentIndex" and name ~= "AutoDraw" then
+			for lapNum, lapData in ipairs(data) do
+				for idx, coords in ipairs (lapData) do
+					trigger.action.removeMark(coords.ID)
+				end
 			end	
 			trigger.action.removeMark(data.textID)
 			self.BreadCrumbs[name] = nil
@@ -1328,8 +1363,10 @@ end
 --erase the history trail on the map for a specific player
 function Airrace:ErasePlayerBreadCrumbs(player)
 	if self.BreadCrumbs[player.Name] then
-		for _, coords in ipairs(self.BreadCrumbs[player.Name]) do
-			trigger.action.removeMark(coords.ID)
+		for lapNum, lapData in ipairs(self.BreadCrumbs[player.Name]) do
+			for idx, coords in ipairs(lapData) do
+				trigger.action.removeMark(coords.ID)
+			end
 		end	
 		trigger.action.removeMark(self.BreadCrumbs[player.Name].textID)
 		self.BreadCrumbs[player.Name] = nil
@@ -2408,12 +2445,12 @@ function Init()
 
 			if #race.BestRacingLine == 0 then
 				--draw the jagged AutoDraw line if there isn't already a best line saved
-				drawPolyline(polyline, __Green, __LineSolid, closedPolyline, "AutoDraw", race.BreadCrumbs.CurrentIndex) -- Args: Vec3 list, color, line type, closed back to start point?, player name
+				drawPolyline(polyline, __Green, __LineSolid, closedPolyline, "AutoDraw", race.BreadCrumbs.CurrentIndex, true) -- Args: Vec3 list, color, line type, closed back to start point?, player name
 				race.BreadCrumbs.AutoDraw.textID = race.BreadCrumbs.CurrentIndex
 				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
 			else
 				--draw the saved best line
-				drawPolyline(race.BestRacingLine, __Green, __LineSolid, closedPolyline, string.format("Best by\n%s\n%s", race.FastestPlayer, race.FastestAircraft), race.BreadCrumbs.CurrentIndex)	
+				drawPolyline(race.BestRacingLine, __Green, __LineSolid, closedPolyline, string.format("Best by\n%s\n%s", race.FastestPlayer, race.FastestAircraft), race.BreadCrumbs.CurrentIndex, true)	
 				race.BestRacingLine.textID = race.BreadCrumbs.CurrentIndex
 				race.BreadCrumbs.CurrentIndex = race.BreadCrumbs.CurrentIndex + 1
 			end	

@@ -3,6 +3,7 @@
 AirRaceScript4.5  
 Changes by GTFreeFlyer, date TBD
 
+* Added different raceline line styles for each lap on the F10 map. Best raceline is unchanged (solid green line for all laps).
 * Adjust airspace violation explosion to occur slightly after takeoff, not immediately when wheels up.
 * Clarify the README regarding where to find the file for desanitization.  
 -------------------------------------------------------------------------------------  
