@@ -404,8 +404,11 @@ Airrace = {
 	BreadCrumbs = {CurrentIndex = 1201},
 	BestRacingLine = {},
 	PlayerBestData = {},
+	PlayerBestLapData = {},
 	TopTenRacers = {},
 	TopTenTimes = {},
+	TopTenRacerLaps = {},
+	TopTenLaps = {},	
 	SaveData = false,
 	SaveFilename = "MyRace",
 }
@@ -469,9 +472,12 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		PlotRaceLines = plotRaceLines,
 		BreadCrumbs = {CurrentIndex = 1201},
 		BestRacingLine = {},
-		PlayerBestData = {},
+		PlayerBestData = {}, --used to hold total times for each racer
+		PlayerBestLapData = {}, --used to hold lap times for each racer
 		TopTenRacers = {},
 		TopTenTimes = {},
+		TopTenRacerLaps = {},
+		TopTenLaps = {},	
 		SaveData = saveData,
 		SaveFilename = saveFilename,
 	}
@@ -490,9 +496,11 @@ function Airrace:saveRaceData()
 						FastestAircraft=self.FastestAircraft, 
 						FastestIntermediates=self.FastestIntermediates, 
 						BestRacingLine=self.BestRacingLine, 
-						PlayerBestData=self.PlayerBestData
+						PlayerBestData=self.PlayerBestData,
+						PlayerBestLapData=self.PlayerBestLapData
 						}
-		--where PlayerBestData table format = {name1 = {time1, time2, time3 ...}, name2 = {time1, time2, time3 ...}, ...}
+		--where PlayerBestData table format    = {name1 = {time1, time2, time3 ...}, name2 = {time1, time2, time3 ...}, ...}
+		--where PlayerBestLapData table format = {name1 = {time1, time2, time3 ...}, name2 = {time1, time2, time3 ...}, ...}
 		
 		local file = assert(io.open(self.SaveFilename, "w"))
 
@@ -533,7 +541,7 @@ function Airrace:saveRaceData()
 		file:write("\n}\n")
 		file:close()		
 	end	
-	self:displayTopTenRacers(self.PlayerBestData)
+	self:displayTopTenRacers(self.PlayerBestData, self.PlayerBestLapData)
 end
 -----------------------------------------------------------------------------------------
 -- Load data from file
@@ -542,7 +550,7 @@ function Airrace:loadRaceData()
 		local file, err = io.open(self.SaveFilename, "r")
 		if not file then
 			env.info("Cannot load saved race data. File not found.")
-			self:displayTopTenRacers(self.PlayerBestData) -- we still need to do this to build an empty list before bailing out of this function
+			self:displayTopTenRacers(self.PlayerBestData, self.PlayerBestLapData) -- we still need to do this to build an empty list before bailing out of this function
 			return
 		end
 
@@ -553,7 +561,7 @@ function Airrace:loadRaceData()
 		local chunk, loadErr = loadstring(content)
 		if not chunk then
 			env.info("Warning: Save file is corrupted: " .. tostring(loadErr))
-			self:displayTopTenRacers(self.PlayerBestData) -- we still need to do this to build an empty list before bailing out of this function
+			self:displayTopTenRacers(self.PlayerBestData, self.PlayerBestLapData) -- we still need to do this to build an empty list before bailing out of this function
 			return
 		end
 
@@ -565,6 +573,7 @@ function Airrace:loadRaceData()
 		self.FastestIntermediates = wrapper.FastestIntermediates
 		self.BestRacingLine = wrapper.BestRacingLine
 		self.PlayerBestData = wrapper.PlayerBestData
+		self.PlayerBestLapData = wrapper.PlayerBestLapData
 
 		--reassign ID's to the best race line segments
 		for _, data in ipairs(self.BestRacingLine) do
@@ -572,11 +581,11 @@ function Airrace:loadRaceData()
 			self.BreadCrumbs.CurrentIndex = self.BreadCrumbs.CurrentIndex + 1
 		end
 	end
-	self:displayTopTenRacers(self.PlayerBestData)
+	self:displayTopTenRacers(self.PlayerBestData, self.PlayerBestLapData)
 end
 -----------------------------------------------------------------------------------------
 -- Sort and display the top 10 racers in the F10 menu
-function Airrace:displayTopTenRacers(bestTimes)
+function Airrace:displayTopTenRacers(bestTimes, bestLapTimes)
 --example bestTimes format: 
 -- = {GT = {93,49,38,70,30,81,15,58,93,16}, 
   --  FD = {90},
@@ -587,14 +596,22 @@ function Airrace:displayTopTenRacers(bestTimes)
 
 	self.TopTenRacers = {}
 	self.TopTenTimes = {}
+	self.TopTenRacerLaps = {}
+	self.TopTenLaps = {}
 
 	--delete the existing F10 menu group, if there is one, and create a new one
 	missionCommands.removeItem(TopTenRacePilotsMenu)
 	missionCommands.removeItem(TopTenRaceTimesMenu)
-	TopTenRacePilotsMenu = missionCommands.addSubMenu("Top 10 Racers", nil)
-	TopTenRaceTimesMenu = missionCommands.addSubMenu("Top 10 Times", nil)
+	TopTenRacePilotsMenu = missionCommands.addSubMenu("Top 10 Racers", LeaderboardsMenu)
+	TopTenRaceTimesMenu  = missionCommands.addSubMenu("Top 10 Total Times", LeaderboardsMenu)
+	if self.NumberLaps > 1 then
+		missionCommands.removeItem(TopTenRacerLapsMenu)
+		missionCommands.removeItem(TopTenLapsMenu)
+		TopTenRacerLapsMenu  = missionCommands.addSubMenu("Top 10 Racer Laps", LeaderboardsMenu)
+		TopTenLapsMenu       = missionCommands.addSubMenu("Top 10 Laps", LeaderboardsMenu)
+	end
 
-	--create a list of all the best players. it will be sorted and truncated later
+	--create a list of all the best player total times. it will be sorted and truncated later
 	for name, times in pairs(bestTimes) do
 		local fastest = math.huge
 		for _, time in ipairs(times) do
@@ -605,16 +622,38 @@ function Airrace:displayTopTenRacers(bestTimes)
 		table.insert(self.TopTenRacers, {name = name, time = fastest})
 	end
 
-	--create a list of all the best times. it will be sorted and truncated later
+	--create a list of all the best total times. it will be sorted and truncated later
 	for name, times in pairs(bestTimes) do
 		for _, time in ipairs(times) do
 			table.insert(self.TopTenTimes, {name = name, time = time})
 		end
 	end
+	--...and do the same for lap times
+	if self.NumberLaps > 1 then
+		for name, lapTimes in pairs(bestLapTimes) do
+			for _, time in ipairs(lapTimes) do
+				table.insert(self.TopTenLaps, {name = name, time = time})
+			end
+		end
 
-	--sort each of the two tables...
-	table.sort(self.TopTenRacers, function(a,b) return a.time < b.time end)
-	table.sort(self.TopTenTimes, function(a,b) return a.time < b.time end)
+		for name, lapTimes in pairs(bestLapTimes) do
+			local fastest = math.huge
+			for _, time in ipairs(lapTimes) do
+				if time < fastest then
+					fastest = time
+				end
+			end
+			table.insert(self.TopTenRacerLaps, {name = name, time = fastest})
+		end
+	end
+
+	--sort each of the four tables...
+	table.sort(self.TopTenRacers,    function(a,b) return a.time < b.time end)
+	table.sort(self.TopTenTimes,     function(a,b) return a.time < b.time end)
+	if self.NumberLaps > 1 then
+		table.sort(self.TopTenLaps,      function(a,b) return a.time < b.time end)
+		table.sort(self.TopTenRacerLaps, function(a,b) return a.time < b.time end)
+	end
 
 	--print the data into the F10 menu categories
 	for rank = 1, 10 do
@@ -623,12 +662,25 @@ function Airrace:displayTopTenRacers(bestTimes)
 		else
 			missionCommands.addCommand("(Empty)", TopTenRacePilotsMenu, function() end, nil)
 		end
-	end
-	for rank = 1, 10 do
+
 		if self.TopTenTimes[rank] then
 			missionCommands.addCommand(self.TopTenTimes[rank].name:sub(1,22) .. "|" .. formatTime(self.TopTenTimes[rank].time), TopTenRaceTimesMenu, function() end, nil)
 		else
 			missionCommands.addCommand("(Empty)", TopTenRaceTimesMenu, function() end, nil)
+		end
+
+		if self.NumberLaps > 1 then
+			if self.TopTenLaps[rank] then
+				missionCommands.addCommand(self.TopTenLaps[rank].name:sub(1,22) .. "|" .. formatTime(self.TopTenLaps[rank].time), TopTenLapsMenu, function() end, nil)
+			else
+				missionCommands.addCommand("(Empty)", TopTenLapsMenu, function() end, nil)
+			end
+
+			if self.TopTenRacerLaps[rank] then
+				missionCommands.addCommand(self.TopTenRacerLaps[rank].name:sub(1,22) .. "|" .. formatTime(self.TopTenRacerLaps[rank].time), TopTenRacerLapsMenu, function() end, nil)
+			else
+				missionCommands.addCommand("(Empty)", TopTenRacerLapsMenu, function() end, nil)
+			end		
 		end
 	end
 end
@@ -1491,12 +1543,35 @@ end
 -----------------------------------------------------------------------------------------
 -- Add lap time for player
 local function addLapTime(player)
-	table.insert(player.LapTimes, timer.getTime() - GroupStartTime + player.Penalty - player.Bonus)
+	local lapTime = timer.getTime() - GroupStartTime + player.Penalty - player.Bonus --initialization
+	table.insert(player.LapTimes, lapTime)
 	if player.CurrentLapNumber > 1 then
 		for lapNum = 1, player.CurrentLapNumber-1 do
-			player.LapTimes[player.CurrentLapNumber] =  player.LapTimes[player.CurrentLapNumber] - player.LapTimes[lapNum]
+			lapTime =  player.LapTimes[player.CurrentLapNumber] - player.LapTimes[lapNum]
+			player.LapTimes[player.CurrentLapNumber] =  lapTime
 		end
 	end
+
+	--save best time for player
+	if not race.PlayerBestLapData[player.Name] then
+		--player history not found. create a new entry for him
+		race.PlayerBestLapData[player.Name] = {lapTime}
+		race:saveRaceData()
+	else
+		--player has history in the course...
+		--find best time...
+		local fastest = math.huge
+		for _, time in ipairs(race.PlayerBestLapData[player.Name]) do
+			fastest = (time < fastest) and time or fastest 
+		end
+
+		table.insert(race.PlayerBestLapData[player.Name], lapTime)
+
+		--let's save only the player's 10 best times...
+		table.sort(race.PlayerBestLapData[player.Name], function(a,b) return a < b end)
+		race.PlayerBestLapData[player.Name][11] = nil --automatically cuts off ranks 11 and higher
+		race:saveRaceData()
+	end	
 end
 -----------------------------------------------------------------------------------------
 -- Update the status and timer for the given player
@@ -1702,7 +1777,7 @@ function Airrace:UpdatePlayerStatus(player)
 					player.StatusText = player.StatusText .. "\n       "
 					for lapNum = 1, #player.LapTimes do
 						player.StatusText = string.format("%sLap%d: %s s", player.StatusText, lapNum, string.format("%.2f", player.LapTimes[lapNum]))
-						if lapNum%5 ~= 0 then --keep it to 5 lap times per line
+						if lapNum%5 ~= 0 and lapNum ~= self.NumberLaps then --keep it to 5 lap times per line
 							player.StatusText = player.StatusText .. " | " --stay on same line
 						elseif lapNum%5 == 0 and lapNum ~= #player.LapTimes then
 							player.StatusText = player.StatusText .. "\n       " --new line
@@ -2443,6 +2518,13 @@ function Init()
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
 
+		--create initial F10 menu structure
+		LeaderboardsMenu     = missionCommands.addSubMenu("Leaderboards")
+		TopTenRacePilotsMenu = missionCommands.addSubMenu("Top 10 Racers", LeaderboardsMenu)
+		TopTenRaceTimesMenu  = missionCommands.addSubMenu("Top 10 Total Times", LeaderboardsMenu)
+		TopTenRacerLapsMenu  = missionCommands.addSubMenu("Top 10 Racer Laps", LeaderboardsMenu)
+		TopTenLapsMenu       = missionCommands.addSubMenu("Top 10 Laps", LeaderboardsMenu)
+		
 		race:loadRaceData() --read saved data from file
 
 		if not groupRace then --If its a group race, we'll allow more control by running startRaceScript() function from the .miz

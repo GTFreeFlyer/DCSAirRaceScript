@@ -1,9 +1,10 @@
 (Most recent items on top)
 -------------------------------------------------------------------------------------  
 AirRaceScript4.5  
-Changes by GTFreeFlyer, date TBD
+Changes by GTFreeFlyer, March 18, 2026
 
 * Added display of individual lap times to summary at end of race
+* Add two new F10 menu categories: Top 10 Racer Laps (best lap time per racer), and Top 10 Laps (racer name may be repeated).
 * Added different raceline line styles for each lap on the F10 map. Best raceline is unchanged (solid green line for all laps).
 * Adjust airspace violation explosion to occur slightly after takeoff, not immediately when wheels up.
 * Clarify the README regarding where to find the file for desanitization.  

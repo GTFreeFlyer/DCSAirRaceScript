@@ -1,5 +1,6 @@
 # DCS Air Race Script
 This script is for DCS World mission creators who want to create epic race courses easily.  
+Scroll down for the full documentation.
 
 ![Race1](screenshots/race1.jpg)
 ![coast](screenshots/coastline.jpg)   
@@ -7,7 +8,7 @@ This script is for DCS World mission creators who want to create epic race cours
 ![Race3](screenshots/race3.jpg)
 
 Why choose this fork by GTFreeFlyer?  
-If you noticed, this repository is a fork from the original "Joe Kurr" script posted by basman. This project has evolved MUCH further from the original, from nearly 700 lines of code to now 2400. The original stuff is in here, but this project has grown tremendously in size and scope, including full documentation as you'll see below.  It is feature-rich with almost everything you could ever want for an air race. Have more ideas? Send them over!  
+If you noticed, this repository is a fork from the original "Joe Kurr" script posted by basman. This project has evolved MUCH further from the original, from nearly 700 lines of code to now 2600. The original stuff is in here, but this project has grown tremendously in size and scope, including full documentation as you'll see below.  It is feature-rich with almost everything you could ever want for an air race. Have more ideas? Send them over!  
  Cheers!  
  -GT-
  
@@ -40,12 +41,22 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
 * Supports individual racing (everyone has their own timer), or group racing (everyone shares a common timer) with or without a pace plane.  
 * Information display for keeping track of your progress as well as the competition's.  
 * Group races have a dynamic leaderboard display that changes as players overtake each other.  
-* Your trail history (race line) is plotted on the F10 map after the race, for post-race review. Different colors for each player, and includes a label next to the line with player's name in same color.
-* Two F10 radio menu categories: Top 10 Racers (no repeated names), and Top 10 Times (names may be repeated)
+* Your trail history (race line) is plotted on the F10 map after the race, for post-race review.
+   * Different colors for each player
+   * Different line styles per lap
+   * Label next to the line with player's name and aircraft type in same color
+* F10 radio menu categories for keeping an eye on the competition:  
+   * Top 10 Racers (no repeated names)
+   * Top 10 Total Times (names may be repeated)
+   * Top 10 Racer Laps (no repeated names)
+   * Top 10 Lap Times (names may be repeated)
 * Define the number of laps for your race.
-* Detects pylon hits, missed gates, entry into restriced zones, etc.  Define how many of each result in a DNF. Restricted zones yield an immediate DNF.
+* Detects pylon hits, missed gates, entry into restriced zones, etc.
+   * Define how many of each result in a DNF
+   * Restricted zones trigger an immediate DNF
 * Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
-* Define an altitude band within all gates globally, or individually, that will provide a bonus time reduction. Great for bridges, buildings, etc.  
+* Define an altitude band within all gates globally, or individually, that will provide a bonus time reduction. 
+   * Great for bridges, buildings, etc.  
 * Define the ceiling of your race airspace. 
 * Enforce the airspace around the race course during group races. Non-participants will explode if they enter. 
 * Gates can have wings-level, knife-edge, or inverted flight requirement.  
@@ -75,15 +86,15 @@ Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/
 
    * Once you have it figured out, continue below. The reason is simple: It's much easier to make changes now, moving pylons around, rather than later where changes will require much more work (i.e. moving the pylons, triggerzones, labels, etc.)
 
-   * Optional, but recommended: To be able to read/write your data so that the best times and race lines are recalled whenever the mission loads, so must desanitize your lua environment, done easily: 
+   * Optional, but recommended: To be able to read/write your data so that the best times and race lines are recalled whenever the mission loads, you must desanitize your lua environment, done easily: 
       * Go to your DCS root install folder (NOT YOUR SAVED GAMES FOLDER!)\Scripts\MissionScripting.lua, and add a double dash (--) in front of these two lines to comment them out:
       * --sanitizeModule('io')
       * --sanitizeModule('lfs')
-      * --If running a dedicated server, you must do the same in its install folder.  
-      * DCS may required a restart after this to make sure it takes effect.
-      * Disclaimer: This allows lua scripts to read and write to your PC! Just be careful and make sure you trust any other script you use. There's no need to worry with the race script as the source code is right here for you to see. Everything is kosher here.
       ![Desanitize](screenshots/desanitize.jpg)  
-   
+      * If running a dedicated server, you must do the same in its install folder.  
+      * You must repeat this after any DCS update, as it will reset this file.  
+      * DCS may required a restart after this to make sure it takes effect.  
+      * Disclaimer: This allows lua scripts to read and write to your PC! Just be careful and make sure you trust any other script you use. There's no need to worry with the race script as the source code is right here for you to see. Everything is kosher here.    
    * Okay, go get started. I'll see you back here shortly. Good luck! 
 
 ### Set Up the Required Triggers:  
@@ -130,7 +141,7 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
       * I recommend Static object -> category Structures -> Type Airshow cone
       * Tip: If you plan to use Tacview to debrief your race, place an infantry or vehicle at (or inside) each pylon so that the pylon location is visible in Tacview.  
 
-9. In the example screenshot below, I've placed two groups of three cones to indicate the starting line. Racers will enter East to West. I recommend using a rectangular shaped zone for the start and finish lines so that you have a nice straight line for fairness.  The script checks position every 0.2 seconds, so do some math to figure out how far your plane travels in that amount of time, and make sure the trigger zone is long enough to ensure detection. For example, if you expect to enter the race at Mach 1 (1125 ft/sec), you'll travel 225 ft in 0.2 seconds, so I'd suggest a trigger zone around 300 feet in length.  
+9. In the example screenshot below, I've placed two groups of three cones to indicate the starting line. Racers will enter East to West. I recommend using a rectangular shaped zone for the start and finish lines so that you have a nice straight line for fairness.  The script checks position every 0.2 seconds (adjustable), so do some math to figure out how far your plane travels in that amount of time, and make sure the trigger zone is long enough to ensure detection. For example, if you expect to enter the race at Mach 1 (1125 ft/sec), you'll travel 225 ft in 0.2 seconds, so I'd suggest a trigger zone around 300 feet in length.  
 ![Add your first gate](screenshots/gate1.jpg)  
 
 10. Now place trigger zones over the pylons and name them "pylon-1", "pylon-2", and so on. This is optional, only if you want to assign penalties for hitting pylons.
@@ -311,12 +322,12 @@ PlotRaceLines = false
    * Recommend leaving true, unless you need to hide racers' lines for competition reasons.
    * The best race line will be plotted as a solid green line representing all laps.
    * All non-best racelines...
-      * will be plotted as a random color for each player, along with your name and aircraft type label next to the race line, in the same color and at a random spot along the raceline of the first lap.
-      * will have a different line style for each lap as follows:
+      * ...will be plotted as a random color for each player, along with your name and aircraft type label next to the race line, in the same color and at a random spot along the raceline of the first lap.
+      * ...will have a different line style for each lap as follows:
          * Lap 1: Dashed - - - - - - - - - - - -
          * Lap 2: Dotted • • • • • • • • • • • 
          * Lap 3: Dot Dash • - • - • - • - • -
-         * Lap 4: Long Dash --- --- --- --- ---
+         * Lap 4: Long Dash ----- ----- ----- -----
          * Lap 5: Two Dash -- --   -- --   -- --   
 
 SaveFilename = "WarbirdRace" 
