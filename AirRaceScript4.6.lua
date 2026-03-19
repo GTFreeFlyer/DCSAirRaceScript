@@ -2125,7 +2125,7 @@ function Airrace:ListPlayers()
 		mist.scheduleFunction(stopRaceScript, nil, timeNow+30)
 	end
 
-	trigger.action.outText(text, 10, true)
+	trigger.action.outText(text, 60, true)
 end
 ----------------------------------------------------------------------------------------------------------------------
 -- MAIN SCRIPT
