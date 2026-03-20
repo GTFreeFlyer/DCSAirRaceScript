@@ -40,6 +40,7 @@ StartSpeedLimit = 300 --[999]
 GroupRace = true --[false]
 GroupRaceTimeout = 30 --[120]
 PaceUnitName = "PacePlane" --[nil]
+PaceRequireRightLineAbreast = false --[true]
 GroupRaceParticipantFilter = 6000 --[999999]
 GroupRaceEnforceAirspace = true --[false]
 

@@ -8,6 +8,7 @@ Changes by GTFreeFlyer, date TBD
 * Race summary now remains on screen longer, for 90 seconds, after group race ends
 * Added new general-purpose flag: RaceScriptStarted
 * Illumination flares are seen during the day, after the first night passes. Fixed.
+* Added user option to require, or not require, right-line-abreast formation with the pace plane in group races.
 -------------------------------------------------------------------------------------  
 AirRaceScript4.5  
 Changes by GTFreeFlyer, March 18, 2026

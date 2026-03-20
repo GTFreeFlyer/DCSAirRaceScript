@@ -398,6 +398,13 @@ PaceUnitName = "PacePlane"
    * Pace plane's unit name (pilot name) from the editor. Case-sensitive, placed in quotes "like this".  
    * Used only when GroupRace=true
 
+PaceRequireRightLineAbreast = false
+   * [optional, true]  
+   * If true, then all planes must be to the right side of the pace plane at the time of drop-in
+   * If false, then planes can be on either side of the pace place at the time of drop-in
+   * Both options still require plane to be behind and below the pace plane to avoid penalties.
+   * Used only when GroupRace=true
+
 GroupRaceParticipantFilter = 6000  
    * [optional, 999999] max distance between pilot and pace plane in order for the pilot to be added to the race list before drop-in.  
    * Used only when GroupRace=true, and when a pace plane is added  

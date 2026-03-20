@@ -66,6 +66,7 @@
 --                                    GroupRaceParticipantFilter = <distance in feet>                     [optional]-- default: 999999. If using a pace plane, pilots will only be added to the list if they are within this range of the pace before drop-in.
 --                                    GroupRaceEnforceAirspace = <true or false>                          [optional]-- default: false.  If true, non-participating aircraft that enter the racezone during an active group race will be exploded.
 --                                    PaceUnitName = <pace's unit name in a group race>                   [optional]-- default: (none, nil) --example: "PacePlane" (case-sensitive)
+--									  PaceRequireRightLineAbreast = <true or false>                       [optional]-- default: true
 --                                    IlluminationOn = <true or false whether you want lighting at night> [optional]-- default: true. If true, the illum. flares will appear over all the gates plus any additional illumination trigger zones
 --									  IlluminationStartTime = <time in seconds after midnight>            [optional]-- default: 64800 (06:00 PM)  
 --									  IlluminationStopTime = <time in seconds after midnight>             [optional]-- default: 21600 (06:00 AM). Flares are respawned every 4 minutes from start time until stop time.
@@ -390,6 +391,7 @@ Airrace = {
 	GroupRaceParticipantFilter = 999999 * .3048, --convert to meters
     GroupRaceTimeout = 120 * 60, --convert to seconds
 	GroupRaceEnforceAirspace = false,
+	PaceRequireRightLineAbreast = true, --true for right-line abreast, false for any side
 	IlluminationOn = true,
 	IlluminationStartTime = 64800,
 	IlluminationStopTime = 21600,
@@ -421,7 +423,7 @@ Airrace = {
 function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, triggerZonesDNF, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
-                        numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
+                        numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, paceRequireRightLineAbreast, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
 						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
 	local obj = {
         DistanceUnits = distanceUnits,
@@ -456,6 +458,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		NumberLaps = numberLaps,
 		GroupRace = groupRace,
 		PaceUnitName = paceUnitName,
+		PaceRequireRightLineAbreast = paceRequireRightLineAbreast,
 		GroupRaceParticipantFilter = participantFilter,
         GroupRaceTimeout = groupRaceTimeout,
 		GroupRaceEnforceAirspace = groupRaceEnforceAirspace, 
@@ -1483,7 +1486,7 @@ function Airrace:CheckLineupWithPace(player)
 	end
 
 	--Check if pilot is on the right side of the pace plane
-	if playerNewZ < 0 then 	
+	if self.PaceRequireRightLineAbreast and playerNewZ < 0 then 	
 		env.info(string.format("Player %s is not eligible for the current group race because they are on the left side of the pace plane", player.Name))
 		warnPlayer("(Wrong side of the Pace)", player)
 		player.RaceEligible = false 
@@ -2378,6 +2381,7 @@ function Init()
 	local numberPylonHitsDNF = NumberPylonHitsDNF or 999
 	local groupRace = GroupRace
 	local paceUnitName = PaceUnitName or nil
+	local paceRequireRightLineAbreast = PaceRequireRightLineAbreast or true
 	local fastestIntermediates = {{}}
 	local participantFilter = GroupRaceParticipantFilter or 99999
     local groupRaceTimeout = GroupRaceTimeout or 120
@@ -2420,6 +2424,10 @@ function Init()
 	if type(groupRace) ~= "boolean" then
 		groupRace = false
 		env.info("Invalid or missing setting for GroupRace. Must be true or false. Resetting to default: false")
+	end
+	if type(paceRequireRightLineAbreast) ~= "boolean" then
+		paceRequireRightLineAbreast = true
+		env.info("Invalid or missing setting for PaceRequireRightLineAbreast. Must be true or false. Resetting to default: true")
 	end
 	if type(groupRaceEnforceAirspace) ~= "boolean" then
 		groupRaceEnforceAirspace = false
@@ -2518,7 +2526,7 @@ function Init()
 		race = Airrace:New(distanceUnits, raceZones, racePylons, DNFZones, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
-							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
+							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, paceRequireRightLineAbreast, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
 
 		--create initial F10 menu structure
