@@ -3,9 +3,11 @@ This script is for DCS World mission creators who want to create epic race cours
 Scroll down for the full documentation.
 
 ![Race1](screenshots/race1.jpg)
-![coast](screenshots/coastline.jpg)   
+![coast](screenshots/coastline.jpg) 
+A dynamic leaderboard that updates as racers overtake each other...  
 ![Text](screenshots/text.jpg)
-![Race3](screenshots/race3.jpg)
+View your racelines directly on the F10 map!  Each racer plotted in a different color for comparison.
+![Racelines](screenshots/racelines.jpg)
 
 Why choose this fork by GTFreeFlyer?  
 If you noticed, this repository is a fork from the original "Joe Kurr" script posted by basman. This project has evolved MUCH further from the original, from nearly 700 lines of code to now 2600. The original stuff is in here, but this project has grown tremendously in size and scope, including full documentation as you'll see below.  It is feature-rich with almost everything you could ever want for an air race. Have more ideas? Send them over!  
@@ -75,7 +77,7 @@ Source: https://github.com/GTFreeFlyer/DCSAirRaceScript/
 1. From the GitHub page, click Releases on the right side, and click DCSAirRaceScript.v4.zip to download it. (You do not need to download the Source code zip or tar.gz).    
 ![Click Code](screenshots/download.jpg)
 2. Extract the .zip anywhere you like on your PC
-3. If you don't already have MIST downloaded to your PC, get it from https://github.com/mrSkortch/MissionScriptingTools. You only need the single file, mist.lua.  There's no need to download the whole .zip from here. Click on mist.lua from the list of files you see; this will bring you to the page that shows all 9500+ lines of code.  Press ctrl+shift+S to save the file somewhere on your PC.
+3. If you don't already have MIST downloaded to your PC, I have included it in the .zip for you, or get the latest version from https://github.com/mrSkortch/MissionScriptingTools if you use MIST for other things. You only need the single file, mist.lua.  There's no need to download the whole .zip from mrSkortch's GitHub. Click on mist.lua from the list of files you see; this will bring you to the page that shows all 9500+ lines of code.  Press ctrl+shift+S to save the file somewhere on your PC.
   
 ## Creating a Race in the Mission Editor
 
@@ -460,6 +462,10 @@ The script provides general-purpose flags that you may use to trigger your own s
    * RacerCrashed, RacerEjected, RacerDied, RacerDisconnected, RacerEngineShutdown
       * Toggles true when any of these events occur for ANY player. 
       * In your trigger action, you must reset these with FLAG OFF if you want to use them again on the next occurrence.
+
+   * RaceScriptStarted
+      * Toggles true when the script is running, and false when not.
+      * Remember, the script stops after a group race finishes
 
 Example:  
 If you want to play a voiceover .ogg sound after the first aircraft reaches gate-3 on the first lap then...  

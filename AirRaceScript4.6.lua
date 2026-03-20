@@ -1081,7 +1081,8 @@ end
 -----------------------------------------------------------------------------------------
 -- Illumination flares for night racing
 function Airrace:NightRaceIllumination()
-	local missionTime = timer.getAbsTime()
+	local missionTime = (timer.getTime() + timer.getTime0()) % 86400
+	env.info("Debug: missionTime = " .. missionTime) --debug
 	if missionTime >= self.IlluminationStartTime or missionTime <= self.IlluminationStopTime then
 		for gate = 1, #self.Course.Gates do
 			local gateZoneName = string.format("gate-%d", gate)
@@ -2222,6 +2223,7 @@ function startRaceScript()
 		trigger.action.setUserFlag("GroupRaceStarted", 0) --optional flag to be used in the .miz for whatever purpose 
 		trigger.action.setUserFlag("GroupRaceFinished", 0) --optional flag to be used in the .miz for whatever purpose 
 		trigger.action.setUserFlag("FinishLineCrossed", 0) --optional flag to be used in the .miz for whatever purpose 
+		trigger.action.setUserFlag("RaceScriptStarted", 1) --optional flag to be used in the .miz for whatever purpose 
 
 		--Build an empty table to hold ranking data (names and gate times)
 		race.GroupCurrentRankings = {}
@@ -2271,6 +2273,7 @@ function stopRaceScript()
 	trigger.action.setUserFlag("PaceDrop", 0)
 	trigger.action.setUserFlag("GroupRaceStarted", 0)
 	trigger.action.setUserFlag("GroupRaceFinished", 0)
+	trigger.action.setUserFlag("RaceScriptStarted", 0)
 	GroupTimerStarted = false
 	GroupWinnerCrossedFinishLine = false
 	PaceDropTime = 0
@@ -2532,6 +2535,7 @@ function Init()
 			                                                                                               --Note: 300 knots is about 500 ft/sec. 0.2sec repeating function is once per 100ft of aircraft travel. Trigger zones smaller than this may be missed!
 			ScheduledFunctionNewPlayerTimer = mist.scheduleFunction(NewPlayerTimer, { race }, timer.getTime(), newPlayerCheckInterval)
 			ScheduledFunctionRemovePlayerTimer = mist.scheduleFunction(RemovePlayerTimer, { race }, timer.getTime(), removePlayerCheckInterval)
+			trigger.action.setUserFlag("RaceScriptStarted", 1) --optional flag to be used in the .miz for whatever purpose 
 			env.info("Start Airrace script")
 		end
 
