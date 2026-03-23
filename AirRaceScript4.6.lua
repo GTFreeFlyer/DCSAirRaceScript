@@ -52,6 +52,9 @@
 --                                    BonusGateHeight = <global height of the bonus gates in feet>        [optional]-- default: 15
 --                                    CustomBonusGateHeights = <overrides for BonusGateHeight, per gate>  [optional]-- default: {} (empty list). Override the global BonusGateHeight for specified gate(s). Example: {gate3={0,10}, gate8={80,100}} makes gate-3 bonusbetween 0 and 10 feet AGL, and gate-8 between 800 and 100 feet AGL
 --                                    BonusTime = <time in seconds to subtract when hitting a bonus gate> [optional]-- default: 1
+--                                    KillBonus = <true or false to enable a bonus for scoring a kill>    [optional]-- default: false. If true, players will receive a time bonus every time they score a kill. The amount of the bonus is determined by the BonusTimeKill setting below.
+--                                    BonusTimeKill = <time in seconds to subtract when scoring a kill>   [optional]-- default: 1
+--									  AllowFraticide = <true or false to allow kills between racers>      [optional]-- default: false. If true, players will be able to score kill bonuses by killing other racers, and will not be penalized for doing so (Mario Kart style). If false, players will get a DNF for killing other racers.
 --                                    PenaltyTimeMissedGate = <penalty time in seconds>                   [optional]-- default: 5
 --                                    PenaltyTimePylonHit = <penalty time in seconds>                     [optional]-- default: 3
 --                                    PenaltyTimeAboveGateHeight = <penalty time in seconds>              [optional]-- default: 2
@@ -377,6 +380,9 @@ Airrace = {
 	BonusGateHeight = 15 * .3048, --convert to m
     CustomBonusGateHeights = {},
     BonusTime = 1,
+	KillBonus = false,
+	BonusTimeKill = 1,
+	AllowFraticide = false,
 	PenaltyTimeMissedGate = 5,
 	PenaltyTimePylonHit = 3,
 	PenaltyTimeAboveGateHeight = 2,
@@ -421,7 +427,7 @@ Airrace = {
 -- Parameter course          : A reference to the Course object containing all the gates
 --
 function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, triggerZonesDNF, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
-						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, 
+						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, killBonus, bonusTimeKill, allowFraticide,
                         penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, paceRequireRightLineAbreast, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
 						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
@@ -446,6 +452,9 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
         BonusGateHeight = bonusGateHeight,
         CustomBonusGateHeights = customBonusGateHeights or {},
         BonusTime = bonusTime,
+		KillBonus = killBonus,
+		BonusTimeKill = bonusTimeKill,
+		AllowFraticide = allowFraticide,
 		PenaltyTimeMissedGate = penaltyTimeMissedGate,
 		PenaltyTimePylonHit = penaltyTimePylonHit,
 		PenaltyTimeAboveGateHeight = penaltyTimeAboveGateHeight,
@@ -2282,9 +2291,9 @@ function stopRaceScript()
 	PaceDropTime = 0
 end
 -----------------------------------------------------------------------------------------
--- Detect crashes, deaths, ejections
-local crashHandler = {}
-function crashHandler:onEvent(event)
+-- Detect crashes, deaths, ejections, engine shutdowns/failures, kills
+local eventHandler = {}
+function eventHandler:onEvent(event)
 	if #race.Players ==  0 then return end
 
 	local initiator = event.initiator
@@ -2296,20 +2305,46 @@ function crashHandler:onEvent(event)
 	local reason = nil
 
 	if event.id == world.event.S_EVENT_CRASH then
-			reason = "Crashed"
-			trigger.action.setUserFlag("RacerCrashed", 1) --optional flag to be used in the .miz for whatever purpose
+		reason = "Crashed"
+		trigger.action.setUserFlag("RacerCrashed", 1) --optional flag to be used in the .miz for whatever purpose
 	elseif event.id == world.event.S_EVENT_EJECTION then
-			reason = "Ejected"
-			trigger.action.setUserFlag("RacerEjected", 1) --optional flag to be used in the .miz for whatever purpose
-	elseif event.id == world.event.S_EVENT_DEAD  or event.id == world.event.S_EVENT_PILOT_DEAD then
-			reason = "Died"
-			trigger.action.setUserFlag("RacerDied", 1) --optional flag to be used in the .miz for whatever purpose
+		reason = "Ejected"
+		trigger.action.setUserFlag("RacerEjected", 1) --optional flag to be used in the .miz for whatever purpose
+	elseif event.id == world.event.S_EVENT_DEAD or event.id == world.event.S_EVENT_PILOT_DEAD then
+		reason = "Died"
+		trigger.action.setUserFlag("RacerDied", 1) --optional flag to be used in the .miz for whatever purpose
 	elseif event.id == world.event.S_EVENT_DISCONNECT then
-			reason = "Disconnected"	
-			trigger.action.setUserFlag("RacerDisconnected", 1) --optional flag to be used in the .miz for whatever purpose
+		reason = "Disconnected"	
+		trigger.action.setUserFlag("RacerDisconnected", 1) --optional flag to be used in the .miz for whatever purpose
 	elseif event.id == world.event.S_EVENT_ENGINE_SHUTDOWN then
-			reason = "Engine shutdown"	
-			trigger.action.setUserFlag("RacerEngineShutdown", 1) --optional flag to be used in the .miz for whatever purpose
+		reason = "Engine shutdown"	
+		trigger.action.setUserFlag("RacerEngineShutdown", 1) --optional flag to be used in the .miz for whatever purpose
+	elseif event.id == world.event.S_EVENT_KILL then					
+			--Check for fratricide
+			local fratricide = false
+			if not self.AllowFratricide then
+				local target = event.target
+				if target then
+					local okT, targetName = pcall(target.getPlayerName, target)
+					if okT and targetName then
+						for _, player in ipairs(race.Players) do
+							if player.Name == targetName then
+								fratricide = true
+								env.info(name .. " killed fellow racer " .. targetName)
+								break
+							end
+						end
+					end
+				end
+			end
+			if fratricide == false and race.KillBonus == true then
+				reason = "Kill bonus"				
+			elseif fratricide == true then
+				reason = "Fratricide"
+				trigger.action.setUserFlag("Fratricide", 1)
+			else
+				reason = nil
+			end
 	end
 
 	if not reason then return end
@@ -2319,6 +2354,12 @@ function crashHandler:onEvent(event)
 	for _, player in ipairs(race.Players) do
 		if player.Name == name and reason == "Engine shutdown" then
 			warnPlayer("Engine quit!", player)
+			env.info(string.format("%s's engine has quit", player.Name))
+		elseif player.Name == name and race.KillBonus == true and reason == "Kill bonus" and player.Started == true and player.Finished == false then
+			trigger.action.setUserFlag("KillBonus", 1)
+			player.Bonus = player.Bonus + race.BonusTimeKill
+			warnPlayer(string.format("Kill bonus! -%d sec", race.BonusTimeKill), player)
+			env.info(string.format("%s received a kill bonus of %d seconds", player.Name, race.BonusTimeKill))
 		elseif player.Name == name and player.DNF == false then
 			player.DNF = true
 			race:ShowBreadCrumbs(player)
@@ -2371,6 +2412,9 @@ function Init()
 	local bonusGateHeight = BonusGateHeight or 20
     local customBonusGateHeights = CustomBonusGateHeights or {}
     local bonusTime = BonusTime or 1
+	local killBonus = KillBonus or false
+	local bonusTimeKill = BonusTimeKill or 1
+	local allowFraticide = AllowFratricide or false
 	local penaltyTimeMissedGate = PenaltyTimeMissedGate or 5
 	local penaltyTimePylonHit = PenaltyTimePylonHit or 3
 	local penaltyTimeAboveGateHeight = PenaltyTimeAboveGateHeight or 2
@@ -2420,6 +2464,14 @@ function Init()
 	if distanceUnits ~= "ft" and distanceUnits ~= "m" then 
 		distanceUnits = "ft" 
 		env.info("Invalid or missing setting for DistanceUnits. Must be 'ft' or 'm'. Resetting to default: 'ft'")
+	end
+	if type(killBonus) ~= "boolean" then
+		killBonus = false
+		env.info("Invalid or missing setting for KillBonus. Must be true or false. Resetting to default: false")
+	end
+	if type(allowFraticide) ~= "boolean" then
+		allowFraticide = false
+		env.info("Invalid or missing setting for allowFraticide. Must be true or false. Resetting to default: false")
 	end
 	if type(groupRace) ~= "boolean" then
 		groupRace = false
@@ -2524,7 +2576,7 @@ function Init()
 		end			
 
 		race = Airrace:New(distanceUnits, raceZones, racePylons, DNFZones, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
-                            startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime,
+                            startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, killBonus, bonusTimeKill, allowFraticide,
 							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, paceRequireRightLineAbreast, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
@@ -2587,7 +2639,7 @@ function Init()
 		end
 
 		PopSmokeMarkers()
-		world.addEventHandler(crashHandler)
+		world.addEventHandler(eventHandler)
 		env.info("AirRaceScript loaded successfully")
 	else
 		logMessage("racezone or gate triggerzones not found. You must have BOTH! Script will not start.")		

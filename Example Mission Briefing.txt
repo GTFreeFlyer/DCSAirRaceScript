@@ -61,8 +61,10 @@ Missed pylon: +5 seconds (3 misses and you are disqualified (DNF!))
 Too high at pylon: +2 seconds
 Wings not level where required: +2 seconds
 
+Bonuses:
 Flight through gate 8 below 50 feet: -1 second
-Flight through gate 9 below 30 feet: -1 second  
+Flight through gate 9 below 30 feet: -1 second
+Kill a ground target during the race: -1 second
 ---------------------------------------------------------------------
 CONTACT INFO:
 

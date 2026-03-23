@@ -3,10 +3,12 @@
 AirRaceScript4.6  
 Changes by GTFreeFlyer, date TBD
 
+* Add option for kill bonus. Take out ground targets during the race and receive bonus time!
+* Add option to allow/prohibit fracticide for Mario Kart style races.
 * The display of penalty times and parameter values now show up to two decimal places instead of being rounded off.
 * Fixed possible bug if a start limit speed is set and violated.
 * Race summary now remains on screen longer, for 90 seconds, after group race ends
-* Added new general-purpose flag: RaceScriptStarted
+* Added new general-purpose flags: RaceScriptStarted, KillBonus, Fratricide
 * Illumination flares are seen during the day, after the first night passes. Fixed.
 * Added user option to require, or not require, right-line-abreast formation with the pace plane in group races.
 -------------------------------------------------------------------------------------  

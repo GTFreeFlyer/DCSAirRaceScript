@@ -68,7 +68,19 @@ CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
 --Add more gates as needed, separated by commas like in the example.
 
 BonusTime = 2
---{optional, 1] time in seconds to subtract from total time when hitting a bonus gate  
+--[optional, 1] time in seconds to subtract from total time when hitting a bonus gate  
+
+KillBonus = true
+--[optional, false] If true, players will receive a time bonus every time they score a kill.  
+--The amount of the bonus is determined by the BonusTimeKill setting below.  
+
+BonusTimeKill = 0.5
+--[optional, 1] time in seconds, linked to the KillBonus setting above
+
+AllowFratricide = true
+--[optional, false] If true, allows you to kill fellow racers for bonus time (Mario Kart style)
+--If false, you will receive a DNF for killing a fellow racer, regardless of KillBonus setting 
+--Note: KillBonus setting must also be true in order to receive bonus time for this feature. 
 
 AutoDraw = false 
 --[optional, true] draws lines on the F10 map between the gates and places gate labels.

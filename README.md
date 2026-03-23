@@ -30,6 +30,7 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
    * [Penalty and DNF Settings](#penalty-and-dnf-settings)
    * [Group Race Settings](#group-race-settings)
    * [Night Race Illumination Settings](#night-race-illumination-settings)
+* [Summary of Trigger Zones](#summary-of-trigger-zone-types)
 * [General Purpose Flags for Mission Creators](#general-purpose-flags-for-mission-creators)
 * [Contact Info](#contact-info)
 * [Forum Thread](#forum-thread)
@@ -47,18 +48,18 @@ This README was created by GTFreeFlyer. You may find me on Discord or the ED For
    * Different colors for each player
    * Different line styles per lap
    * Label next to the line with player's name and aircraft type in same color
-* F10 radio menu categories for keeping an eye on the competition:  
+* F10 radio menu categories for keeping track of the leaders:  
    * Top 10 Racers (no repeated names)
    * Top 10 Total Times (names may be repeated)
    * Top 10 Racer Laps (no repeated names)
    * Top 10 Lap Times (names may be repeated)
 * Define the number of laps for your race.
 * Detects pylon hits, missed gates, entry into restriced zones, etc.
-   * Define how many of each result in a DNF
+   * Define how many of each result in a DNF, as well as how many seconds of penalty time per occurrence
    * Restricted zones trigger an immediate DNF
-* Define the height of your gates using a global value, or individual gate values. Gates can also be "floating" in the air.
-* Define an altitude band within all gates globally, or individually, that will provide a bonus time reduction. 
-   * Great for bridges, buildings, etc.  
+* You can set up bonus time for killing ground targets. Also, option available to give bonus time, or immediate DNF for killing fellow racers.  
+* Define the height of your gates using a global value, or individual gate values. Gates can bet set up to "float" in the air.
+* Define an altitude band within all gates globally, or individually, that will provide a bonus time reduction. (Great for bridges, buildings, etc.)    
 * Define the ceiling of your race airspace. 
 * Enforce the airspace around the race course during group races. Non-participants will explode if they enter. 
 * Gates can have wings-level, knife-edge, or inverted flight requirement.  
@@ -153,7 +154,7 @@ ACTIONS: SOUND TO ALL - Navigate to the extracted DCSAirRaceScript folder and se
 ![Mark your pylons](screenshots/pylonzone.jpg)  
 
 11. Let's add more gates now. We'll keep the course small for this tutorial, perhaps good for helicopters?  
-      * When adding gate zones, you must always start with gate-1, then gate-2, gate-3, etc.  
+      * When adding gate zones, you must always start with gate-1, then gate-2, gate-3, etc.  A minimum of two gates are required.
       * The course does NOT have to end where it starts. You can do a race from gate-1 to the last gate if you wish. This is defined in the Race Settings. More on that later.
       * Do not add leading zeroes, and do not skip any numbers.  
       * Gate trigger zones must be numbered in the order you plan to fly through them.  
@@ -294,7 +295,7 @@ CustomGateHeights = { gate1={0,500}, gate12={100,400} }
    * Add more gates as needed, separated by commas like in the example.  
   
 BonusGates = {2, 4}  
-   * [optional, {}] list of gate numbers for low altitude bonus
+   * [optional, {}] list of gate numbers for low altitude bonus  
 
 BonusGateHeight = 15  
    * [optional, 20] global height of the bonus gates, for any gate listed in BonusGates and not in CustomBonusGateHeights (next setting below).  
@@ -310,6 +311,17 @@ CustomBonusGateHeights = { gate1={0,25}, gate11={20,40} }
 
 BonusTime = 2  
    * [optional, 1] time in seconds to subtract when hitting a bonus gate  
+
+KillBonus = true
+   * [optional, false] If true, players will receive a time bonus every time they score a kill.  
+   * The amount of the bonus is determined by the BonusTimeKill setting below.  
+
+BonusTimeKill = 0.5
+   * [optional, 1] time in seconds, linked to the KillBonus setting above  
+
+AllowFratricide = true
+   * [optional, false] If true, allows you to kill fellow racers for bonus time (Mario Kart style) if KillBonus setting is also true
+   * If false, you will receive a DNF for killing a fellow racer, regardless of KillBonus setting 
   
 AutoDraw = false
    * [optional, true] draws lines on the F10 map between the gates and places gate labels.   
@@ -445,8 +457,26 @@ IlluminationRespawnTimer = 120
    * [optional, 240] seconds until respawn. Illum. flares last for 4 minutes before they burn-out
    * If you want multiple flares stacked high, change the default to lower number  
 
+## Summary of Trigger Zones:
+This is the list of all trigger zone names/types covered by this script.  Details for each are found in the text above.  
+
+   * Required in every race course:
+      * "gate-X"
+      * "racezone-x"
+   * Optional:
+      * "pylon-X"
+      * "DNF-X"
+      * "fireworks-X"
+      * "illum-X"
+      * "White smoke-X", "Red smoke-X", "Orange smoke-X", "Blue smoke-X", "Green smoke-X"  
+
+Replace X with a number (i.e. "gate-1"), always starting with 1 and incrementing up by 1 at a time (per each name), never skipping numbers.
+
+Valid example: gate-1, gate-2, racezone-1, pylon-1, pylon-2, DNF-1, White smoke-1, White smoke-2, Orange smoke-1  
+Invalid example: gate-1, gate-2, racezone-3, pylon-4, pylon-5, DNF-6, White smoke-1, White smoke-2, Orange smoke-3
+
 ## General Purpose Flags for Mission Creators:
-The script provides general-purpose flags that you may use to trigger your own stuff in the miz:  
+The script provides general-purpose flags that you may use to trigger your own stuff in the miz. Their names are:  
    * GroupRaceStarted, GroupRaceFinished, GroupRaceFinalLap
       * First one toggles true when the first racer enters the first gate 
       * Second one toggles true about 15 seconds after the last racer has finished the race, or if there are no more racers remaining due to crashes, disconnects, etc.
@@ -466,8 +496,10 @@ The script provides general-purpose flags that you may use to trigger your own s
       * Toggles true at the first occurrence of each gate hit. 
       * These will reset back to false at the beginning of a race when the timer starts.  
 
-   * RacerCrashed, RacerEjected, RacerDied, RacerDisconnected, RacerEngineShutdown
+   * RacerCrashed, RacerEjected, RacerDied, RacerDisconnected, RacerEngineShutdown, KillBonus, Fratricide
       * Toggles true when any of these events occur for ANY player. 
+      * RacerEngineShutdown will also detect when an engine quits (due to overheating, etc)
+      * KillBonus and Fratricide will detect when any player has killed a target or committed Fratricide, in case you want to play a voiceover, etc.
       * In your trigger action, you must reset these with FLAG OFF if you want to use them again on the next occurrence.
 
    * RaceScriptStarted
