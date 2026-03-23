@@ -5,6 +5,7 @@ Changes by GTFreeFlyer, date TBD
 
 * Add option for kill bonus. Take out ground targets during the race and receive bonus time!
 * Add option to allow/prohibit fracticide for Mario Kart style races.
+* Add new triggerzone type, "penalty", which will add user-defined penalty time if a player passes thru the zone.
 * The display of penalty times and parameter values now show up to two decimal places instead of being rounded off.
 * Fixed possible bug if a start limit speed is set and violated.
 * Race summary now remains on screen longer, for 90 seconds, after group race ends

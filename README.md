@@ -10,7 +10,7 @@ View your racelines directly on the F10 map!  Each racer plotted in a different 
 ![Racelines](screenshots/racelines.jpg)
 
 Why choose this fork by GTFreeFlyer?  
-If you noticed, this repository is a fork from the original "Joe Kurr" script posted by basman. This project has evolved MUCH further from the original, from nearly 700 lines of code to now 2600. The original stuff is in here, but this project has grown tremendously in size and scope, including full documentation as you'll see below.  It is feature-rich with almost everything you could ever want for an air race. Have more ideas? Send them over!  
+If you noticed, this repository is a fork from the original "Joe Kurr" script posted by basman. This project has evolved MUCH further from the original, from nearly 700 lines of code to now 2700. The original stuff is in here, but this project has grown tremendously in size and scope, including full documentation as you'll see below.  It is feature-rich with almost everything you could ever want for an air race. Have more ideas? Send them over!  
  Cheers!  
  -GT-
  
@@ -206,7 +206,9 @@ Okay, that covers all the required stuff, but wait!... There are more (optional)
 ![SmokeTZ](screenshots/smokeTZ.jpg)
 ![Smoke](screenshots/smoke.jpg)  
 
-18. Need to protect certain areas of the course? You can trigger an immediate DNF (Did Not Finish) on a player that enters any zone named "DNF-1", "DNF-2", and so on.
+18. Need to protect certain areas of the course? 
+      * You can trigger an immediate DNF (Did Not Finish) on a player that enters any zone named "DNF-1", "DNF-2", and so on.
+      * You can add penalty time to a player that enters any zone names "penalty-1", "penalty-2", and so on. The penalty amount is defined in the user settings. 
 
   
 ### Setup Required for Group Races:
@@ -382,6 +384,10 @@ PenaltyInvertedGate = 1
    * [optional, 2] time in seconds added to your race time when passing through a inverted gate zone when not inverted with wings level +/- 10 degrees  
    * Valid range: 0 to any positive integer  
 
+PenaltyTimePenaltyZone = 1
+   * [optional, 2] time in seconds added to your race time when passing through a penalty trigger zone
+   * Valid range: 0 to any positive integer
+
 NumberMissedGatesDNF = 3  
    * [optional, 999] how many missed gates will trigger a DNF
    * Valid range: 1 to infinity  
@@ -466,6 +472,7 @@ This is the list of all trigger zone names/types covered by this script.  Detail
    * Optional:
       * "pylon-X"
       * "DNF-X"
+      * "penalty-X"
       * "fireworks-X"
       * "illum-X"
       * "White smoke-X", "Red smoke-X", "Orange smoke-X", "Blue smoke-X", "Green smoke-X"  

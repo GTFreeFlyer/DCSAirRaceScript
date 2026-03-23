@@ -135,6 +135,11 @@ PenaltyTimeInvertedGate = 1
 --an inverted gate zone when not inverted with wings level +/- 10 degrees
 --Valid range: 0 to any positive integer
 
+PenaltyTimePenaltyZone = 1
+--[optional, 2] time in seconds added to your race time when passing through
+--a penalty trigger zone
+--Valid range: 0 to any positive integer
+
 NumberMissedGatesDNF = 3
 --[optional, 999] how many missed gates will trigger a DNF
 --Valid range: 1 to infinity

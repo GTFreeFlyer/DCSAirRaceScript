@@ -60,6 +60,7 @@ Pylon hit: +3 seconds (3 pylon hits and you are disqualified (DNF!))
 Missed pylon: +5 seconds (3 misses and you are disqualified (DNF!))
 Too high at pylon: +2 seconds
 Wings not level where required: +2 seconds
+Passing through a penalty zone marked on the F10 map: +2 seconds
 
 Bonuses:
 Flight through gate 8 below 50 feet: -1 second

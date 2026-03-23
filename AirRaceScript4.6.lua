@@ -61,6 +61,7 @@
 --                                    PenaltyTimeHorizontalGate = <penalty time in seconds>               [optional]-- default: 2
 --                                    PenaltyTimeVerticalGate = <penalty time in seconds>                 [optional]-- default: 2
 --                                    PenaltyTimeInvertedGate = <penalty time in seconds>                 [optional]-- default: 2
+-- 									  PenaltyTimePenaltyZone = <penalty time in seconds>                  [optional]-- default: 2. This is the penalty for flying through a penalty zone, which is defined by trigger zones named "penalty-1", "penalty-2", etc. These zones can be used for things like keeping racers out of restricted areas, or adding extra challenge by placing them near gates.
 --                                    NumberMissedGatesDNF = <number of missed gates to trigger a DNF>    [optional]-- default: 999. Range 1 to 9999. Penalties at gates not counted.
 --                                    NumberPylonHitsDNF = <number of pylon hits to trigger a DNF>        [optional]-- default: 999. Range 1 to 9999. 
 --                                    StartSpeedLimit = <first gate speed limit in knots>                 [optional]-- default: 999
@@ -131,6 +132,7 @@ Player = {
 	IntermediateTimes = {{}},
 	LapTimes = {},
 	DNF = false,
+	PenaltyZoneFlag = 0,
 	PylonFlag = false,
 	Started = false,
 	Finished = false,
@@ -179,6 +181,7 @@ function Player:New(playerUnit)
 		IntermediateTimes = {{}},
 		LapTimes = {},
 		DNF = false,
+		PenaltyZoneFlag = 0,
 		PylonFlag = false,
 		Started = false,
 		Finished = false,
@@ -259,6 +262,7 @@ function Player:StartTimer()
 		self.IntermediateTimes = {{}}
 		self.LapTimes = {}
 		self.DNF = false
+		self.PenaltyZoneFlag = 0
 		self.PylonFlag = false
 		self.Started = true
 		self.Finished = false
@@ -361,6 +365,7 @@ Airrace = {
     DistanceUnits = "ft",
 	RaceZones = {},
 	DNFZones = {},
+	PenaltyZones = {},
 	Course = {},
 	Players = {},
 	FastestTime = 0,
@@ -389,6 +394,7 @@ Airrace = {
 	PenaltyTimeHorizontalGate = 2,
 	PenaltyTimeVerticalGate = 2,
 	PenaltyTimeInvertedGate = 2,
+	PenaltyTimePenaltyZone = 2,
 	NumberMissedGatesDNF = 999,
 	NumberPylonHitsDNF = 999,
 	MessageLogged = false,
@@ -426,9 +432,9 @@ Airrace = {
 --                             covering the entire race course
 -- Parameter course          : A reference to the Course object containing all the gates
 --
-function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, triggerZonesDNF, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
+function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, triggerZonesDNF, triggerZonesPenalty, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
 						startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, killBonus, bonusTimeKill, allowFraticide,
-                        penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate,
+                        penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate,	penaltyTimeInvertedGate, penaltyTimePenaltyZone,
                         numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, paceRequireRightLineAbreast, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
 						illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
 	local obj = {
@@ -436,6 +442,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		RaceZones = triggerZoneNames,
 		PylonZones = triggerZonePylonNames,
 		DNFZones = triggerZonesDNF,
+		PenaltyZones = triggerZonesPenalty,
 		Course = course,
 		Players = {},
 		FastestTime = 0,
@@ -461,6 +468,7 @@ function Airrace:New(distanceUnits, triggerZoneNames, triggerZonePylonNames, tri
 		PenaltyTimeHorizontalGate = penaltyTimeHorizontalGate,
 		PenaltyTimeVerticalGate = penaltyTimeVerticalGate,
 		PenaltyTimeInvertedGate = penaltyTimeInvertedGate,
+		PenaltyTimePenaltyZone = penaltyTimePenaltyZone,
 		NumberMissedGatesDNF = numberMissedGatesDNF,
 		NumberPylonHitsDNF = numberPylonHitsDNF,
 		StartSpeedLimit = startSpeedLimit,
@@ -846,6 +854,7 @@ function Airrace:GetGateNumberForPlayer(player)
 		local playersInsideZone = mist.getUnitsInZones(playerUnitTable, { gateName })
 		if #playersInsideZone > 0 then
 			result = gateIndex
+			player.PenaltyZoneFlag = 0 --reset this flag in case the player was previously in a penalty zone, so that if he re-enters the penalty zone it will trigger again
 			break
 		end
 	end
@@ -867,6 +876,7 @@ function Airrace:CheckPylonHitForPlayer(player)
 				player.Penalty = player.Penalty + self.PenaltyTimePylonHit
 				player.HitPylon = player.HitPylon + 1
 				player.PylonFlag = true
+				player.PenaltyZoneFlag = 0 --reset this flag in case the player was previously in a penalty zone, so that if he re-enters the penalty zone it will trigger again
 				env.info(string.format("%s hit a pylon! This is hit number %d for this racer", player.Name, player.HitPylon))
 			end
 			if player.HitPylon >= self.NumberPylonHitsDNF then
@@ -888,9 +898,26 @@ function Airrace:CheckDNFZone(player)
 		if #playersInsideZone > 0 then
 			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
 			player.DNF = true
+			player.PenaltyZoneFlag = 0 --reset this flag in case the player was previously in a penalty zone, so that if he re-enters the penalty zone it will trigger again
 			self:ShowBreadCrumbs(player)
 			player.StatusText = string.format("DNF! | You entered a restricted area")
 			env.info(string.format("%s entered restricted zone DNF-%d. DNF!", player.Name, DNFIndex))
+			break
+		end
+	end
+end
+----------------------------------------------------------------------------------------- 
+-- Check if the player is in a Penalty zone
+function Airrace:CheckPenaltyZone(player)
+	local playerUnitTable = mist.makeUnitTable( { player.UnitName } )
+	for PenaltyIndex, PenaltyName in ipairs(self.PenaltyZones) do
+		local playersInsideZone = mist.getUnitsInZones(playerUnitTable, { PenaltyName })
+		if #playersInsideZone > 0 and player.PenaltyZoneFlag ~= PenaltyIndex then
+			trigger.action.outSoundForUnit(player.UnitID, 'penalty.ogg')
+			warnPlayer(string.format("You entered a penalty zone! Penalty: %s sec.", string.format("%.2f", self.PenaltyTimePenaltyZone):gsub("%.00$",""):gsub("(%..-)0+$", "%1")), player)
+			player.Penalty = player.Penalty + self.PenaltyTimePenaltyZone
+			player.PenaltyZoneFlag = PenaltyIndex --this flag prevents multiple penalties for the same zone. It will be reset when the player hits another zone
+			env.info(string.format("%s entered penalty zone, penalty-%d.", player.Name, PenaltyIndex))
 			break
 		end
 	end
@@ -2012,10 +2039,13 @@ function Airrace:ListPlayers()
 		--If the race is still going on... (Group and individual races...)
 		if trigger.misc.getUserFlag("GroupRaceFinished") == 0 then
 
-		--Check if any players are in the DNF zones
+		--Check if any players are in the DNF or penalty zones
 			if trigger.misc.getUserFlag("GroupRaceStarted") == 1 then
 				for playerIndex, player in ipairs(self.Players) do
-					if player.DNF == false then self:CheckDNFZone(player) end
+					if player.DNF == false then 
+						self:CheckDNFZone(player)
+						self:CheckPenaltyZone(player)							
+					end
 				end	
 			end
 
@@ -2396,6 +2426,7 @@ function Init()
 	local raceZones = {}
 	local racePylons = {}
 	local DNFZones = {}
+	local PenaltyZones = {}
 	local horizontalGates = HorizontalGates or {1}
 	local verticalGates = VerticalGates or {}
 	local invertedGates = InvertedGates or {}
@@ -2421,6 +2452,7 @@ function Init()
 	local penaltyTimeHorizontalGate = PenaltyTimeHorizontalGate or 2
 	local penaltyTimeVerticalGate = PenaltyTimeVerticalGate or 2
 	local penaltyTimeInvertedGate = penaltyTimeInvertedGate or 2
+	local penaltyTimePenaltyZone = PenaltyTimePenaltyZone or 2
 	local numberMissedGatesDNF = NumberMissedGatesDNF or 999
 	local numberPylonHitsDNF = NumberPylonHitsDNF or 999
 	local groupRace = GroupRace
@@ -2450,6 +2482,7 @@ function Init()
 	local numberGates = countZones("gate")
 	local numberPylons = countZones("pylon")
 	local numberDNFZones = countZones("DNF")
+	local numberPenaltyZones = countZones("penalty")
 	IlluminationNumberZones = countZones("illum")
 	NumberFireworksZones = countZones("fireworks")
 	NumberFireworksStartZones = countZones("fireworks-start")
@@ -2551,6 +2584,9 @@ function Init()
 		for idx = 1, numberDNFZones do
 			table.insert(DNFZones, string.format("DNF-%d", idx))
 		end
+		for idx = 1, numberPenaltyZones do
+			table.insert(PenaltyZones, string.format("penalty-%d", idx))
+		end
 		for idx = 1, numberGates do
 			course:AddGate(idx)
 		end
@@ -2575,9 +2611,9 @@ function Init()
 			end
 		end			
 
-		race = Airrace:New(distanceUnits, raceZones, racePylons, DNFZones, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
+		race = Airrace:New(distanceUnits, raceZones, racePylons, DNFZones, PenaltyZones, course, gateHeight, customGateHeights, horizontalGates, verticalGates, invertedGates, raceZoneCeiling, 
                             startSpeedLimit, bonusGates, bonusGateHeight, customBonusGateHeights, bonusTime, killBonus, bonusTimeKill, allowFraticide,
-							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate,
+							penaltyTimeMissedGate, penaltyTimePylonHit, penaltyTimeAboveGateHeight, penaltyTimeHorizontalGate, penaltyTimeVerticalGate, penaltyTimeInvertedGate, penaltyTimePenaltyZone,
 							numberMissedGatesDNF, numberPylonHitsDNF, numberLaps, groupRace, paceUnitName, paceRequireRightLineAbreast, fastestIntermediates, participantFilter, groupRaceTimeout, groupRaceEnforceAirspace,
 							illuminationOn, illuminationStartTime, illuminationStopTime, illuminationBrightness, illuminationAGL, fireworksZones, fireworksStartZones, fireworksEndZones, autoDraw, plotRaceLines, saveData, saveFilename)
 
