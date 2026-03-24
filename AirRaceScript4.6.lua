@@ -1121,7 +1121,6 @@ end
 -- Illumination flares for night racing
 function Airrace:NightRaceIllumination()
 	local missionTime = (timer.getTime() + timer.getTime0()) % 86400
-	env.info("Debug: missionTime = " .. missionTime) --debug
 	if missionTime >= self.IlluminationStartTime or missionTime <= self.IlluminationStopTime then
 		for gate = 1, #self.Course.Gates do
 			local gateZoneName = string.format("gate-%d", gate)
