@@ -1,7 +1,7 @@
 (Most recent items on top)
 -------------------------------------------------------------------------------------  
 AirRaceScript4.6  
-Changes by GTFreeFlyer, date TBD
+Changes by GTFreeFlyer, date April 6, 2026
 
 * Add option for kill bonus. Take out ground targets during the race and receive bonus time!
 * Add option to allow/prohibit fracticide for Mario Kart style races.
